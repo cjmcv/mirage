@@ -957,7 +957,7 @@ class PersistentKernel:
                 # self.kn_graph.register_task(tb_graph, "linear_cutlass_hopper")
             else:
                 self.kn_graph.register_task(tb_graph, "linear_swapAB_hopper")
-        elif self.target_cc == 80:
+        elif self.target_cc == 80 or self.target_cc == 89:
             self.kn_graph.register_task(tb_graph, "linear")
         else:
             assert False
@@ -991,7 +991,7 @@ class PersistentKernel:
                 self.kn_graph.register_task(tb_graph, "linear_swapAB_with_residual_hopper")
             else:
                 self.kn_graph.register_task(tb_graph, "linear_swapAB_with_residual_hopper")
-        elif self.target_cc == 80:
+        elif self.target_cc == 80 or self.target_cc == 89:
             self.kn_graph.register_task(tb_graph, "linear_with_residual")
         else:
             assert False
