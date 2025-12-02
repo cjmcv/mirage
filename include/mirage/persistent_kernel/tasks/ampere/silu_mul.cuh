@@ -28,6 +28,7 @@ __device__ __forceinline__ void silu_mul_task_impl(void const *input_ptr,
   T const *__restrict__ d_mul = static_cast<T const *>(input_ptr) + OUTPUT_SIZE;
   T *__restrict__ d_output = static_cast<T *>(output_ptr);
 
+  
 #pragma unroll
   for (int i = threadIdx.x; i < num_active_tokens * OUTPUT_SIZE;
        i += blockDim.x) {
@@ -37,6 +38,10 @@ __device__ __forceinline__ void silu_mul_task_impl(void const *input_ptr,
     T mul_val = d_mul[batch_idx * I_STRIDE + offset];
     d_output[batch_idx * O_STRIDE + offset] =
         T(input_val / (1.0f + expf(-input_val))) * mul_val;
+    
+    // if (batch_idx == 0 && i < 128) {
+    //   printf("(%d = %f, %f + %f, %d, %d, %d).\n", batch_idx, d_output[batch_idx * O_STRIDE + offset], input_val, mul_val, OUTPUT_SIZE, I_STRIDE, O_STRIDE);
+    // }
   }
 }
 

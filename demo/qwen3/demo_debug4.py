@@ -267,18 +267,18 @@ if __name__ == "__main__":
     ###############################################################
     mpk()
     
-    # warnup_iter = 100
-    # test_iter = 200
-    # for _ in range(warnup_iter):
-    #     mpk()
+    warnup_iter = 1000
+    test_iter = 2000
+    for _ in range(warnup_iter):
+        mpk()
         
-    # starter.record()
-    # for _ in range(test_iter):
-    #     mpk()
-    # ender.record()
-    # torch.cuda.synchronize()
-    # run_time = starter.elapsed_time(ender)
-    # print("Best muGraph run time (ms): ", run_time / test_iter)
+    starter.record()
+    for _ in range(test_iter):
+        mpk()
+    ender.record()
+    torch.cuda.synchronize()
+    run_time = starter.elapsed_time(ender)
+    print("mpk run time (ms): ", run_time / test_iter)
     # print("first 10 elements of out_torch:")
     # print(silu_mul_out_torch[0])
     # print(mlp_mid_torch[0])
