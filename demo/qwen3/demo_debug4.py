@@ -15,6 +15,10 @@ def silu(x, inplace=False):
         return x.mul_(torch.sigmoid(x))
     return x * torch.sigmoid(x)
 
+def silu_and_mul(x: torch.Tensor) -> torch.Tensor:
+    d = x.shape[-1] // 2
+    return torch.nn.functional.silu(x[..., :d]) * x[..., d:]
+    
 def test_torch_mlp2(x, w_gatedup, w_down_proj):
     import torch.nn.functional as F
     
@@ -24,22 +28,16 @@ def test_torch_mlp2(x, w_gatedup, w_down_proj):
     # mlp_out_torch = torch.zeros((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
     
     O1 = F.linear(x, w_gatedup)
-    
-    x1 = O1[:, :O1.shape[1]//2]
-    x2 = O1[:, O1.shape[1]//2:]
-    print(O1.shape, x1.shape, x2.shape)
-    D = torch.mul(silu(x1), x2)
+    # print("torch: ", O1[0])
+    # x1 = O1[:, O1.shape[1]//2:]
+    # x2 = O1[:, :O1.shape[1]//2]
+    # print(O1.shape, x1.shape, x2.shape)
+    D = silu_and_mul(O1)
+    # print("torch: ", D[0])
     O = F.linear(D, w_down_proj)
-    print("torch: ", O)
+    print("torch: ", O[0])
     
 if __name__ == "__main__":
-    batch_size = 1
-    hidden_size = 2560
-    intermediate_size = 9728
-    x_torch = torch.ones((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
-    w_gatedup_torch = torch.ones((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
-    w_down_proj_torch = torch.ones((hidden_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
-    test_torch_mlp2(x_torch, w_gatedup_torch, w_down_proj_torch)
     
     parser = argparse.ArgumentParser()
     parser.add_argument("--use-mirage", action="store_true", help="Use Mirage kernels")
@@ -209,24 +207,26 @@ if __name__ == "__main__":
     batch_size = 8
     hidden_size = 2560
     intermediate_size = 9728
-    # x_torch = torch.ones((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
-    # w_gatedup_torch = torch.ones((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
-    # w_down_proj_torch = torch.ones((hidden_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
+    x_torch = torch.randn((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
+    w_gatedup_torch = torch.randn((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
+    w_down_proj_torch = torch.randn((hidden_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
+    
+    x_torch2 = x_torch.clone()
+    w_gatedup_torch2 = w_gatedup_torch.clone()
+    w_down_proj_torch2 = w_down_proj_torch.clone()
+    
+    test_torch_mlp2(x_torch, w_gatedup_torch, w_down_proj_torch)
+    
     mlp_out_torch = torch.zeros((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
     
-    x = mpk.attach_input(torch_tensor=x_torch, name="in")
-    w_gatedup = mpk.attach_input(torch_tensor=w_gatedup_torch, name="w")
-    w_down_proj = mpk.attach_input(torch_tensor=w_down_proj_torch, name="w2")
+    x = mpk.attach_input(torch_tensor=x_torch2, name="in")
+    w_gatedup = mpk.attach_input(torch_tensor=w_gatedup_torch2, name="w")
+    w_down_proj = mpk.attach_input(torch_tensor=w_down_proj_torch2, name="w2")
     mlp_out = mpk.attach_input(torch_tensor=mlp_out_torch, name="mlp_out")
     
-    mlp_mid = mpk.new_tensor(
-        dims=(batch_size, intermediate_size*2),
-        dtype=mi.bfloat16,
-        name="mlp_mid",
-        io_category="cuda_tensor",
-    )
-    # mlp_out_torch = torch.zeros((batch_size, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
-    # mlp_mid = mpk.attach_input(torch_tensor=mlp_out_torch, name="mlp_out")
+    mlp_mid_torch = torch.zeros((batch_size, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
+    mlp_mid = mpk.attach_input(torch_tensor=mlp_mid_torch, name="mlp_mid")    
+    # mlp_mid = mpk.new_tensor(dims=(batch_size, intermediate_size*2), dtype=mi.bfloat16, name="mlp_mid", io_category="cuda_tensor")
     mpk.linear_layer(
         input=x,
         weight=w_gatedup,
@@ -239,16 +239,11 @@ if __name__ == "__main__":
     
     # silu_mul_out_torch = torch.zeros((batch_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
     # silu_mul_out = mpk.attach_input(torch_tensor=silu_mul_out_torch, name="silu_mul_out")
-    silu_mul_out = mpk.new_tensor(
-        dims=(batch_size, intermediate_size),
-        dtype=mi.bfloat16,
-        name="silu_mul_out",
-        io_category="cuda_tensor",
-    )
+    silu_mul_out = mpk.new_tensor(dims=(batch_size, intermediate_size), dtype=mi.bfloat16, name="silu_mul_out", io_category="cuda_tensor")
     mpk.silu_mul_layer(
         input=mlp_mid,
         output=silu_mul_out,
-        grid_dim=(128, 1, 1),
+        grid_dim=(1, 1, 1),
         block_dim=(128, 1, 1),
     )
     mpk.linear_layer(
@@ -270,23 +265,31 @@ if __name__ == "__main__":
     mpk.compile(output_dir=args.output_dir)
         
     ###############################################################
+    mpk()
     
-    warnup_iter = 100
-    test_iter = 200
-    for _ in range(warnup_iter):
-        mpk()
+    # warnup_iter = 100
+    # test_iter = 200
+    # for _ in range(warnup_iter):
+    #     mpk()
         
-    starter.record()
-    for _ in range(test_iter):
-        mpk()
-    ender.record()
-    torch.cuda.synchronize()
-    run_time = starter.elapsed_time(ender)
-    print("Best muGraph run time (ms): ", run_time / test_iter)
-    print("first 10 elements of out_torch:")
+    # starter.record()
+    # for _ in range(test_iter):
+    #     mpk()
+    # ender.record()
+    # torch.cuda.synchronize()
+    # run_time = starter.elapsed_time(ender)
+    # print("Best muGraph run time (ms): ", run_time / test_iter)
+    # print("first 10 elements of out_torch:")
+    # print(silu_mul_out_torch[0])
+    # print(mlp_mid_torch[0])
     print(mlp_out_torch[0])
 
     if world_size > 1:
         dist.destroy_process_group()
 
     # test_torch_mlp2()
+    
+    # pushd build && make -j8 && popd
+    # pip install -e . -v
+    # export MIRAGE_HOME=$(pwd)
+    # python demo/qwen3/demo_debug4.py --model=/home/cjmcv/project/llm_models/Qwen/Qwen3-0.6B --use-mirage
