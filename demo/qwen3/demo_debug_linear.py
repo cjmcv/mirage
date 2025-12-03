@@ -216,17 +216,19 @@ if __name__ == "__main__":
     mpk()
     torch.cuda.synchronize()
     
-    # A potential memory out-of-bounds issue has occurred, where part of the data in O1 was overwritten during the execution of mpk()
+    # £¡£¡£¡ A potential memory out-of-bounds issue has occurred, where part of the data in O1 was overwritten during the execution of mpk()
     print("torch: ", O1[0], "\nmpk: ", attn_in_torch[0], "\ndiff: ", O1[0] - attn_in_torch[0])
     print("allclose:", torch.allclose(attn_in_torch[0], O1[0], rtol=1e-2))
     
-    warnup_iter = 0
-    test_iter = 1
+    warnup_iter = 2
+    test_iter = 2
     for _ in range(warnup_iter):
+        mpk.reinitialize()
         mpk()
         
     starter.record()
     for _ in range(test_iter):
+        mpk.reinitialize()
         mpk()
     ender.record()
     torch.cuda.synchronize()

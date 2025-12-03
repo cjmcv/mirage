@@ -1294,23 +1294,26 @@ class PersistentKernel:
         output_dir = kwargs.get("output_dir", None)
 
         MIRAGE_ROOT, INCLUDE_PATH, DEPS_PATH = get_key_paths()
-        tempdir_obj = tempfile.TemporaryDirectory()
-        tempdir = tempdir_obj.name
+        # tempdir_obj = tempfile.TemporaryDirectory()
+        tempdir = "./gen/" # tempdir_obj.name
         results = self.kn_graph.generate_task_graph(num_gpus=self.world_size, my_gpu_id=self.mpi_rank)
 
         cuda_code_path = os.path.join(tempdir, "test.cu")
         so_path = os.path.join(tempdir, "test.cpython-38-x86_64-linux-gnu.so")
-        # check json file
-        json_file_path = os.path.join(tempdir, "task_graph.json")
-        with open(json_file_path, "w") as f:
-            f.write(results["json_file"])
-        with open(cuda_code_path, "w") as f:
-            f.write(results["cuda_code"] + HARD_CODE)
-            
-        if output_dir is not None:
-            os.makedirs(output_dir, exist_ok=True)
-            shutil.copy(cuda_code_path, os.path.join(output_dir, f"test_rank{self.mpi_rank}.cu"))
-            shutil.copy(json_file_path, os.path.join(output_dir, f"task_graph_rank{self.mpi_rank}.json"))
+        
+        GENERATE_NEW_CUDA_CODE = False
+        if GENERATE_NEW_CUDA_CODE:
+            # check json file
+            json_file_path = os.path.join(tempdir, "task_graph.json")
+            with open(json_file_path, "w") as f:
+                f.write(results["json_file"])
+            with open(cuda_code_path, "w") as f:
+                f.write(results["cuda_code"] + HARD_CODE)
+                
+            if output_dir is not None:
+                os.makedirs(output_dir, exist_ok=True)
+                shutil.copy(cuda_code_path, os.path.join(output_dir, f"test_rank{self.mpi_rank}.cu"))
+                shutil.copy(json_file_path, os.path.join(output_dir, f"task_graph_rank{self.mpi_rank}.json"))
 
         cc = shutil.which("nvcc")
         if cc is None:
@@ -1469,6 +1472,34 @@ class PersistentKernel:
 
         # self.call_func = getattr(mod, "call_func")
 
+    def reinitialize(self):
+        meta_tensors = list()
+        meta_tensors.append(self.meta_tensors["step"])
+        meta_tensors.append(self.meta_tensors["tokens"])
+        meta_tensors.append(self.meta_tensors["input_tokens"])
+        meta_tensors.append(self.meta_tensors["output_tokens"])
+        meta_tensors.append(self.meta_tensors["num_new_tokens"])
+        meta_tensors.append(self.meta_tensors["prompt_lengths"])
+        meta_tensors.append(self.meta_tensors["qo_indptr_buffer"])
+        meta_tensors.append(self.meta_tensors["paged_kv_indptr_buffer"])
+        meta_tensors.append(self.meta_tensors["paged_kv_indices_buffer"])
+        meta_tensors.append(self.meta_tensors["paged_kv_last_page_len_buffer"])
+        meta_tensors_ptr = [tensor.data_ptr() for tensor in meta_tensors]
+        profiler_buffer_ptr = (
+            self.profiler_tensor.data_ptr() if self.profiler_tensor is not None else 0
+        )
+        self.init_func(
+            meta_tensors_ptr,
+            profiler_buffer_ptr,
+            self.mpi_rank,
+            self.num_workers,
+            self.num_local_schedulers,
+            self.num_remote_schedulers,
+            self.max_seq_length,
+            self.total_num_requests,
+            self.eos_token_id,
+        )
+        
     def __call__(self, **kwargs):
         # stream = kwargs.get("stream", None)
         # if stream is None:

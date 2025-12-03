@@ -207,14 +207,14 @@ __device__ __forceinline__ bool
         }
       }
       config.step[request_id] = step + num_tokens;
-#ifdef MPK_ENABLE_PROFILING
+// #ifdef MPK_ENABLE_PROFILING
       if (true) {
-#else
-      if ((step + num_tokens + 1 >= config.max_seq_length) ||
-          ((config.tokens[request_id * MPK_MAX_SEQ_LENGTH + step +
-                          num_tokens] == config.eos_token_id) &&
-           (step + num_tokens >= prompt_len))) {
-#endif
+// #else
+//       if ((step + num_tokens + 1 >= config.max_seq_length) ||
+//           ((config.tokens[request_id * MPK_MAX_SEQ_LENGTH + step +
+//                           num_tokens] == config.eos_token_id) &&
+//            (step + num_tokens >= prompt_len))) {
+// #endif
         // Request is done
         config.request_ids[i] = -1;
         // Free pages
@@ -1296,8 +1296,8 @@ extern "C" void launch_persistent_kernel() {
   int num_schedulers = global_runtime_config.num_local_schedulers +
                        global_runtime_config.num_remote_schedulers;
   if (global_runtime_config.split_worker_scheduler) {
-    printf("worker kernel & scheduler kernel\n");
-    printf("smem size: %d\n", MAX_DYNAMIC_SHARED_MEMORY_SIZE);
+    // printf("worker kernel & scheduler kernel\n");
+    // printf("smem size: %d\n", MAX_DYNAMIC_SHARED_MEMORY_SIZE);
 
     // The split kernel does not support NVSHMEM because
     // nvshmemx_collective_launch launches kernels sequentially, which blocks
@@ -1318,7 +1318,7 @@ extern "C" void launch_persistent_kernel() {
     if (err != cudaSuccess) {
       printf("CUDA kernel launch error: %s\n", cudaGetErrorString(err));
     }
-    printf("Finished Launch Persistent Kernel\n");
+    // printf("Finished Launch Persistent Kernel\n");
   } else {
     printf("a single persistent kernel\n");
     int num_sms_to_use = global_runtime_config.num_workers + num_schedulers / 4;

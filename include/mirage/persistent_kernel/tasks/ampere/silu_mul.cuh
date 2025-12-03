@@ -39,7 +39,7 @@ __device__ __forceinline__ void silu_mul_task_impl(void const *input_ptr,
     d_output[batch_idx * O_STRIDE + offset] =
         T(input_val / (1.0f + expf(-input_val))) * mul_val;
     
-    // if (batch_idx == 0 && i < 128) {
+    // if (batch_idx == 0 && i == 0) {
     //   printf("(%d = %f, %f + %f, %d, %d, %d).\n", batch_idx, d_output[batch_idx * O_STRIDE + offset], input_val, mul_val, OUTPUT_SIZE, I_STRIDE, O_STRIDE);
     // }
   }

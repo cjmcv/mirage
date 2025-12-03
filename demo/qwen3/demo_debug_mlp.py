@@ -209,7 +209,7 @@ if __name__ == "__main__":
         output=mlp_mid,
         # grid_dim=(96, 1, 1),
         # grid_dim=(128, 1, 1),
-        grid_dim=(64, 1, 1),
+        grid_dim=(8, 1, 1),  # (64, 1, 1)
         block_dim=(128, 1, 1),
     )
     
@@ -228,46 +228,63 @@ if __name__ == "__main__":
         output=mlp_out,
         # grid_dim=(96, 1, 1),
         # grid_dim=(128, 1, 1),
-        grid_dim=(64, 1, 1),
+        grid_dim=(8, 1, 1), # (64, 1, 1)
         block_dim=(128, 1, 1),
     )
     mpk.compile(output_dir=args.output_dir)
-        
+  
+  
+    ###
+    for _ in range(200):
+        test_torch_mlp2(x_torch, w_gatedup_torch, w_down_proj_torch)
+    ###
+    
     ###############################################################
     mpk()
-    print("mpk: ", mlp_out_torch[0])
+    # print("mpk: ", mlp_out_torch[0])
     torch_out = test_torch_mlp2(x_torch, w_gatedup_torch, w_down_proj_torch)
-    print("torch: ", torch_out[0])
+    # print("torch: ", torch_out[0])
     print("allclose: ", torch.allclose(mlp_out_torch[0], torch_out[0], rtol=1e-2))
+    
+    for _ in range(5):
+        mlp_out_torch.zero_()
+        print("allclose clear: ", torch.allclose(mlp_out_torch[0], torch_out[0], rtol=1e-2))
+        mpk.reinitialize()
+        mpk()
+        print("allclose: ", torch.allclose(mlp_out_torch[0], torch_out[0], rtol=1e-2))
     ###############################################################
     
-    # warnup_iter = 100
-    # test_iter = 200
-    # for _ in range(warnup_iter):
-    #     mpk()
+    warnup_iter = 100
+    test_iter = 200
+    for _ in range(warnup_iter):
+        mpk.reinitialize()
+        mpk()
         
-    # starter.record()
-    # for _ in range(test_iter):
-    #     mpk()
-    # ender.record()
-    # torch.cuda.synchronize()
-    # run_time = starter.elapsed_time(ender)
-    # print("MPK run time (ms): ", run_time / test_iter)
-    # ##
-    # starter.record()
-    # for _ in range(test_iter):
-    #     test_torch_mlp2(x_torch, w_gatedup_torch, w_down_proj_torch)
-    # ender.record()
-    # torch.cuda.synchronize()
-    # run_time = starter.elapsed_time(ender)
-    # print("torch run time (ms): ", run_time / test_iter)
+    starter.record()
+    for _ in range(test_iter):
+        mpk.reinitialize()
+        mpk()
+    ender.record()
+    torch.cuda.synchronize()
+    run_time = starter.elapsed_time(ender)
+    print("MPK run time (ms): ", run_time / test_iter)
+    ##
+    starter.record()
+    for _ in range(test_iter):
+        test_torch_mlp2(x_torch, w_gatedup_torch, w_down_proj_torch)
+    ender.record()
+    torch.cuda.synchronize()
+    run_time = starter.elapsed_time(ender)
+    print("torch run time (ms): ", run_time / test_iter)
 
     ##########################################################
     
     # pushd build && make -j8 && popd
+    
+    # git clone --recursive https://www.github.com/mirage-project/mirage
     # pip install -e . -v
     # export MIRAGE_HOME=$(pwd)
-    # python demo/qwen3/demo_debug4.py --model=/home/cjmcv/project/llm_models/Qwen/Qwen3-0.6B --use-mirage
+    # python demo/qwen3/demo_debug_mlp.py --model=/home/cjmcv/project/llm_models/Qwen/Qwen3-0.6B --use-mirage
     # --profiling https://ui.perfetto.dev/
     
     # nsys profile --trace=cuda,nvtx --output=my_nsys
