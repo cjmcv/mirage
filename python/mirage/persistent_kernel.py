@@ -1301,7 +1301,7 @@ class PersistentKernel:
         cuda_code_path = os.path.join(tempdir, "test.cu")
         so_path = os.path.join(tempdir, "test.cpython-38-x86_64-linux-gnu.so")
         
-        GENERATE_NEW_CUDA_CODE = True
+        GENERATE_NEW_CUDA_CODE = False
         if GENERATE_NEW_CUDA_CODE:
             # check json file
             json_file_path = os.path.join(tempdir, "task_graph.json")

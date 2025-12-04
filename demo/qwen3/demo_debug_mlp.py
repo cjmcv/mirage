@@ -24,15 +24,14 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
     parser.add_argument("--use-mirage", action="store_true", help="Use Mirage kernels")
-    parser.add_argument("--max-num-batched-tokens", default=8, type=int, help="Max number of tokens in a batch")
+    parser.add_argument("--max-num-batched-tokens", default=1, type=int, help="Max number of tokens in a batch")
     parser.add_argument("--max-num-batched-requests", default=1, type=int, help="Max number of requests in a batch")
     parser.add_argument("--page-size", default=4096, type=int, help="Page size")
     parser.add_argument("--max-num-pages", default=16, type=int, help="Max num pages")
     parser.add_argument("--output-dir", default="./gen", help="Output files directory")
     parser.add_argument("--trace-name", default="qwen3", help="Perfetto trace output name")
-    parser.add_argument(
-        "--profiling", action="store_true", help="Use Profiler to generate trace"
-    )
+    parser.add_argument("--profiling", action="store_true", help="Use Profiler to generate trace")
+    
     # lookahead or promptlookup
     parser.add_argument(
         "--spec-decode",
@@ -66,7 +65,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     world_size = 1
     rank = 0
-
 
     global print
     if rank != 0:
@@ -126,9 +124,6 @@ if __name__ == "__main__":
     input_tokens = torch.full((args.max_num_batched_tokens, 1), 0, dtype=torch.long, device="cuda")
     output_tokens = torch.full((args.max_num_batched_tokens, 1), 0, dtype=torch.long, device="cuda")
 
-    starter, ender = torch.cuda.Event(enable_timing=True), torch.cuda.Event(
-        enable_timing=True
-    )
     step = torch.full((total_num_requests, ), 0, dtype=torch.int32, device="cuda")
     num_new_tokens = torch.full((total_num_requests, ), 1, dtype=torch.int32, device="cuda")
 
@@ -145,7 +140,7 @@ if __name__ == "__main__":
         spec_length=args.spec_length,
     )
         
-    num_workers, num_schedulers = mi.get_configurations_from_gpu(rank)
+    num_workers, num_schedulers = 15, 30 #mi.get_configurations_from_gpu(rank)
     print("num_workers: ", num_workers)
     print("num_schedulers: ", num_schedulers)
     qo_indptr_buffer = torch.empty(
@@ -209,7 +204,7 @@ if __name__ == "__main__":
         output=mlp_mid,
         # grid_dim=(96, 1, 1),
         # grid_dim=(128, 1, 1),
-        grid_dim=(8, 1, 1),  # (64, 1, 1)
+        grid_dim=(64, 1, 1),  # (64, 1, 1)
         block_dim=(128, 1, 1),
     )
     
@@ -228,14 +223,16 @@ if __name__ == "__main__":
         output=mlp_out,
         # grid_dim=(96, 1, 1),
         # grid_dim=(128, 1, 1),
-        grid_dim=(8, 1, 1), # (64, 1, 1)
+        grid_dim=(64, 1, 1), # (64, 1, 1)
         block_dim=(128, 1, 1),
     )
     mpk.compile(output_dir=args.output_dir)
   
   
     ###
-    for _ in range(200):
+    warnup_iter = 20
+    test_iter = 100
+    for _ in range(warnup_iter):
         test_torch_mlp2(x_torch, w_gatedup_torch, w_down_proj_torch)
     ###
     
@@ -253,12 +250,9 @@ if __name__ == "__main__":
         mpk()
         print("allclose: ", torch.allclose(mlp_out_torch[0], torch_out[0], rtol=1e-2))
     ###############################################################
-    
-    warnup_iter = 100
-    test_iter = 200
-    for _ in range(warnup_iter):
-        mpk.reinitialize()
-        mpk()
+        
+    starter = torch.cuda.Event(enable_timing=True)
+    ender = torch.cuda.Event(enable_timing=True)
         
     starter.record()
     for _ in range(test_iter):
@@ -277,6 +271,14 @@ if __name__ == "__main__":
     run_time = starter.elapsed_time(ender)
     print("torch run time (ms): ", run_time / test_iter)
 
+
+    from torch.profiler import profile, ProfilerActivity
+    if 1:
+        with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
+            mpk.reinitialize()
+            mpk()
+        print(prof.key_averages().table(sort_by="cuda_time_total"))
+        prof.export_chrome_trace("trace.json") # chrome://tracing/
     ##########################################################
     
     # pushd build && make -j8 && popd
