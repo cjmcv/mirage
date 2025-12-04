@@ -20,10 +20,10 @@ HARD_CODE = """
 static PyObject *init_func(PyObject *self, PyObject *args) {
   PyObject *meta_list, *py_profiler_buffer;
   std::vector<void*> meta_tensors;
-  int my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers, max_seq_length, total_num_requests;
+  int my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers, total_num_requests;
   void *profiler_buffer;
 
-  if (!PyArg_ParseTuple(args, "OOiiiiii", &meta_list, &py_profiler_buffer, &my_mpi_rank, &num_workers, &num_local_schedulers, &num_remote_schedulers, &max_seq_length, &total_num_requests)) {
+  if (!PyArg_ParseTuple(args, "OOiiiii", &meta_list, &py_profiler_buffer, &my_mpi_rank, &num_workers, &num_local_schedulers, &num_remote_schedulers, &total_num_requests)) {
     PyErr_SetString(PyExc_TypeError, "Invalid parameters");
     return NULL;
   }
@@ -46,7 +46,7 @@ static PyObject *init_func(PyObject *self, PyObject *args) {
   }
   profiler_buffer = PyLong_AsVoidPtr(py_profiler_buffer);
 
-  init_persistent_kernel(meta_tensors, profiler_buffer, my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers, max_seq_length, total_num_requests);
+  init_persistent_kernel(meta_tensors, profiler_buffer, my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers, total_num_requests);
 
   Py_RETURN_NONE;
 }
@@ -170,9 +170,9 @@ def get_compile_command(
 
     flags = flags + [f"-DMPK_MAX_NUM_BATCHED_REQUESTS={mpk.max_num_batched_requests}"]
     flags = flags + [f"-DMPK_MAX_NUM_BATCHED_TOKENS={mpk.max_num_batched_tokens}"]
-    flags = flags + [f"-DMPK_MAX_NUM_PAGES={mpk.max_num_pages}"]
-    flags = flags + [f"-DMPK_PAGE_SIZE={mpk.page_size}"]
-    flags = flags + [f"-DMPK_MAX_SEQ_LENGTH={mpk.max_seq_length}"]
+    # flags = flags + [f"-DMPK_MAX_NUM_PAGES={mpk.max_num_pages}"]
+    # flags = flags + [f"-DMPK_PAGE_SIZE={mpk.page_size}"]
+    # flags = flags + [f"-DMPK_MAX_SEQ_LENGTH={mpk.max_seq_length}"]
     # Use when debugging
     # flags = flags + [f"-DMPK_ENABLE_VERBOSE"]
 
@@ -222,11 +222,8 @@ class PersistentKernel:
         num_workers: int,
         num_local_schedulers: int,
         num_remote_schedulers: int,
-        max_seq_length: int,
         max_num_batched_requests: int,
         max_num_batched_tokens: int,
-        max_num_pages: int,
-        page_size: int,
         meta_tensors: dict,
         profiler_tensor: torch.Tensor,
         trace_name: str,
@@ -243,11 +240,8 @@ class PersistentKernel:
         self.num_workers = num_workers
         self.num_local_schedulers = num_local_schedulers
         self.num_remote_schedulers = num_remote_schedulers
-        self.max_seq_length = max_seq_length
         self.max_num_batched_requests = max_num_batched_requests
         self.max_num_batched_tokens = max_num_batched_tokens
-        self.max_num_pages = max_num_pages
-        self.page_size = page_size
         self.kn_graph = KNGraph(CyKNGraph(disable_fingerprint=True))
         self.meta_tensors = meta_tensors
         self.profiler_tensor = profiler_tensor
@@ -517,214 +511,214 @@ class PersistentKernel:
         )
         self.kn_graph.register_task(tb_graph, "single_batch_extend_attention", params)
 
-    def paged_attention_layer(
-        self,
-        input: DTensor,
-        k_cache: DTensor,
-        v_cache: DTensor,
-        q_norm: DTensor,
-        k_norm: DTensor,
-        cos_pos_embed: DTensor,
-        sin_pos_embed: DTensor,
-        output: DTensor,
-        grid_dim: tuple,
-        block_dim: tuple,
-    ):
-        # Currently assume that input/output
-        assert input.num_dims == 2  # (num_tokens, fused_outdim / world_size)
-        assert output.num_dims == 2  # (num_tokens, hidden_size / world_size)
-        assert k_cache.num_dims == 4  # (num_pages, page_size, kv_heads, head_dim)
-        assert v_cache.num_dims == 4  # (num_pages, page_size, kv_heads, head_dim)
-        assert k_cache.dim(0) == self.max_num_pages
-        assert v_cache.dim(0) == self.max_num_pages
-        assert k_cache.dim(1) == self.page_size
-        assert v_cache.dim(1) == self.page_size
-        head_dim = k_cache.dim(3)
-        num_kv_heads = k_cache.dim(2)
-        num_q_heads = output.dim(1) // head_dim
-        rotary_embed = 0
-        if cos_pos_embed is not None or sin_pos_embed is not None:
-            assert cos_pos_embed.num_dims == 2  # (seq_len, head_dim)
-            assert sin_pos_embed.num_dims == 2  # (seq_len, head_dim)
-            assert cos_pos_embed.dim(1) == head_dim
-            assert sin_pos_embed.dim(1) == head_dim
-            rotary_embed = 1
-        qk_norm = 0
-        if q_norm is not None or k_norm is not None:
-            assert q_norm.num_dims == 1  # (head_dim)
-            assert k_norm.num_dims == 1  # (head_dim)
-            qk_norm = 1
-            assert q_norm.dim(0) == head_dim
-            assert k_norm.dim(0) == head_dim
+    # def paged_attention_layer(
+    #     self,
+    #     input: DTensor,
+    #     k_cache: DTensor,
+    #     v_cache: DTensor,
+    #     q_norm: DTensor,
+    #     k_norm: DTensor,
+    #     cos_pos_embed: DTensor,
+    #     sin_pos_embed: DTensor,
+    #     output: DTensor,
+    #     grid_dim: tuple,
+    #     block_dim: tuple,
+    # ):
+    #     # Currently assume that input/output
+    #     assert input.num_dims == 2  # (num_tokens, fused_outdim / world_size)
+    #     assert output.num_dims == 2  # (num_tokens, hidden_size / world_size)
+    #     assert k_cache.num_dims == 4  # (num_pages, page_size, kv_heads, head_dim)
+    #     assert v_cache.num_dims == 4  # (num_pages, page_size, kv_heads, head_dim)
+    #     assert k_cache.dim(0) == self.max_num_pages
+    #     assert v_cache.dim(0) == self.max_num_pages
+    #     assert k_cache.dim(1) == self.page_size
+    #     assert v_cache.dim(1) == self.page_size
+    #     head_dim = k_cache.dim(3)
+    #     num_kv_heads = k_cache.dim(2)
+    #     num_q_heads = output.dim(1) // head_dim
+    #     rotary_embed = 0
+    #     if cos_pos_embed is not None or sin_pos_embed is not None:
+    #         assert cos_pos_embed.num_dims == 2  # (seq_len, head_dim)
+    #         assert sin_pos_embed.num_dims == 2  # (seq_len, head_dim)
+    #         assert cos_pos_embed.dim(1) == head_dim
+    #         assert sin_pos_embed.dim(1) == head_dim
+    #         rotary_embed = 1
+    #     qk_norm = 0
+    #     if q_norm is not None or k_norm is not None:
+    #         assert q_norm.num_dims == 1  # (head_dim)
+    #         assert k_norm.num_dims == 1  # (head_dim)
+    #         qk_norm = 1
+    #         assert q_norm.dim(0) == head_dim
+    #         assert k_norm.dim(0) == head_dim
 
-        # params[0]: num_q_heads
-        # params[1]: num_kv_heads
-        # params[2]: qk_norm
-        # params[3]: rotary_embed
-        # params[4]: max_seq_len
-        # params[5]: page_size
-        params = [num_q_heads, num_kv_heads, qk_norm, rotary_embed, self.max_seq_length, self.page_size]
+    #     # params[0]: num_q_heads
+    #     # params[1]: num_kv_heads
+    #     # params[2]: qk_norm
+    #     # params[3]: rotary_embed
+    #     # params[4]: max_seq_len
+    #     # params[5]: page_size
+    #     params = [num_q_heads, num_kv_heads, qk_norm, rotary_embed, self.max_seq_length, self.page_size]
 
-        tb_graph = TBGraph(CyTBGraph(grid_dim, block_dim, 1, 64))
-        assert grid_dim[0] == self.max_num_batched_requests
-        assert grid_dim[1] == num_kv_heads
-        tb_graph.new_input(input, (-1, 1, -1), -1, True)
-        tb_graph.new_input(k_cache, (-1, 2, -1), 1, True)
-        tb_graph.new_input(v_cache, (-1, 2, -1), 1, True)
-        tb_graph.new_input(q_norm, (-1, -1, -1), -1, True)
-        tb_graph.new_input(k_norm, (-1, -1, -1), -1, True)
-        tb_graph.new_input(cos_pos_embed, (-1, -1, -1), -1, True)
-        tb_graph.new_input(sin_pos_embed, (-1, -1, -1), -1, True)
-        tb_graph.new_input(output, (-1, 1, -1), -1, True)
-        self.kn_graph.customized(
-            [
-                input,
-                k_cache,
-                v_cache,
-                q_norm,
-                k_norm,
-                cos_pos_embed,
-                sin_pos_embed,
-                output,
-            ],
-            tb_graph,
-        )
-        if self.target_cc == 90:
-            self.kn_graph.register_task(tb_graph, "paged_attention_hopper", params)
-        elif self.target_cc == 100:
-            self.kn_graph.register_task(tb_graph, "paged_attention_sm100", params)
-        else:
-            self.kn_graph.register_task(tb_graph, "paged_attention", params)
+    #     tb_graph = TBGraph(CyTBGraph(grid_dim, block_dim, 1, 64))
+    #     assert grid_dim[0] == self.max_num_batched_requests
+    #     assert grid_dim[1] == num_kv_heads
+    #     tb_graph.new_input(input, (-1, 1, -1), -1, True)
+    #     tb_graph.new_input(k_cache, (-1, 2, -1), 1, True)
+    #     tb_graph.new_input(v_cache, (-1, 2, -1), 1, True)
+    #     tb_graph.new_input(q_norm, (-1, -1, -1), -1, True)
+    #     tb_graph.new_input(k_norm, (-1, -1, -1), -1, True)
+    #     tb_graph.new_input(cos_pos_embed, (-1, -1, -1), -1, True)
+    #     tb_graph.new_input(sin_pos_embed, (-1, -1, -1), -1, True)
+    #     tb_graph.new_input(output, (-1, 1, -1), -1, True)
+    #     self.kn_graph.customized(
+    #         [
+    #             input,
+    #             k_cache,
+    #             v_cache,
+    #             q_norm,
+    #             k_norm,
+    #             cos_pos_embed,
+    #             sin_pos_embed,
+    #             output,
+    #         ],
+    #         tb_graph,
+    #     )
+    #     if self.target_cc == 90:
+    #         self.kn_graph.register_task(tb_graph, "paged_attention_hopper", params)
+    #     elif self.target_cc == 100:
+    #         self.kn_graph.register_task(tb_graph, "paged_attention_sm100", params)
+    #     else:
+    #         self.kn_graph.register_task(tb_graph, "paged_attention", params)
 
     
-    def paged_attention_split_kv_layer(
-        self,
-        input: DTensor,
-        k_cache: DTensor,
-        v_cache: DTensor,
-        q_norm: DTensor,
-        k_norm: DTensor,
-        cos_pos_embed: DTensor,
-        sin_pos_embed: DTensor,
-        lse: DTensor,
-        output: DTensor,
-        attention_params: tuple,
-        grid_dim: tuple,
-        block_dim: tuple,
-    ):
-        # Currently assume that input/output
-        assert input.num_dims == 2  # (num_tokens, fused_outdim / world_size)
-        assert k_cache.num_dims == 4  # (num_pages, page_size, kv_heads, head_dim)
-        assert v_cache.num_dims == 4  # (num_pages, page_size, kv_heads, head_dim)
-        assert k_cache.dim(0) == self.max_num_pages
-        assert v_cache.dim(0) == self.max_num_pages
-        assert k_cache.dim(1) == self.page_size
-        assert v_cache.dim(1) == self.page_size
-        assert output.num_dims == 3  # (num_tokens, num_kv_chunks * num_qo_per_kv * head_dim / world_size, num_kv_heads)
-        assert lse.num_dims == 3  # (num_tokens, num_kv_chunks * num_qo_per_kv / world_size, num_kv_heads)
+    # def paged_attention_split_kv_layer(
+    #     self,
+    #     input: DTensor,
+    #     k_cache: DTensor,
+    #     v_cache: DTensor,
+    #     q_norm: DTensor,
+    #     k_norm: DTensor,
+    #     cos_pos_embed: DTensor,
+    #     sin_pos_embed: DTensor,
+    #     lse: DTensor,
+    #     output: DTensor,
+    #     attention_params: tuple,
+    #     grid_dim: tuple,
+    #     block_dim: tuple,
+    # ):
+    #     # Currently assume that input/output
+    #     assert input.num_dims == 2  # (num_tokens, fused_outdim / world_size)
+    #     assert k_cache.num_dims == 4  # (num_pages, page_size, kv_heads, head_dim)
+    #     assert v_cache.num_dims == 4  # (num_pages, page_size, kv_heads, head_dim)
+    #     assert k_cache.dim(0) == self.max_num_pages
+    #     assert v_cache.dim(0) == self.max_num_pages
+    #     assert k_cache.dim(1) == self.page_size
+    #     assert v_cache.dim(1) == self.page_size
+    #     assert output.num_dims == 3  # (num_tokens, num_kv_chunks * num_qo_per_kv * head_dim / world_size, num_kv_heads)
+    #     assert lse.num_dims == 3  # (num_tokens, num_kv_chunks * num_qo_per_kv / world_size, num_kv_heads)
 
-        head_dim = k_cache.dim(3)
-        num_kv_heads = k_cache.dim(2)
-        num_q_heads = attention_params[0]
-        num_kv_chunks = attention_params[1]
+    #     head_dim = k_cache.dim(3)
+    #     num_kv_heads = k_cache.dim(2)
+    #     num_q_heads = attention_params[0]
+    #     num_kv_chunks = attention_params[1]
         
-        rotary_embed = 0
-        if cos_pos_embed is not None or sin_pos_embed is not None:
-            assert cos_pos_embed.num_dims == 2  # (seq_len, head_dim)
-            assert sin_pos_embed.num_dims == 2  # (seq_len, head_dim)
-            assert cos_pos_embed.dim(1) == head_dim
-            assert sin_pos_embed.dim(1) == head_dim
-            rotary_embed = 1
-        qk_norm = 0
-        if q_norm is not None or k_norm is not None:
-            assert q_norm.num_dims == 1  # (head_dim)
-            assert k_norm.num_dims == 1  # (head_dim)
-            qk_norm = 1
-            assert q_norm.dim(0) == head_dim
-            assert k_norm.dim(0) == head_dim
+    #     rotary_embed = 0
+    #     if cos_pos_embed is not None or sin_pos_embed is not None:
+    #         assert cos_pos_embed.num_dims == 2  # (seq_len, head_dim)
+    #         assert sin_pos_embed.num_dims == 2  # (seq_len, head_dim)
+    #         assert cos_pos_embed.dim(1) == head_dim
+    #         assert sin_pos_embed.dim(1) == head_dim
+    #         rotary_embed = 1
+    #     qk_norm = 0
+    #     if q_norm is not None or k_norm is not None:
+    #         assert q_norm.num_dims == 1  # (head_dim)
+    #         assert k_norm.num_dims == 1  # (head_dim)
+    #         qk_norm = 1
+    #         assert q_norm.dim(0) == head_dim
+    #         assert k_norm.dim(0) == head_dim
 
-        # params[0]: num_q_heads
-        # params[1]: num_kv_heads
-        # params[2]: qk_norm
-        # params[3]: rotary_embed
-        # params[4]: max_seq_len
-        # params[5]: page_size
-        # params[6]: num_kv_chunks
-        params = [num_q_heads, num_kv_heads, qk_norm, rotary_embed, self.max_seq_length, self.page_size, num_kv_chunks]
+    #     # params[0]: num_q_heads
+    #     # params[1]: num_kv_heads
+    #     # params[2]: qk_norm
+    #     # params[3]: rotary_embed
+    #     # params[4]: max_seq_len
+    #     # params[5]: page_size
+    #     # params[6]: num_kv_chunks
+    #     params = [num_q_heads, num_kv_heads, qk_norm, rotary_embed, self.max_seq_length, self.page_size, num_kv_chunks]
 
-        tb_graph = TBGraph(CyTBGraph(grid_dim, block_dim, 1, 64))
-        assert grid_dim[0] == self.max_num_batched_requests
-        assert grid_dim[1] == num_kv_heads
-        tb_graph.new_input(input, (-1, 1, -1), -1, True)
-        tb_graph.new_input(k_cache, (-1, 2, -1), 1, True)
-        tb_graph.new_input(v_cache, (-1, 2, -1), 1, True)
-        tb_graph.new_input(q_norm, (-1, -1, -1), -1, True)
-        tb_graph.new_input(k_norm, (-1, -1, -1), -1, True)
-        tb_graph.new_input(cos_pos_embed, (-1, -1, -1), -1, True)
-        tb_graph.new_input(sin_pos_embed, (-1, -1, -1), -1, True)
-        tb_graph.new_input(lse, (-1, 2, 1), -1, True)
-        tb_graph.new_input(output, (-1, 2, 1), -1, True)
-        self.kn_graph.customized(
-            [
-                input,
-                k_cache,
-                v_cache,
-                q_norm,
-                k_norm,
-                cos_pos_embed,
-                sin_pos_embed,
-                lse,
-                output,
-            ],
-            tb_graph,
-        )
-        if self.target_cc == 100:
-            self.kn_graph.register_task(tb_graph, "paged_attention_split_kv_sm100", params)
-        elif self.target_cc == 90:
-            self.kn_graph.register_task(tb_graph, "paged_attention_split_kv_hopper", params)
-        else:
-            raise ValueError(f"Unsupported target CC: {self.target_cc}")
+    #     tb_graph = TBGraph(CyTBGraph(grid_dim, block_dim, 1, 64))
+    #     assert grid_dim[0] == self.max_num_batched_requests
+    #     assert grid_dim[1] == num_kv_heads
+    #     tb_graph.new_input(input, (-1, 1, -1), -1, True)
+    #     tb_graph.new_input(k_cache, (-1, 2, -1), 1, True)
+    #     tb_graph.new_input(v_cache, (-1, 2, -1), 1, True)
+    #     tb_graph.new_input(q_norm, (-1, -1, -1), -1, True)
+    #     tb_graph.new_input(k_norm, (-1, -1, -1), -1, True)
+    #     tb_graph.new_input(cos_pos_embed, (-1, -1, -1), -1, True)
+    #     tb_graph.new_input(sin_pos_embed, (-1, -1, -1), -1, True)
+    #     tb_graph.new_input(lse, (-1, 2, 1), -1, True)
+    #     tb_graph.new_input(output, (-1, 2, 1), -1, True)
+    #     self.kn_graph.customized(
+    #         [
+    #             input,
+    #             k_cache,
+    #             v_cache,
+    #             q_norm,
+    #             k_norm,
+    #             cos_pos_embed,
+    #             sin_pos_embed,
+    #             lse,
+    #             output,
+    #         ],
+    #         tb_graph,
+    #     )
+    #     if self.target_cc == 100:
+    #         self.kn_graph.register_task(tb_graph, "paged_attention_split_kv_sm100", params)
+    #     elif self.target_cc == 90:
+    #         self.kn_graph.register_task(tb_graph, "paged_attention_split_kv_hopper", params)
+    #     else:
+    #         raise ValueError(f"Unsupported target CC: {self.target_cc}")
 
-    def paged_attention_split_kv_merge_layer(
-        self,
-        lse: DTensor,
-        output_tmp: DTensor,
-        output: DTensor,
-        attention_params: tuple,
-        grid_dim: tuple,
-        block_dim: tuple,
-    ):
-        assert lse.num_dims == 3  # (num_tokens, num_kv_chunks * num_qo_per_kv / world_size, num_kv_heads)
-        assert output_tmp.num_dims == 3  # (num_tokens, num_chunks, hidden_size / world_size)
-        assert output.num_dims == 2  # (num_tokens, hidden_size / world_size)
+    # def paged_attention_split_kv_merge_layer(
+    #     self,
+    #     lse: DTensor,
+    #     output_tmp: DTensor,
+    #     output: DTensor,
+    #     attention_params: tuple,
+    #     grid_dim: tuple,
+    #     block_dim: tuple,
+    # ):
+    #     assert lse.num_dims == 3  # (num_tokens, num_kv_chunks * num_qo_per_kv / world_size, num_kv_heads)
+    #     assert output_tmp.num_dims == 3  # (num_tokens, num_chunks, hidden_size / world_size)
+    #     assert output.num_dims == 2  # (num_tokens, hidden_size / world_size)
 
-        num_q_heads = attention_params[0]
-        head_dim = attention_params[1]
-        num_qo_heads_per_kv = num_q_heads / grid_dim[1]
-        num_kv_heads = grid_dim[1]
-        # params[0]: num_qo_heads_per_kv
-        # params[1]: head_dim
-        # params[2]: max_seq_len
-        # params[3]: page_size
-        # params[4]: num_kv_heads
-        params = [num_qo_heads_per_kv, head_dim, self.max_seq_length, self.page_size, num_kv_heads]
+    #     num_q_heads = attention_params[0]
+    #     head_dim = attention_params[1]
+    #     num_qo_heads_per_kv = num_q_heads / grid_dim[1]
+    #     num_kv_heads = grid_dim[1]
+    #     # params[0]: num_qo_heads_per_kv
+    #     # params[1]: head_dim
+    #     # params[2]: max_seq_len
+    #     # params[3]: page_size
+    #     # params[4]: num_kv_heads
+    #     params = [num_qo_heads_per_kv, head_dim, self.max_seq_length, self.page_size, num_kv_heads]
 
-        tb_graph = TBGraph(CyTBGraph(grid_dim, block_dim, 1, 64))
-        tb_graph.new_input(lse, (-1, 2, -1), -1, True)
-        tb_graph.new_input(output_tmp, (-1, 2, -1), -1, True)
-        tb_graph.new_input(output, (-1, 1, -1), -1, True)
-        self.kn_graph.customized(
-            [
-                lse,
-                output_tmp,
-                output,
-            ],
-            tb_graph,
-        )
-        if self.target_cc == 100 or self.target_cc == 90:
-            self.kn_graph.register_task(tb_graph, "paged_attention_split_kv_merge_sm100", params)
-        else:
-            raise ValueError(f"Unsupported target CC: {self.target_cc}")
+    #     tb_graph = TBGraph(CyTBGraph(grid_dim, block_dim, 1, 64))
+    #     tb_graph.new_input(lse, (-1, 2, -1), -1, True)
+    #     tb_graph.new_input(output_tmp, (-1, 2, -1), -1, True)
+    #     tb_graph.new_input(output, (-1, 1, -1), -1, True)
+    #     self.kn_graph.customized(
+    #         [
+    #             lse,
+    #             output_tmp,
+    #             output,
+    #         ],
+    #         tb_graph,
+    #     )
+    #     if self.target_cc == 100 or self.target_cc == 90:
+    #         self.kn_graph.register_task(tb_graph, "paged_attention_split_kv_merge_sm100", params)
+    #     else:
+    #         raise ValueError(f"Unsupported target CC: {self.target_cc}")
             
     # MoE Layers
     def tensor_init_layer(
@@ -1441,7 +1435,6 @@ class PersistentKernel:
             self.num_workers,
             self.num_local_schedulers,
             self.num_remote_schedulers,
-            self.max_seq_length,
             1, #self.total_num_requests,
             # self.eos_token_id,
         )
@@ -1464,7 +1457,6 @@ class PersistentKernel:
             self.num_workers,
             self.num_local_schedulers,
             self.num_remote_schedulers,
-            self.max_seq_length,
             1, #self.total_num_requests,
             # self.eos_token_id,
         )

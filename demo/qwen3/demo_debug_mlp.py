@@ -32,36 +32,7 @@ if __name__ == "__main__":
     parser.add_argument("--trace-name", default="qwen3", help="Perfetto trace output name")
     parser.add_argument("--profiling", action="store_true", help="Use Profiler to generate trace")
     
-    # lookahead or promptlookup
-    parser.add_argument(
-        "--spec-decode",
-        default=None,
-        choices=["promptlookup", "lookahead"],
-        help="Enable speculative decoding with 'lookahead' or 'promptlookup' mode.",
-    )
-    parser.add_argument(
-        "--ngram-size",
-        default=3,
-        type=int,
-        help="Ngram size for lookahead spec decode",
-    )
-    parser.add_argument(
-        "--max-seq-length",
-        default=1024,
-        type=int,
-        help="Max sequence length for lookahead spec decode",
-    )
-    parser.add_argument(
-        "--spec-length",
-        default=3,
-        type=int,
-        help="Spec length for lookahead spec decode",
-    )
 
-    parser.add_argument("--model-path", type=str, default=None, help="Path to a local model (necessary for multi-GPU demo)")
-    parser.add_argument(
-        "--model", type=str, default='Qwen/Qwen3-8B', help="Model path on hugging face"
-    )
     args = parser.parse_args()
     world_size = 1
     rank = 0
@@ -87,13 +58,7 @@ if __name__ == "__main__":
         ).contiguous()
     else:
         profiler_tensor = None
-        
-    # spec_decode_config = mi.speculative.spec_decode_class(
-    #     args.spec_decode,
-    #     ngram_size=args.ngram_size,
-    #     spec_length=args.spec_length,
-    # )
-        
+
     num_workers, num_schedulers = 15, 30 #mi.get_configurations_from_gpu(rank)
     print("num_workers: ", num_workers)
     print("num_schedulers: ", num_schedulers)
@@ -106,11 +71,8 @@ if __name__ == "__main__":
         num_workers=num_workers,
         num_local_schedulers=num_schedulers,
         num_remote_schedulers=0,
-        max_seq_length=args.max_seq_length,
         max_num_batched_requests=args.max_num_batched_requests,
         max_num_batched_tokens=args.max_num_batched_tokens,
-        max_num_pages=args.max_num_pages,
-        page_size=args.page_size,
         meta_tensors={
             "qo_indptr_buffer": qo_indptr_buffer,
         },

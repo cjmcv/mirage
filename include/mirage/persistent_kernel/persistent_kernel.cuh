@@ -1060,7 +1060,6 @@ extern "C" void init_persistent_kernel(std::vector<void *> meta_tensors,
                                        int num_workers,
                                        int num_local_schedulers,
                                        int num_remote_schedulers,
-                                       int max_seq_length,
                                        int total_num_requests) {
 
   global_runtime_config.qo_indptr_buffer = static_cast<int *>(meta_tensors[0]);
@@ -1068,7 +1067,7 @@ extern "C" void init_persistent_kernel(std::vector<void *> meta_tensors,
   global_runtime_config.num_workers = num_workers;
   global_runtime_config.num_local_schedulers = num_local_schedulers;
   global_runtime_config.num_remote_schedulers = num_remote_schedulers;
-  global_runtime_config.max_seq_length = max_seq_length;
+  // global_runtime_config.max_seq_length = max_seq_length;
   // global_runtime_config.eos_token_id = eos_token_id;
   global_runtime_config.profiler_buffer = profiler_buffer;
   int num_schedulers = num_local_schedulers + num_remote_schedulers;
