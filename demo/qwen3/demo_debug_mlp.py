@@ -115,17 +115,17 @@ if __name__ == "__main__":
         messages, tokenize=False, add_generation_prompt=True
     )
     model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
-    for r in range(total_num_requests):
-        for i in range(model_inputs.input_ids.shape[-1]):
-            tokens[r, i] = model_inputs.input_ids[0, i]
+    # for r in range(total_num_requests):
+    #     for i in range(model_inputs.input_ids.shape[-1]):
+    #         tokens[r, i] = model_inputs.input_ids[0, i]
     prompt_lengths = torch.full((total_num_requests,), model_inputs.input_ids.shape[-1], dtype=torch.int, device="cuda")
 
     # get all model weight tensors
-    input_tokens = torch.full((args.max_num_batched_tokens, 1), 0, dtype=torch.long, device="cuda")
-    output_tokens = torch.full((args.max_num_batched_tokens, 1), 0, dtype=torch.long, device="cuda")
+    # input_tokens = torch.full((args.max_num_batched_tokens, 1), 0, dtype=torch.long, device="cuda")
+    # output_tokens = torch.full((args.max_num_batched_tokens, 1), 0, dtype=torch.long, device="cuda")
 
-    step = torch.full((total_num_requests, ), 0, dtype=torch.int32, device="cuda")
-    num_new_tokens = torch.full((total_num_requests, ), 1, dtype=torch.int32, device="cuda")
+    # step = torch.full((total_num_requests, ), 0, dtype=torch.int32, device="cuda")
+    # num_new_tokens = torch.full((total_num_requests, ), 1, dtype=torch.int32, device="cuda")
 
     if args.profiling:
         profiler_tensor = torch.zeros(
@@ -145,12 +145,12 @@ if __name__ == "__main__":
     print("num_schedulers: ", num_schedulers)
     qo_indptr_buffer = torch.empty(
         args.max_num_batched_requests + 1, dtype=torch.int32, device="cuda")
-    paged_kv_indptr_buffer = torch.empty(
-        args.max_num_batched_requests + 1, dtype=torch.int32, device="cuda")
-    paged_kv_indices_buffer = torch.empty(
-        args.max_num_pages, dtype=torch.int32, device="cuda")
-    paged_kv_last_page_len_buffer = torch.empty(
-        args.max_num_batched_requests, dtype=torch.int32, device="cuda")
+    # paged_kv_indptr_buffer = torch.empty(
+    #     args.max_num_batched_requests + 1, dtype=torch.int32, device="cuda")
+    # paged_kv_indices_buffer = torch.empty(
+    #     args.max_num_pages, dtype=torch.int32, device="cuda")
+    # paged_kv_last_page_len_buffer = torch.empty(
+    #     args.max_num_batched_requests, dtype=torch.int32, device="cuda")
     mpk = mi.PersistentKernel(
         mode="offline",
         world_size=world_size,
@@ -165,16 +165,16 @@ if __name__ == "__main__":
         page_size=args.page_size,
         eos_token_id=model.config.eos_token_id,
         meta_tensors={
-            "step": step,
-            "tokens": tokens,
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "num_new_tokens": num_new_tokens,
+            # "step": step,
+            # "tokens": tokens,
+            # "input_tokens": input_tokens,
+            # "output_tokens": output_tokens,
+            # "num_new_tokens": num_new_tokens,
             "prompt_lengths": prompt_lengths,
             "qo_indptr_buffer": qo_indptr_buffer,
-            "paged_kv_indptr_buffer": paged_kv_indptr_buffer,
-            "paged_kv_indices_buffer": paged_kv_indices_buffer,
-            "paged_kv_last_page_len_buffer": paged_kv_last_page_len_buffer,
+            # "paged_kv_indptr_buffer": paged_kv_indptr_buffer,
+            # "paged_kv_indices_buffer": paged_kv_indices_buffer,
+            # "paged_kv_last_page_len_buffer": paged_kv_last_page_len_buffer,
         },
         profiler_tensor=profiler_tensor,
         trace_name=args.trace_name,

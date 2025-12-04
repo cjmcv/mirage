@@ -1064,7 +1064,7 @@ extern "C" void init_persistent_kernel(std::vector<void *> meta_tensors,
                                        int max_seq_length,
                                        int total_num_requests,
                                        long long eos_token_id) {
-  assert(meta_tensors.size() == 10);
+  // assert(meta_tensors.size() == 10);
   // global_runtime_config.step = static_cast<int *>(meta_tensors[0]);
   // global_runtime_config.tokens = static_cast<long long *>(meta_tensors[1]);
   // global_runtime_config.input_tokens =
@@ -1072,8 +1072,8 @@ extern "C" void init_persistent_kernel(std::vector<void *> meta_tensors,
   // global_runtime_config.output_tokens =
   //     static_cast<long long *>(meta_tensors[3]);
   // global_runtime_config.new_token_nums = static_cast<int *>(meta_tensors[4]);
-  global_runtime_config.prompt_length = static_cast<int *>(meta_tensors[5]);
-  global_runtime_config.qo_indptr_buffer = static_cast<int *>(meta_tensors[6]);
+  global_runtime_config.prompt_length = static_cast<int *>(meta_tensors[0]);
+  global_runtime_config.qo_indptr_buffer = static_cast<int *>(meta_tensors[1]);
   // global_runtime_config.paged_kv_indptr_buffer =
   //     static_cast<int *>(meta_tensors[7]);
   // global_runtime_config.paged_kv_indices_buffer =

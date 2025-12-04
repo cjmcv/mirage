@@ -265,18 +265,18 @@ class PersistentKernel:
             "promptlookup": self.prompt_lookup_verify_handler,
         }
         # determine total number of requests for offline serving
-        self.total_num_requests = meta_tensors["tokens"].shape[0]
-        assert self.max_seq_length == meta_tensors["tokens"].shape[1]
+        # self.total_num_requests = meta_tensors["tokens"].shape[0]
+        # assert self.max_seq_length == meta_tensors["tokens"].shape[1]
         self.target_cc = torch.cuda.get_device_properties(0).major * 10 + torch.cuda.get_device_properties(0).minor
         # Check tensor shapes
         qo_indptr_buffer = self.meta_tensors["qo_indptr_buffer"]
         assert qo_indptr_buffer.shape == (self.max_num_batched_requests+1,)
-        paged_kv_indptr_buffer = self.meta_tensors["paged_kv_indptr_buffer"]
-        assert paged_kv_indptr_buffer.shape == (self.max_num_batched_requests+1,)
-        paged_kv_indices_buffer = self.meta_tensors["paged_kv_indices_buffer"]
-        assert paged_kv_indices_buffer.shape == (self.max_num_pages,)
-        paged_kv_last_page_len_buffer = self.meta_tensors["paged_kv_last_page_len_buffer"]
-        assert paged_kv_last_page_len_buffer.shape == (self.max_num_batched_requests,)
+        # paged_kv_indptr_buffer = self.meta_tensors["paged_kv_indptr_buffer"]
+        # assert paged_kv_indptr_buffer.shape == (self.max_num_batched_requests+1,)
+        # paged_kv_indices_buffer = self.meta_tensors["paged_kv_indices_buffer"]
+        # assert paged_kv_indices_buffer.shape == (self.max_num_pages,)
+        # paged_kv_last_page_len_buffer = self.meta_tensors["paged_kv_last_page_len_buffer"]
+        # assert paged_kv_last_page_len_buffer.shape == (self.max_num_batched_requests,)
 
     def attach_input(self, torch_tensor: torch.Tensor, name: str = None) -> DTensor:
         dims = tuple([d for d in torch_tensor.shape])
@@ -1301,7 +1301,7 @@ class PersistentKernel:
         cuda_code_path = os.path.join(tempdir, "test.cu")
         so_path = os.path.join(tempdir, "test.cpython-38-x86_64-linux-gnu.so")
         
-        GENERATE_NEW_CUDA_CODE = False
+        GENERATE_NEW_CUDA_CODE = True
         if GENERATE_NEW_CUDA_CODE:
             # check json file
             json_file_path = os.path.join(tempdir, "task_graph.json")
@@ -1442,16 +1442,16 @@ class PersistentKernel:
 
         #meta_tensors_ptr = [tensor.data_ptr() for tensor in self.meta_tensors]
         meta_tensors = list()
-        meta_tensors.append(self.meta_tensors["step"])
-        meta_tensors.append(self.meta_tensors["tokens"])
-        meta_tensors.append(self.meta_tensors["input_tokens"])
-        meta_tensors.append(self.meta_tensors["output_tokens"])
-        meta_tensors.append(self.meta_tensors["num_new_tokens"])
+        # meta_tensors.append(self.meta_tensors["step"])
+        # meta_tensors.append(self.meta_tensors["tokens"])
+        # meta_tensors.append(self.meta_tensors["input_tokens"])
+        # meta_tensors.append(self.meta_tensors["output_tokens"])
+        # meta_tensors.append(self.meta_tensors["num_new_tokens"])
         meta_tensors.append(self.meta_tensors["prompt_lengths"])
         meta_tensors.append(self.meta_tensors["qo_indptr_buffer"])
-        meta_tensors.append(self.meta_tensors["paged_kv_indptr_buffer"])
-        meta_tensors.append(self.meta_tensors["paged_kv_indices_buffer"])
-        meta_tensors.append(self.meta_tensors["paged_kv_last_page_len_buffer"])
+        # meta_tensors.append(self.meta_tensors["paged_kv_indptr_buffer"])
+        # meta_tensors.append(self.meta_tensors["paged_kv_indices_buffer"])
+        # meta_tensors.append(self.meta_tensors["paged_kv_last_page_len_buffer"])
         meta_tensors_ptr = [tensor.data_ptr() for tensor in meta_tensors]
         profiler_buffer_ptr = (
             self.profiler_tensor.data_ptr() if self.profiler_tensor is not None else 0
@@ -1464,7 +1464,7 @@ class PersistentKernel:
             self.num_local_schedulers,
             self.num_remote_schedulers,
             self.max_seq_length,
-            self.total_num_requests,
+            1, #self.total_num_requests,
             self.eos_token_id,
         )
 
@@ -1474,16 +1474,16 @@ class PersistentKernel:
 
     def reinitialize(self):
         meta_tensors = list()
-        meta_tensors.append(self.meta_tensors["step"])
-        meta_tensors.append(self.meta_tensors["tokens"])
-        meta_tensors.append(self.meta_tensors["input_tokens"])
-        meta_tensors.append(self.meta_tensors["output_tokens"])
-        meta_tensors.append(self.meta_tensors["num_new_tokens"])
+        # meta_tensors.append(self.meta_tensors["step"])
+        # meta_tensors.append(self.meta_tensors["tokens"])
+        # meta_tensors.append(self.meta_tensors["input_tokens"])
+        # meta_tensors.append(self.meta_tensors["output_tokens"])
+        # meta_tensors.append(self.meta_tensors["num_new_tokens"])
         meta_tensors.append(self.meta_tensors["prompt_lengths"])
         meta_tensors.append(self.meta_tensors["qo_indptr_buffer"])
-        meta_tensors.append(self.meta_tensors["paged_kv_indptr_buffer"])
-        meta_tensors.append(self.meta_tensors["paged_kv_indices_buffer"])
-        meta_tensors.append(self.meta_tensors["paged_kv_last_page_len_buffer"])
+        # meta_tensors.append(self.meta_tensors["paged_kv_indptr_buffer"])
+        # meta_tensors.append(self.meta_tensors["paged_kv_indices_buffer"])
+        # meta_tensors.append(self.meta_tensors["paged_kv_last_page_len_buffer"])
         meta_tensors_ptr = [tensor.data_ptr() for tensor in meta_tensors]
         profiler_buffer_ptr = (
             self.profiler_tensor.data_ptr() if self.profiler_tensor is not None else 0
@@ -1496,7 +1496,7 @@ class PersistentKernel:
             self.num_local_schedulers,
             self.num_remote_schedulers,
             self.max_seq_length,
-            self.total_num_requests,
+            1, #self.total_num_requests,
             self.eos_token_id,
         )
         
