@@ -36,7 +36,7 @@ if __name__ == "__main__":
         input_strides.append(strides)
 
     # input_strides = [tensor.stride() for tensor in input_tensors]
-    p = mi.generate_cuda_program(optimized_graph.cygraph, target_cc=86, input_strides=input_strides)
+    p = mi.generate_cuda_program(optimized_graph.cygraph, target_cc=89, input_strides=input_strides)
     print(p["code"])
 
     outputs = optimized_graph(inputs=input_tensors)
