@@ -21,10 +21,9 @@ static PyObject *init_func(PyObject *self, PyObject *args) {
   PyObject *meta_list, *py_profiler_buffer;
   std::vector<void*> meta_tensors;
   int my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers, max_seq_length, total_num_requests;
-  long long eos_token_id;
   void *profiler_buffer;
 
-  if (!PyArg_ParseTuple(args, "OOiiiiiiL", &meta_list, &py_profiler_buffer, &my_mpi_rank, &num_workers, &num_local_schedulers, &num_remote_schedulers, &max_seq_length, &total_num_requests, &eos_token_id)) {
+  if (!PyArg_ParseTuple(args, "OOiiiiii", &meta_list, &py_profiler_buffer, &my_mpi_rank, &num_workers, &num_local_schedulers, &num_remote_schedulers, &max_seq_length, &total_num_requests)) {
     PyErr_SetString(PyExc_TypeError, "Invalid parameters");
     return NULL;
   }
@@ -47,7 +46,7 @@ static PyObject *init_func(PyObject *self, PyObject *args) {
   }
   profiler_buffer = PyLong_AsVoidPtr(py_profiler_buffer);
 
-  init_persistent_kernel(meta_tensors, profiler_buffer, my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers, max_seq_length, total_num_requests, eos_token_id);
+  init_persistent_kernel(meta_tensors, profiler_buffer, my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers, max_seq_length, total_num_requests);
 
   Py_RETURN_NONE;
 }
@@ -228,11 +227,10 @@ class PersistentKernel:
         max_num_batched_tokens: int,
         max_num_pages: int,
         page_size: int,
-        eos_token_id: int64,
         meta_tensors: dict,
         profiler_tensor: torch.Tensor,
         trace_name: str,
-        spec_decode_config: SpecDecodeConfig,
+        # spec_decode_config: SpecDecodeConfig,
         use_cutlass_kernel: bool
     ):
         self.__finalized__ = False
@@ -250,33 +248,23 @@ class PersistentKernel:
         self.max_num_batched_tokens = max_num_batched_tokens
         self.max_num_pages = max_num_pages
         self.page_size = page_size
-        self.eos_token_id = eos_token_id
         self.kn_graph = KNGraph(CyKNGraph(disable_fingerprint=True))
         self.meta_tensors = meta_tensors
         self.profiler_tensor = profiler_tensor
         self.trace_name = trace_name
         self.use_nvshmem = True if world_size > 1 else False
-        self.spec_decode_config = spec_decode_config
+        # self.spec_decode_config = spec_decode_config
         self.use_cutlass_kernel = use_cutlass_kernel
-        self._spec_decode_handlers = {
-            "promptlookup": self.prompt_lookup_spec_handler,
-        }
-        self._spec_verify_handlers = {
-            "promptlookup": self.prompt_lookup_verify_handler,
-        }
-        # determine total number of requests for offline serving
-        # self.total_num_requests = meta_tensors["tokens"].shape[0]
-        # assert self.max_seq_length == meta_tensors["tokens"].shape[1]
+        # self._spec_decode_handlers = {
+        #     "promptlookup": self.prompt_lookup_spec_handler,
+        # }
+        # self._spec_verify_handlers = {
+        #     "promptlookup": self.prompt_lookup_verify_handler,
+        # }
         self.target_cc = torch.cuda.get_device_properties(0).major * 10 + torch.cuda.get_device_properties(0).minor
         # Check tensor shapes
         qo_indptr_buffer = self.meta_tensors["qo_indptr_buffer"]
         assert qo_indptr_buffer.shape == (self.max_num_batched_requests+1,)
-        # paged_kv_indptr_buffer = self.meta_tensors["paged_kv_indptr_buffer"]
-        # assert paged_kv_indptr_buffer.shape == (self.max_num_batched_requests+1,)
-        # paged_kv_indices_buffer = self.meta_tensors["paged_kv_indices_buffer"]
-        # assert paged_kv_indices_buffer.shape == (self.max_num_pages,)
-        # paged_kv_last_page_len_buffer = self.meta_tensors["paged_kv_last_page_len_buffer"]
-        # assert paged_kv_last_page_len_buffer.shape == (self.max_num_batched_requests,)
 
     def attach_input(self, torch_tensor: torch.Tensor, name: str = None) -> DTensor:
         dims = tuple([d for d in torch_tensor.shape])
@@ -1440,18 +1428,8 @@ class PersistentKernel:
         self.finalize_func = getattr(mod, "finalize_func")
         print("Finished megakernel compilation...")
 
-        #meta_tensors_ptr = [tensor.data_ptr() for tensor in self.meta_tensors]
         meta_tensors = list()
-        # meta_tensors.append(self.meta_tensors["step"])
-        # meta_tensors.append(self.meta_tensors["tokens"])
-        # meta_tensors.append(self.meta_tensors["input_tokens"])
-        # meta_tensors.append(self.meta_tensors["output_tokens"])
-        # meta_tensors.append(self.meta_tensors["num_new_tokens"])
-        meta_tensors.append(self.meta_tensors["prompt_lengths"])
         meta_tensors.append(self.meta_tensors["qo_indptr_buffer"])
-        # meta_tensors.append(self.meta_tensors["paged_kv_indptr_buffer"])
-        # meta_tensors.append(self.meta_tensors["paged_kv_indices_buffer"])
-        # meta_tensors.append(self.meta_tensors["paged_kv_last_page_len_buffer"])
         meta_tensors_ptr = [tensor.data_ptr() for tensor in meta_tensors]
         profiler_buffer_ptr = (
             self.profiler_tensor.data_ptr() if self.profiler_tensor is not None else 0
@@ -1465,7 +1443,7 @@ class PersistentKernel:
             self.num_remote_schedulers,
             self.max_seq_length,
             1, #self.total_num_requests,
-            self.eos_token_id,
+            # self.eos_token_id,
         )
 
         self._is_compiled = True
@@ -1474,16 +1452,7 @@ class PersistentKernel:
 
     def reinitialize(self):
         meta_tensors = list()
-        # meta_tensors.append(self.meta_tensors["step"])
-        # meta_tensors.append(self.meta_tensors["tokens"])
-        # meta_tensors.append(self.meta_tensors["input_tokens"])
-        # meta_tensors.append(self.meta_tensors["output_tokens"])
-        # meta_tensors.append(self.meta_tensors["num_new_tokens"])
-        meta_tensors.append(self.meta_tensors["prompt_lengths"])
         meta_tensors.append(self.meta_tensors["qo_indptr_buffer"])
-        # meta_tensors.append(self.meta_tensors["paged_kv_indptr_buffer"])
-        # meta_tensors.append(self.meta_tensors["paged_kv_indices_buffer"])
-        # meta_tensors.append(self.meta_tensors["paged_kv_last_page_len_buffer"])
         meta_tensors_ptr = [tensor.data_ptr() for tensor in meta_tensors]
         profiler_buffer_ptr = (
             self.profiler_tensor.data_ptr() if self.profiler_tensor is not None else 0
@@ -1497,7 +1466,7 @@ class PersistentKernel:
             self.num_remote_schedulers,
             self.max_seq_length,
             1, #self.total_num_requests,
-            self.eos_token_id,
+            # self.eos_token_id,
         )
         
     def __call__(self, **kwargs):

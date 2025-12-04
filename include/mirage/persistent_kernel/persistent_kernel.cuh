@@ -292,8 +292,7 @@ __device__ __forceinline__ bool
     // config.qo_indptr_buffer[num_reqs] = num_tokens;
     // config.paged_kv_indptr_buffer[num_reqs] = num_pages;
     // Prefill request
-    int num_new_tokens = min(config.prompt_length[next_request_id],
-                             MPK_MAX_NUM_BATCHED_TOKENS - num_tokens);
+    int num_new_tokens = MPK_MAX_NUM_BATCHED_TOKENS - num_tokens; // min(config.prompt_length[next_request_id], MPK_MAX_NUM_BATCHED_TOKENS - num_tokens);
     // // Move tokens to input tokens
     // for (int j = 0; j < num_new_tokens; j++) {
     //   config.input_tokens[num_tokens + j] =
@@ -341,34 +340,34 @@ __device__ __forceinline__ bool
 }
 #endif
 
-#ifdef MODE_ONLINE
-__device__ __forceinline__ bool
-    prepare_next_batch(RuntimeConfig const &config) {
-  int step = config.step[0];
-#ifdef MPK_ENABLE_VERBOSE
-  printf("step: %d, new_token_num(%p): %d, new_token_ids:\n",
-         step,
-         config.new_token_nums,
-         config.new_token_nums[0]);
-  for (int i = 0; i < config.new_token_nums[0]; i++) {
-    printf("%lld ", config.tokens[step + 1 + i]);
-  }
-  printf("\n");
-#endif
-  config.step[0] = step + config.new_token_nums[0];
+// #ifdef MODE_ONLINE
+// __device__ __forceinline__ bool
+//     prepare_next_batch(RuntimeConfig const &config) {
+//   int step = config.step[0];
+// #ifdef MPK_ENABLE_VERBOSE
+//   printf("step: %d, new_token_num(%p): %d, new_token_ids:\n",
+//          step,
+//          config.new_token_nums,
+//          config.new_token_nums[0]);
+//   for (int i = 0; i < config.new_token_nums[0]; i++) {
+//     printf("%lld ", config.tokens[step + 1 + i]);
+//   }
+//   printf("\n");
+// #endif
+//   config.step[0] = step + config.new_token_nums[0];
 
-#ifdef MPK_ENABLE_PROFILING
-  return false;
-#else
-  if ((step + 2 >= config.max_seq_length) ||
-      (config.tokens[step + 1] == config.eos_token_id)) {
-    return false;
-  } else {
-    return true;
-  }
-#endif
-}
-#endif
+// #ifdef MPK_ENABLE_PROFILING
+//   return false;
+// #else
+//   if ((step + 2 >= config.max_seq_length) ||
+//       (config.tokens[step + 1] == config.eos_token_id)) {
+//     return false;
+//   } else {
+//     return true;
+//   }
+// #endif
+// }
+// #endif
 
 __device__ __forceinline__ int get_rand_sched_id(size_t event_index,
                                                  int worker_id,
@@ -1062,24 +1061,10 @@ extern "C" void init_persistent_kernel(std::vector<void *> meta_tensors,
                                        int num_local_schedulers,
                                        int num_remote_schedulers,
                                        int max_seq_length,
-                                       int total_num_requests,
-                                       long long eos_token_id) {
-  // assert(meta_tensors.size() == 10);
-  // global_runtime_config.step = static_cast<int *>(meta_tensors[0]);
-  // global_runtime_config.tokens = static_cast<long long *>(meta_tensors[1]);
-  // global_runtime_config.input_tokens =
-  //     static_cast<long long *>(meta_tensors[2]);
-  // global_runtime_config.output_tokens =
-  //     static_cast<long long *>(meta_tensors[3]);
-  // global_runtime_config.new_token_nums = static_cast<int *>(meta_tensors[4]);
-  global_runtime_config.prompt_length = static_cast<int *>(meta_tensors[0]);
-  global_runtime_config.qo_indptr_buffer = static_cast<int *>(meta_tensors[1]);
-  // global_runtime_config.paged_kv_indptr_buffer =
-  //     static_cast<int *>(meta_tensors[7]);
-  // global_runtime_config.paged_kv_indices_buffer =
-  //     static_cast<int *>(meta_tensors[8]);
-  // global_runtime_config.paged_kv_last_page_len_buffer =
-  //     static_cast<int *>(meta_tensors[9]);
+                                       int total_num_requests) {
+
+  global_runtime_config.qo_indptr_buffer = static_cast<int *>(meta_tensors[0]);
+
   global_runtime_config.num_workers = num_workers;
   global_runtime_config.num_local_schedulers = num_local_schedulers;
   global_runtime_config.num_remote_schedulers = num_remote_schedulers;
