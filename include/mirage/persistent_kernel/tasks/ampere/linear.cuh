@@ -71,6 +71,11 @@ __device__ __forceinline__ void linear_kernel(void const *input_ptr,
   constexpr int log2_CHUNKS_PER_COL_B = log2_constexpr(CHUNKS_PER_COL_B);
   constexpr int log2_CHUNKS_PER_ROW_C = log2_constexpr(CHUNKS_PER_ROW_C);
 
+  // if (threadIdx.x == 0) {
+  //   printf("linear_kernel: %d, %p, %p, %p.\n", num_active_tokens, input_ptr, weight_ptr, output_ptr);
+  //   // printf("(%d = %f, %f + %f, %d, %d, %d).\n", batch_idx, d_output[batch_idx * O_STRIDE + offset], input_val, mul_val, OUTPUT_SIZE, I_STRIDE, O_STRIDE); cjm
+  // }
+
   // using SM80_16x8x16_F16F16F16F16_TNX2 = 16X16X16
   constexpr int NUM_WARPS_N =
       4; // We always use NUM_WARPS_K = 1 and NUM_WARPS_N = 4

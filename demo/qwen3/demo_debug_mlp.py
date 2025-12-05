@@ -59,7 +59,7 @@ if __name__ == "__main__":
     else:
         profiler_tensor = None
 
-    num_workers, num_schedulers = 15, 30 #mi.get_configurations_from_gpu(rank)
+    num_workers, num_schedulers = 1, 1 #mi.get_configurations_from_gpu(rank)
     print("num_workers: ", num_workers)
     print("num_schedulers: ", num_schedulers)
     qo_indptr_buffer = torch.empty(
@@ -104,7 +104,7 @@ if __name__ == "__main__":
         output=mlp_mid,
         # grid_dim=(96, 1, 1),
         # grid_dim=(128, 1, 1),
-        grid_dim=(64, 1, 1),  # (64, 1, 1)
+        grid_dim=(1, 1, 1),  # (64, 1, 1)
         block_dim=(128, 1, 1),
     )
     
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     mpk.silu_mul_layer(
         input=mlp_mid,
         output=silu_mul_out,
-        grid_dim=(1, 1, 1),
+        grid_dim=(2, 1, 1),
         block_dim=(128, 1, 1),
     )
     mpk.linear_layer(
@@ -123,7 +123,7 @@ if __name__ == "__main__":
         output=mlp_out,
         # grid_dim=(96, 1, 1),
         # grid_dim=(128, 1, 1),
-        grid_dim=(64, 1, 1), # (64, 1, 1)
+        grid_dim=(1, 1, 1), # (64, 1, 1)
         block_dim=(128, 1, 1),
     )
     mpk.compile(output_dir=args.output_dir)
@@ -154,15 +154,15 @@ if __name__ == "__main__":
     starter = torch.cuda.Event(enable_timing=True)
     ender = torch.cuda.Event(enable_timing=True)
         
-    starter.record()
-    for _ in range(test_iter):
-        mpk.reinitialize()
-        mpk()
-    ender.record()
-    torch.cuda.synchronize()
-    run_time = starter.elapsed_time(ender)
-    print("MPK run time (ms): ", run_time / test_iter)
-    ##
+    # starter.record()
+    # for _ in range(test_iter):
+    #     mpk.reinitialize()
+    #     mpk()
+    # ender.record()
+    # torch.cuda.synchronize()
+    # run_time = starter.elapsed_time(ender)
+    # print("MPK run time (ms): ", run_time / test_iter)
+    # ##
     starter.record()
     for _ in range(test_iter):
         test_torch_mlp2(x_torch, w_gatedup_torch, w_down_proj_torch)
@@ -172,13 +172,13 @@ if __name__ == "__main__":
     print("torch run time (ms): ", run_time / test_iter)
 
 
-    from torch.profiler import profile, ProfilerActivity
-    if 1:
-        with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
-            mpk.reinitialize()
-            mpk()
-        print(prof.key_averages().table(sort_by="cuda_time_total"))
-        prof.export_chrome_trace("trace.json") # chrome://tracing/
+    # from torch.profiler import profile, ProfilerActivity
+    # if 1:
+    #     with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
+    #         mpk.reinitialize()
+    #         mpk()
+    #     print(prof.key_averages().table(sort_by="cuda_time_total"))
+    #     prof.export_chrome_trace("trace.json") # chrome://tracing/
     ##########################################################
     
     # pushd build && make -j8 && popd
@@ -186,8 +186,10 @@ if __name__ == "__main__":
     # git clone --recursive https://www.github.com/mirage-project/mirage
     # pip install -e . -v
     # export MIRAGE_HOME=$(pwd)
-    # python demo/qwen3/demo_debug_mlp.py --model=/home/cjmcv/project/llm_models/Qwen/Qwen3-0.6B --use-mirage
+    # python demo/qwen3/demo_debug_mlp.py --use-mirage
     # --profiling https://ui.perfetto.dev/
     
     # nsys profile --trace=cuda,nvtx --output=my_nsys
     # ncu --set full --section "SpeedOfLight_RooflineChart" -o my_profile
+    
+    # python scripts/display_task_graph.py ./gen/task_graph.json

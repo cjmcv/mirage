@@ -41,7 +41,7 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
     parser.add_argument("--use-mirage", action="store_true", help="Use Mirage kernels")
-    parser.add_argument("--max-num-batched-tokens", default=8, type=int, help="Max number of tokens in a batch")
+    parser.add_argument("--max-num-batched-tokens", default=1, type=int, help="Max number of tokens in a batch")
     parser.add_argument("--max-num-batched-requests", default=1, type=int, help="Max number of requests in a batch")
     parser.add_argument("--page-size", default=4096, type=int, help="Page size")
     parser.add_argument("--max-num-pages", default=16, type=int, help="Max num pages")
@@ -162,7 +162,7 @@ if __name__ == "__main__":
         spec_length=args.spec_length,
     )
         
-    num_workers, num_schedulers = mi.get_configurations_from_gpu(rank)
+    num_workers, num_schedulers = 1, 1 # mi.get_configurations_from_gpu(rank)
     print("num_workers: ", num_workers)
     print("num_schedulers: ", num_schedulers)
     qo_indptr_buffer = torch.empty(
@@ -180,40 +180,27 @@ if __name__ == "__main__":
         num_workers=num_workers,
         num_local_schedulers=num_schedulers,
         num_remote_schedulers=0,
-        max_seq_length=args.max_seq_length,
         max_num_batched_requests=args.max_num_batched_requests,
         max_num_batched_tokens=args.max_num_batched_tokens,
-        max_num_pages=args.max_num_pages,
-        page_size=args.page_size,
-        eos_token_id=model.config.eos_token_id,
         meta_tensors={
-            "step": step,
-            "tokens": tokens,
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "num_new_tokens": num_new_tokens,
-            "prompt_lengths": prompt_lengths,
             "qo_indptr_buffer": qo_indptr_buffer,
-            "paged_kv_indptr_buffer": paged_kv_indptr_buffer,
-            "paged_kv_indices_buffer": paged_kv_indices_buffer,
-            "paged_kv_last_page_len_buffer": paged_kv_last_page_len_buffer,
         },
         profiler_tensor=profiler_tensor,
         trace_name=args.trace_name,
-        spec_decode_config=spec_decode_config,
+        # spec_decode_config=spec_decode_config,
         use_cutlass_kernel=False,
     )
     
-    batch_size = 8
+    batch_size = 1
     hidden_size = 2560
     intermediate_size = 9728
     x_torch = torch.randn((batch_size, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
-    O1_torch = silu_and_mul(x_torch)
+    torch_out = silu_and_mul(x_torch)
     
     d = x_torch.shape[-1] // 2
-    for i in range(128):
-        print("(", O1_torch[0][i].item(), x_torch[0][i].item(), x_torch[0][d+i].item(), ")")  
-    print("torch: ", O1_torch[0])
+    # for i in range(128):
+    #     print("(", torch_out[0][i].item(), x_torch[0][i].item(), x_torch[0][d+i].item(), ")")  
+    # print("torch: ", torch_out[0])
     
     x_torch2 = x_torch.clone()
 
@@ -224,7 +211,7 @@ if __name__ == "__main__":
     mpk.silu_mul_layer(
         input=x,
         output=silu_mul_out,
-        grid_dim=(1, 1, 1),
+        grid_dim=(2, 1, 1),
         block_dim=(128, 1, 1),
     )
 
@@ -238,6 +225,10 @@ if __name__ == "__main__":
         
     ###############################################################
     mpk()
+    print("mpk_in: ", x_torch2.data_ptr())
+    print("mpk_out: ", silu_mul_out_torch.data_ptr())
+    print("diff: ", silu_mul_out_torch[0] - torch_out[0])
+    # print("allclose: ", torch.allclose(silu_mul_out_torch[0], torch_out[0], rtol=1e-2))
     
     # warnup_iter = 100
     # test_iter = 200
@@ -259,4 +250,4 @@ if __name__ == "__main__":
 
     
     # export MIRAGE_HOME=$(pwd)
-    # python demo/qwen3/demo_debug4.py --model=/home/cjmcv/project/llm_models/Qwen/Qwen3-0.6B --use-mirage
+    # python demo/qwen3/demo_debug_silu.py --model=/home/cjmcv/project/llm_models/Qwen/Qwen3-0.6B --use-mirage

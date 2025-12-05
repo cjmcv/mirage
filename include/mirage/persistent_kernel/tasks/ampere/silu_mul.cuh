@@ -16,6 +16,7 @@
 #include "tasks/common/common_header.cuh"
 namespace kernel {
 
+  
 template <typename T,
           int BATCH_SIZE,
           int OUTPUT_SIZE,
@@ -25,7 +26,7 @@ __device__ __forceinline__ void silu_mul_task_impl(void const *input_ptr,
                                                    void *output_ptr,
                                                    int num_active_tokens) {
   T const *__restrict__ d_input = static_cast<T const *>(input_ptr);
-  T const *__restrict__ d_mul = static_cast<T const *>(input_ptr) + OUTPUT_SIZE;
+  T const *__restrict__ d_mul = static_cast<T const *>(input_ptr) + O_STRIDE;
   T *__restrict__ d_output = static_cast<T *>(output_ptr);
 
   
@@ -36,13 +37,43 @@ __device__ __forceinline__ void silu_mul_task_impl(void const *input_ptr,
     int offset = i % OUTPUT_SIZE;
     float input_val = float(d_input[batch_idx * I_STRIDE + offset]);
     T mul_val = d_mul[batch_idx * I_STRIDE + offset];
-    d_output[batch_idx * O_STRIDE + offset] =
+    d_output[batch_idx * O_STRIDE + offset] = // T(1.0f);
         T(input_val / (1.0f + expf(-input_val))) * mul_val;
-    
+    // printf("%d, \n", offset);
     // if (batch_idx == 0 && i == 0) {
-    //   printf("(%d = %f, %f + %f, %d, %d, %d).\n", batch_idx, d_output[batch_idx * O_STRIDE + offset], input_val, mul_val, OUTPUT_SIZE, I_STRIDE, O_STRIDE);
+    //   printf("num_active_tokens: %d, %lld, %lld.\n", num_active_tokens, input_ptr, output_ptr);
     // }
   }
 }
+
+// template <typename T,
+//           int BATCH_SIZE,
+//           int OUTPUT_SIZE,
+//           int I_STRIDE,
+//           int O_STRIDE>
+// __device__ __forceinline__ void silu_mul_task_impl(void const *input_ptr,
+//                                                    void *output_ptr,
+//                                                    int num_active_tokens) {
+//   T const *__restrict__ d_input = static_cast<T const *>(input_ptr);
+//   T const *__restrict__ d_mul = static_cast<T const *>(input_ptr) + OUTPUT_SIZE;
+//   T *__restrict__ d_output = static_cast<T *>(output_ptr);
+
+  
+// #pragma unroll
+//   for (int i = threadIdx.x; i < num_active_tokens * OUTPUT_SIZE;
+//        i += blockDim.x) {
+//     int batch_idx = i / OUTPUT_SIZE;
+//     int offset = i % OUTPUT_SIZE;
+//     float input_val = float(d_input[batch_idx * I_STRIDE + offset]);
+//     T mul_val = d_mul[batch_idx * I_STRIDE + offset];
+//     d_output[batch_idx * O_STRIDE + offset] =
+//         T(input_val / (1.0f + expf(-input_val))) * mul_val;
+    
+//     if (batch_idx == 0 && i == 0) {
+//       printf("num_active_tokens: %d, %p, %p.\n", num_active_tokens, input_ptr, output_ptr);
+//       // printf("(%d = %f, %f + %f, %d, %d, %d).\n", batch_idx, d_output[batch_idx * O_STRIDE + offset], input_val, mul_val, OUTPUT_SIZE, I_STRIDE, O_STRIDE); cjm
+//     }
+//   }
+// }
 
 } // namespace kernel
