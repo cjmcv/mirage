@@ -47,10 +47,10 @@ if __name__ == "__main__":
     torch.set_default_dtype(torch.bfloat16)
 
     torch.cuda.set_device(rank)
-    with torch.device("cuda"):
-        model_name = "/home/cjmcv/project/llm_models/Qwen/Qwen3-0.6B"
-        model = Qwen3ForCausalLM.from_pretrained(model_name, world_size=1, max_num_pages=args.max_num_pages, page_size=args.page_size).to("cuda")
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
+    # with torch.device("cuda"):
+    #     model_name = "/home/cjmcv/project/llm_models/Qwen/Qwen3-0.6B"
+    #     model = Qwen3ForCausalLM.from_pretrained(model_name, world_size=1, max_num_pages=args.max_num_pages, page_size=args.page_size).to("cuda")
+    #     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     if args.profiling:
         profiler_tensor = torch.zeros(
@@ -59,7 +59,7 @@ if __name__ == "__main__":
     else:
         profiler_tensor = None
 
-    num_workers, num_schedulers = mi.get_configurations_from_gpu(rank)
+    num_workers, num_schedulers = 20, 20 # mi.get_configurations_from_gpu(rank)
     print("num_workers: ", num_workers)
     print("num_schedulers: ", num_schedulers)
     
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     mpk.silu_mul_layer(
         input=mlp_mid,
         output=silu_mul_out,
-        grid_dim=(8, 1, 1),
+        grid_dim=(16, 1, 1),
         block_dim=(128, 1, 1),
     )
     mpk.linear_layer(
@@ -131,16 +131,20 @@ if __name__ == "__main__":
   
   
     ###
-    warnup_iter = 10
+    warnup_iter = 100
     test_iter = 100
+    
+    x_torch2 = x_torch.clone()
+    w_gatedup_torch2 = w_gatedup_torch.clone()
+    w_down_proj_torch2 = w_down_proj_torch.clone()
     for _ in range(warnup_iter):
-        test_torch_mlp2(x_torch, w_gatedup_torch, w_down_proj_torch)
+        test_torch_mlp2(x_torch2, w_gatedup_torch2, w_down_proj_torch2)
     ###
     
     ###############################################################
     mpk()
     # print("mpk: ", mlp_out_torch[0])
-    torch_out = test_torch_mlp2(x_torch, w_gatedup_torch, w_down_proj_torch)
+    torch_out = test_torch_mlp2(x_torch2, w_gatedup_torch2, w_down_proj_torch2)
     # print("torch: ", torch_out[0])
     print("allclose 0: ", torch.allclose(mlp_out_torch[0], torch_out[0], rtol=1e-2))
     
@@ -164,13 +168,13 @@ if __name__ == "__main__":
     run_time = starter.elapsed_time(ender)
     print("MPK run time (ms): ", run_time / test_iter)
     ##
-    # starter.record()
-    # for _ in range(test_iter):
-    #     test_torch_mlp2(x_torch, w_gatedup_torch, w_down_proj_torch)
-    # ender.record()
-    # torch.cuda.synchronize()
-    # run_time = starter.elapsed_time(ender)
-    # print("torch run time (ms): ", run_time / test_iter)
+    starter.record()
+    for _ in range(test_iter):
+        test_torch_mlp2(x_torch2, w_gatedup_torch2, w_down_proj_torch2)
+    ender.record()
+    torch.cuda.synchronize()
+    run_time = starter.elapsed_time(ender)
+    print("torch run time (ms): ", run_time / test_iter)
 
 
     # from torch.profiler import profile, ProfilerActivity

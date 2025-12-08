@@ -20,10 +20,10 @@ HARD_CODE = """
 static PyObject *init_func(PyObject *self, PyObject *args) {
   PyObject *meta_list, *py_profiler_buffer;
   std::vector<void*> meta_tensors;
-  int my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers, total_num_requests;
+  int my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers, total_num_requests, init_mode;
   void *profiler_buffer;
 
-  if (!PyArg_ParseTuple(args, "OOiiiii", &meta_list, &py_profiler_buffer, &my_mpi_rank, &num_workers, &num_local_schedulers, &num_remote_schedulers, &total_num_requests)) {
+  if (!PyArg_ParseTuple(args, "OOiiiiii", &meta_list, &py_profiler_buffer, &my_mpi_rank, &num_workers, &num_local_schedulers, &num_remote_schedulers, &total_num_requests, &init_mode)) {
     PyErr_SetString(PyExc_TypeError, "Invalid parameters");
     return NULL;
   }
@@ -46,8 +46,10 @@ static PyObject *init_func(PyObject *self, PyObject *args) {
   }
   profiler_buffer = PyLong_AsVoidPtr(py_profiler_buffer);
 
-  init_persistent_kernel(meta_tensors, profiler_buffer, my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers, total_num_requests);
-
+  if (init_mode == 0)
+    init_persistent_kernel(meta_tensors, profiler_buffer, my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers, total_num_requests);
+  else 
+    reset_persistent_kernel();
   Py_RETURN_NONE;
 }
 
@@ -1435,8 +1437,8 @@ class PersistentKernel:
             self.num_workers,
             self.num_local_schedulers,
             self.num_remote_schedulers,
-            1, #self.total_num_requests,
-            # self.eos_token_id,
+            1, 
+            0,
         )
 
         self._is_compiled = True
@@ -1457,8 +1459,8 @@ class PersistentKernel:
             self.num_workers,
             self.num_local_schedulers,
             self.num_remote_schedulers,
-            1, #self.total_num_requests,
-            # self.eos_token_id,
+            1,
+            1, # reset
         )
         
     def __call__(self, **kwargs):
