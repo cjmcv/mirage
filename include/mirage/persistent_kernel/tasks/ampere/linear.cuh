@@ -49,8 +49,8 @@ __device__ __forceinline__ void linear_kernel(void const *input_ptr,
                                               bool residual) {
   constexpr int CHUNK_SIZE = 16 / sizeof(T);
   constexpr int OUTPUT_ATOM_SIZE = OUTPUT_SIZE <= 64 ? OUTPUT_SIZE : 64;
-  constexpr int log2_OUTPUT_ATOM_SIZE = log2_constexpr(OUTPUT_ATOM_SIZE);
-
+  constexpr int log2_OUTPUT_ATOM_SIZE = log2_constexpr(OUTPUT_ATOM_SIZE);      
+                            
   constexpr int TILE_SIZE = 128;
   constexpr int log2_TILE_SIZE = log2_constexpr(TILE_SIZE);
   constexpr int FORLOOP_RANGE = REDUCTION_SIZE / TILE_SIZE;
@@ -71,10 +71,9 @@ __device__ __forceinline__ void linear_kernel(void const *input_ptr,
   constexpr int log2_CHUNKS_PER_COL_B = log2_constexpr(CHUNKS_PER_COL_B);
   constexpr int log2_CHUNKS_PER_ROW_C = log2_constexpr(CHUNKS_PER_ROW_C);
 
-  // if (threadIdx.x == 0) {
-  //   printf("linear_kernel: %d, %p, %p, %p.\n", num_active_tokens, input_ptr, weight_ptr, output_ptr);
-  //   // printf("(%d = %f, %f + %f, %d, %d, %d).\n", batch_idx, d_output[batch_idx * O_STRIDE + offset], input_val, mul_val, OUTPUT_SIZE, I_STRIDE, O_STRIDE); cjm
-  // }
+  if (threadIdx.x == 0) {
+    printf("input_ptr: %lld, weight_ptr: %lld, output_ptr: %lld: %d, OUTPUT_SIZE: %d.\n", input_ptr, weight_ptr, output_ptr, num_active_tokens, OUTPUT_SIZE);
+  }
 
   // using SM80_16x8x16_F16F16F16F16_TNX2 = 16X16X16
   constexpr int NUM_WARPS_N =

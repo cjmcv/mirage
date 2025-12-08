@@ -1115,6 +1115,11 @@ TaskGraphResult print_task_graph(
           {"expert_offset", task_desc.task_metadata.expert_offset},
           {"kv_idx", task_desc.task_metadata.kv_idx},
           {"merge_task_offset", task_desc.task_metadata.merge_task_offset}};
+
+      /////////////////////////
+      // Input 
+      /////////////////////////
+
       for (int i = 0; i < task_desc.num_inputs; i++) {
         if (input_ops[i]->dtensor == kernel::DTensor::EMPTY_TENSOR) {
           json json_dims = json::array();
@@ -1195,6 +1200,9 @@ TaskGraphResult print_task_graph(
             offset +=
                 fused_dim_off_subtensor * sub_desc.tensor.stride[input_map.z];
           }
+          if (task_type == TASK_SILU_MUL) { // CJM-TODO: 是否需要修改input_map
+            offset /= 2;
+          }
           tgbody.e("TensorDesc input$;", i);
           tgbody.e("input$.base_ptr = static_cast<char*>($) + $;",
                    i,
@@ -1237,6 +1245,9 @@ TaskGraphResult print_task_graph(
                 io_desc.tensor.dim[input_map.z] / bgraph.grid_dim.z;
             offset += block_size * bid.z * io_desc.tensor.stride[input_map.z];
           }
+          if (task_type == TASK_SILU_MUL) { // CJM-TODO: 是否需要修改input_map
+            offset /= 2;
+          }
           tgbody.e("TensorDesc input$;", i);
           tgbody.e("input$.base_ptr = static_cast<char*>($) + $;",
                    i,
@@ -1265,6 +1276,11 @@ TaskGraphResult print_task_graph(
               {"strides", json_strides}});
         }
       }
+
+      /////////////////////////
+      // Output 
+      /////////////////////////
+
       for (int i = 0; i < task_desc.num_outputs; i++) {
         off_t offset = 0;
         int3 output_map = output_ops[i]->input_map;

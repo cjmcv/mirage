@@ -174,7 +174,7 @@ def get_compile_command(
     # flags = flags + [f"-DMPK_PAGE_SIZE={mpk.page_size}"]
     # flags = flags + [f"-DMPK_MAX_SEQ_LENGTH={mpk.max_seq_length}"]
     # Use when debugging
-    flags = flags + [f"-DMPK_ENABLE_VERBOSE"]
+    # flags = flags + [f"-DMPK_ENABLE_VERBOSE"]
 
     if use_nvshmem:
         nvshmem_cmd = [

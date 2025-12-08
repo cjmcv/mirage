@@ -48,10 +48,6 @@ if __name__ == "__main__":
         help="Spec length for lookahead spec decode",
     )
 
-    parser.add_argument("--model-path", type=str, default=None, help="Path to a local model (necessary for multi-GPU demo)")
-    parser.add_argument(
-        "--model", type=str, default='Qwen/Qwen3-8B', help="Model path on hugging face"
-    )
     args = parser.parse_args()
     world_size = 1
     rank = 0
@@ -63,55 +59,15 @@ if __name__ == "__main__":
 
     print("Input arguments:", args)
     print(f"world_size({world_size}) rank({rank})")
-    model_name = args.model
     torch.set_default_dtype(torch.bfloat16)
 
     torch.cuda.set_device(rank)
-    with torch.device("cuda"):
-        model = Qwen3ForCausalLM.from_pretrained(model_name, world_size=1, max_num_pages=args.max_num_pages, page_size=args.page_size).to("cuda")
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
+    # with torch.device("cuda"):
+    #     model_name = "/home/cjmcv/project/llm_models/Qwen/Qwen3-0.6B"
+    #     model = Qwen3ForCausalLM.from_pretrained(model_name, world_size=1, max_num_pages=args.max_num_pages, page_size=args.page_size).to("cuda")
+    #     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     total_num_requests = 1
-    # get all model weight tensors
-    tokens = torch.full((total_num_requests, args.max_seq_length), 0, dtype=torch.long, device="cuda")
-
-    # prompt = "Give me a short introduction to large language model."
-    # This prompt is copied from https://github.com/apoorvumang/prompt-lookup-decoding/blob/main/demo-pld.ipynb
-    code_text = """import numpy as np
-                import matplotlib.pyplot as plt
-
-                # Calculate the average
-                average_throughput = np.mean(tokens_per_sec_arr)
-                print(f"Average Throughput: {average_throughput} tokens/sec")
-
-                # Plotting the histogram
-                plt.hist(tokens_per_sec_arr, bins=20, color='blue', edgecolor='black', alpha=0.7)
-                plt.title('Histogram of Throughput Values')
-                plt.xlabel('Tokens per Second')
-                plt.ylabel('Frequency')
-                plt.axvline(average_throughput, color='red', linestyle='dashed', linewidth=1)
-                plt.text(average_throughput*0.9, max(plt.ylim())*0.9, f'Average: {average_throughput:.2f}', color = 'red')
-                plt.show()
-                """
-    question = "Can you please change x axis to start from 0"
-    prompt = code_text + "\n" + question
-    messages = [
-        {
-            "role": "system",
-            "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant.",
-        },
-        {"role": "user", "content": prompt},
-    ]
-    text = tokenizer.apply_chat_template(
-        messages, tokenize=False, add_generation_prompt=True
-    )
-    model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
-    for r in range(total_num_requests):
-        for i in range(model_inputs.input_ids.shape[-1]):
-            tokens[r, i] = model_inputs.input_ids[0, i]
-    prompt_lengths = torch.full((total_num_requests,), model_inputs.input_ids.shape[-1], dtype=torch.int, device="cuda")
-    positions = torch.arange(32768).unsqueeze(0).to(model.device)
-    position_embeddings = model.model.rotary_emb(positions)
 
     # get all model weight tensors
     input_tokens = torch.full((args.max_num_batched_tokens, 1), 0, dtype=torch.long, device="cuda")
@@ -138,17 +94,11 @@ if __name__ == "__main__":
         spec_length=args.spec_length,
     )
         
-    num_workers, num_schedulers = mi.get_configurations_from_gpu(rank)
+    num_workers, num_schedulers = 18, 25 # mi.get_configurations_from_gpu(rank)
     print("num_workers: ", num_workers)
     print("num_schedulers: ", num_schedulers)
     qo_indptr_buffer = torch.empty(
         args.max_num_batched_requests + 1, dtype=torch.int32, device="cuda")
-    paged_kv_indptr_buffer = torch.empty(
-        args.max_num_batched_requests + 1, dtype=torch.int32, device="cuda")
-    paged_kv_indices_buffer = torch.empty(
-        args.max_num_pages, dtype=torch.int32, device="cuda")
-    paged_kv_last_page_len_buffer = torch.empty(
-        args.max_num_batched_requests, dtype=torch.int32, device="cuda")
     mpk = mi.PersistentKernel(
         mode="offline",
         world_size=world_size,
@@ -156,33 +106,24 @@ if __name__ == "__main__":
         num_workers=num_workers,
         num_local_schedulers=num_schedulers,
         num_remote_schedulers=0,
-        max_seq_length=args.max_seq_length,
         max_num_batched_requests=args.max_num_batched_requests,
         max_num_batched_tokens=args.max_num_batched_tokens,
-        max_num_pages=args.max_num_pages,
-        page_size=args.page_size,
-        eos_token_id=model.config.eos_token_id,
         meta_tensors={
-            "step": step,
-            "tokens": tokens,
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "num_new_tokens": num_new_tokens,
-            "prompt_lengths": prompt_lengths,
             "qo_indptr_buffer": qo_indptr_buffer,
-            "paged_kv_indptr_buffer": paged_kv_indptr_buffer,
-            "paged_kv_indices_buffer": paged_kv_indices_buffer,
-            "paged_kv_last_page_len_buffer": paged_kv_last_page_len_buffer,
         },
         profiler_tensor=profiler_tensor,
         trace_name=args.trace_name,
-        spec_decode_config=spec_decode_config,
+        # spec_decode_config=spec_decode_config,
         use_cutlass_kernel=False,
     )
-    
-    x_torch = torch.randn((8, 2560), dtype=torch.bfloat16, device="cuda")
+
+    x_torch = torch.randn((1, 2560), dtype=torch.bfloat16, device="cuda")
     w_qkv_torch = torch.randn((19456, 2560), dtype=torch.bfloat16, device="cuda")
-    attn_in_torch = torch.zeros((8, 19456), dtype=torch.bfloat16, device="cuda")
+    attn_in_torch = torch.zeros((1, 19456), dtype=torch.bfloat16, device="cuda")
+
+    # x_torch = torch.randn((1, 9728), dtype=torch.bfloat16, device="cuda")
+    # w_qkv_torch = torch.randn((2560, 9728), dtype=torch.bfloat16, device="cuda")
+    # attn_in_torch = torch.zeros((1, 2560), dtype=torch.bfloat16, device="cuda")
     
     x = mpk.attach_input(torch_tensor=x_torch, name="in")
     w_qkv = mpk.attach_input(torch_tensor=w_qkv_torch, name="w")
@@ -195,7 +136,7 @@ if __name__ == "__main__":
         # grid_dim=(96, 1, 1),
         # grid_dim=(128, 1, 1),
         grid_dim=(64, 1, 1),
-        block_dim=(128, 1, 1),
+        block_dim=(256, 1, 1),
     )
 
         
@@ -209,33 +150,39 @@ if __name__ == "__main__":
         
     ###############################################################
     
-    import torch.nn.functional as F    
-    O1 = F.linear(x_torch, w_qkv_torch)
-    print("torch0: ", O1[0])
-    
+    ###    
+    import torch.nn.functional as F
+    warnup_iter = 100
+    test_iter = 100
+    for _ in range(warnup_iter):
+        O1 = F.linear(x_torch, w_qkv_torch)
+    ###
+    # print("torch0: ", O1[0]) 
     mpk()
     torch.cuda.synchronize()
     
-    # £¡£¡£¡ A potential memory out-of-bounds issue has occurred, where part of the data in O1 was overwritten during the execution of mpk()
-    print("torch: ", O1[0], "\nmpk: ", attn_in_torch[0], "\ndiff: ", O1[0] - attn_in_torch[0])
-    print("allclose:", torch.allclose(attn_in_torch[0], O1[0], rtol=1e-2))
-    
-    warnup_iter = 2
-    test_iter = 2
-    for _ in range(warnup_iter):
-        mpk.reinitialize()
-        mpk()
+    # !! A potential memory out-of-bounds issue has occurred, where part of the data in O1 was overwritten during the execution of mpk()
+    # print("torch: ", O1[0], "\nmpk: ", attn_in_torch[0], "\ndiff: ", O1[0] - attn_in_torch[0])
+    print("allclose1:", torch.allclose(attn_in_torch[0], O1[0], rtol=1e-2))
         
     starter.record()
-    for _ in range(test_iter):
+    for i in range(test_iter):
         mpk.reinitialize()
         mpk()
+        print(i)
     ender.record()
     torch.cuda.synchronize()
     run_time = starter.elapsed_time(ender)
     print("Best muGraph run time (ms): ", run_time / test_iter)
-    print("first 10 elements of attn_in_torch:",  print(attn_in_torch.shape))
     
+    ##
+    starter.record()
+    for _ in range(test_iter):
+        O1 = F.linear(x_torch, w_qkv_torch)
+    ender.record()
+    torch.cuda.synchronize()
+    run_time = starter.elapsed_time(ender)
+    print("torch run time (ms): ", run_time / test_iter)
 
     if world_size > 1:
         dist.destroy_process_group()
