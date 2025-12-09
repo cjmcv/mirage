@@ -139,7 +139,6 @@ __global__ void init_kernel(RuntimeConfig config) {
     }
     for (int i = 0; i < MPK_MAX_NUM_BATCHED_REQUESTS + 1; i++) {
       config.qo_indptr_buffer[i] = 0;
-      // config.paged_kv_indptr_buffer[i] = 0;
     }
   }
 }

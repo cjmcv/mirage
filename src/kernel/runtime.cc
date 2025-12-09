@@ -51,6 +51,7 @@ struct Dim3Comparator {
 };
 
 void dfs_create_events_add_tasks(
+    TaskType task_type,
     int depth,
     int const my_gpu_id,
     std::vector<int> const &event_dims,
@@ -67,7 +68,12 @@ void dfs_create_events_add_tasks(
     std::vector<FullTaskDesc> const &cur_op_tasks,
     std::map<dim3, TaskId, Dim3Comparator> const &pre_task_map,
     std::map<dim3, TaskId, Dim3Comparator> &cur_task_map) {
+  printf("task_type: %d, depth: %d, inmap(%d, %d, %d) - outmap(%d, %d, %d).\n", (int)task_type, depth, input_map.x, input_map.y, input_map.z, input_map.x, input_map.y, input_map.z);
   if (depth >= mirage::config::MAX_TENSOR_DIMS) {
+    printf("task_type inner: %d, consumer((%d, %d, %d) - (%d, %d, %d)) / producer((%d, %d, %d) - (%d, %d, %d)).\n", (int)task_type, 
+      consumer_lo_bid.x, consumer_lo_bid.y, consumer_lo_bid.z, consumer_hi_bid.x, consumer_hi_bid.y, consumer_hi_bid.z,
+      producer_lo_bid.x, producer_lo_bid.y, producer_lo_bid.z, producer_hi_bid.x, producer_hi_bid.y, producer_hi_bid.z);
+
     EventDesc event_desc;
     event_desc.num_triggers = 0;
     event_desc.first_task_id = all_tasks.size();
@@ -85,18 +91,45 @@ void dfs_create_events_add_tasks(
     }
     event_desc.last_task_id = all_tasks.size();
     // Set producer tasks
-    for (bid.x = producer_lo_bid.x; bid.x < producer_hi_bid.x; bid.x++) {
+    if (task_type == TASK_SILU_MUL) {
+      int factor_x = producer_grid_dim.x / event_dims[1] / 2; // cjm-hard code!! only support index 1.
+      printf("factor_x: %d, (%d, %d, %d).\n", factor_x, event_dims[1], event_dims[2], event_dims[3]);
       for (bid.y = producer_lo_bid.y; bid.y < producer_hi_bid.y; bid.y++) {
-        for (bid.z = producer_lo_bid.z; bid.z < producer_hi_bid.z; bid.z++) {
-          assert(pre_task_map.find(bid) != pre_task_map.end());
-          int task_id = pre_task_map.find(bid)->second;
-          // encode gpu_id
-          all_tasks[task_id].trigger_event = get_event_id(
-              my_gpu_id, all_events.size(), false /*nvshmem_event*/);
-          event_desc.num_triggers++;
+        for (bid.z = producer_lo_bid.z; bid.z < producer_hi_bid.z; bid.z++) {    
+          for (bid.x = producer_lo_bid.x; bid.x < producer_lo_bid.x + factor_x; bid.x++) {
+            assert(pre_task_map.find(bid) != pre_task_map.end());
+            int task_id = pre_task_map.find(bid)->second;
+            // encode gpu_id
+            all_tasks[task_id].trigger_event = get_event_id(
+                my_gpu_id, all_events.size(), false /*nvshmem_event*/);
+            event_desc.num_triggers++;
+          }
+          for (bid.x = producer_hi_bid.x; bid.x < producer_hi_bid.x + factor_x; bid.x++) {
+            assert(pre_task_map.find(bid) != pre_task_map.end());
+            int task_id = pre_task_map.find(bid)->second;
+            // encode gpu_id
+            all_tasks[task_id].trigger_event = get_event_id(
+                my_gpu_id, all_events.size(), false /*nvshmem_event*/);
+            event_desc.num_triggers++;            
+          }
         }
       }
     }
+    else {
+      for (bid.x = producer_lo_bid.x; bid.x < producer_hi_bid.x; bid.x++) {
+        for (bid.y = producer_lo_bid.y; bid.y < producer_hi_bid.y; bid.y++) {
+          for (bid.z = producer_lo_bid.z; bid.z < producer_hi_bid.z; bid.z++) {
+            assert(pre_task_map.find(bid) != pre_task_map.end());
+            int task_id = pre_task_map.find(bid)->second;
+            // encode gpu_id
+            all_tasks[task_id].trigger_event = get_event_id(
+                my_gpu_id, all_events.size(), false /*nvshmem_event*/);
+            event_desc.num_triggers++;
+          }
+        }
+      }      
+    }
+
     event_desc.event_type =
         event_desc.last_task_id >= event_desc.first_task_id + 8
             ? EVENT_LAUNCH_MASSIVE_TASKS
@@ -125,8 +158,20 @@ void dfs_create_events_add_tasks(
       }
       if (depth == output_map.x) {
         int factor = producer_grid_dim.x / event_dims[depth];
-        new_producer_lo_bid.x = i * factor;
-        new_producer_hi_bid.x = (i + 1) * factor;
+        if (task_type == TASK_SILU_MUL) {
+          // 4->2 : factor==2, i==range(0/1), producer_grid_dim.x==4
+          // => {0,3)->1, {1,4)->2 => 0/2->1, 1/3->2
+          // 8->2 : factor==4, i==range(0/1), producer_grid_dim.x==8
+          // => {0,4)->1, {2,6)->2 => 0/1/4/5->1, 2/3/6/7->2
+          new_producer_lo_bid.x = i * factor / 2;
+          new_producer_hi_bid.x = new_producer_lo_bid.x + producer_grid_dim.x / 2;
+        }
+        else {
+          // 4->2 : factor==2, i==range(0/1)
+          // => [0,2)->1, [2,4)->2 => 0/1->1, 2/3->2
+          new_producer_lo_bid.x = i * factor;
+          new_producer_hi_bid.x = (i + 1) * factor;  
+        }
       }
       if (depth == output_map.y) {
         int factor = producer_grid_dim.y / event_dims[depth];
@@ -138,7 +183,8 @@ void dfs_create_events_add_tasks(
         new_producer_lo_bid.z = i * factor;
         new_producer_hi_bid.z = (i + 1) * factor;
       }
-      dfs_create_events_add_tasks(depth + 1,
+      dfs_create_events_add_tasks(task_type,
+                                  depth + 1,
                                   my_gpu_id,
                                   event_dims,
                                   input_map,
@@ -367,35 +413,35 @@ void register_mugraph(
       for (bid.y = 0; bid.y < bgraph.grid_dim.y; bid.y++) {
         for (bid.z = 0; bid.z < bgraph.grid_dim.z; bid.z++) {
           FullTaskDesc task(task_type, variant_id);
-          // Set request_id for attention and paged_attention
-          if ((task_type == TASK_ATTENTION_1) ||
-              (task_type == TASK_ATTENTION_2) ||
-              (task_type == TASK_SINGLE_BATCH_EXTEND_ATTENTION) ||
-              (task_type == TASK_PAGED_ATTENTION_1) ||
-              (task_type == TASK_PAGED_ATTENTION_2) ||
-              (task_type == TASK_PAGED_ATTENTION_HOPPER) ||
-              (task_type == TASK_PAGED_ATTENTION_SPLIT_KV_SM100) ||
-              (TASK_PAGED_ATTENTION_SPLIT_KV_MERGE_SM100) ||
-              (task_type == TASK_PAGED_ATTENTION_SPLIT_KV_HOPPER) ||
-              (task_type == TASK_ATTN_SM100)) {
-            // Note that we assume grid_dim.x corresponds to
-            // the request dimension
-            task.task_metadata.request_id = bid.x;
-          }
-          // Set expert_offset for MoE tasks
-          if (task_type == TASK_MOE_W13_LINEAR_SM100 ||
-              task_type == TASK_MOE_W2_LINEAR_SM100 ||
-              task_type == TASK_MOE_W13_LINEAR_SM90 ||
-              task_type == TASK_MOE_W2_LINEAR_SM90) {
-            task.task_metadata.expert_offset = bid.x;
-          }
-          // Set paged attention split kv task kv_idx
-          if (task_type == TASK_PAGED_ATTENTION_SPLIT_KV_SM100 ||
-              task_type == TASK_PAGED_ATTENTION_SPLIT_KV_MERGE_SM100 ||
-              task_type == TASK_PAGED_ATTENTION_SPLIT_KV_HOPPER) {
-            task.task_metadata.kv_idx = bid.z;
-            task.task_metadata.merge_task_offset = bid.y;
-          }
+          // // Set request_id for attention and paged_attention
+          // if ((task_type == TASK_ATTENTION_1) ||
+          //     (task_type == TASK_ATTENTION_2) ||
+          //     (task_type == TASK_SINGLE_BATCH_EXTEND_ATTENTION) ||
+          //     (task_type == TASK_PAGED_ATTENTION_1) ||
+          //     (task_type == TASK_PAGED_ATTENTION_2) ||
+          //     (task_type == TASK_PAGED_ATTENTION_HOPPER) ||
+          //     (task_type == TASK_PAGED_ATTENTION_SPLIT_KV_SM100) ||
+          //     (TASK_PAGED_ATTENTION_SPLIT_KV_MERGE_SM100) ||
+          //     (task_type == TASK_PAGED_ATTENTION_SPLIT_KV_HOPPER) ||
+          //     (task_type == TASK_ATTN_SM100)) {
+          //   // Note that we assume grid_dim.x corresponds to
+          //   // the request dimension
+          //   task.task_metadata.request_id = bid.x;
+          // }
+          // // Set expert_offset for MoE tasks
+          // if (task_type == TASK_MOE_W13_LINEAR_SM100 ||
+          //     task_type == TASK_MOE_W2_LINEAR_SM100 ||
+          //     task_type == TASK_MOE_W13_LINEAR_SM90 ||
+          //     task_type == TASK_MOE_W2_LINEAR_SM90) {
+          //   task.task_metadata.expert_offset = bid.x;
+          // }
+          // // Set paged attention split kv task kv_idx
+          // if (task_type == TASK_PAGED_ATTENTION_SPLIT_KV_SM100 ||
+          //     task_type == TASK_PAGED_ATTENTION_SPLIT_KV_MERGE_SM100 ||
+          //     task_type == TASK_PAGED_ATTENTION_SPLIT_KV_HOPPER) {
+          //   task.task_metadata.kv_idx = bid.z;
+          //   task.task_metadata.merge_task_offset = bid.y;
+          // }
           // Initialize input tensors to the task
           for (auto const &input : input_ops) {
             TensorDesc desc;
@@ -485,14 +531,19 @@ void register_mugraph(
         if (d == output_map.z) {
           producer_partition[d] = pre_op->bgraph.grid_dim.z;
         }
+        if (task_type == TASK_SILU_MUL) {
+          printf("consumer %d vs producer %d.\n", consumer_partition[d], producer_partition[d]);
+        }
       }
       // Step 2.2: create events and add tasks
       // number of events is the product of gcd of producer/consumer
       std::vector<int> event_dims(mirage::config::MAX_TENSOR_DIMS, 1);
       for (int d = 0; d < mirage::config::MAX_TENSOR_DIMS; d++) {
         event_dims[d] = std::gcd(producer_partition[d], consumer_partition[d]);
+        printf("event_dims %d .\n", event_dims[d]);
       }
-      dfs_create_events_add_tasks(0,                       /*depth*/
+      dfs_create_events_add_tasks(task_type,
+                                  0,                       /*depth*/
                                   my_gpu_id,               /*my_gpu_id*/
                                   event_dims,              /*event_dims*/
                                   input_map,               /*input_map*/

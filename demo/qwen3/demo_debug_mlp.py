@@ -111,6 +111,7 @@ if __name__ == "__main__":
     
     # silu_mul_out_torch = torch.zeros((batch_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
     # silu_mul_out = mpk.attach_input(torch_tensor=silu_mul_out_torch, name="silu_mul_out")
+    # mlp_out_torch = silu_mul_out_torch
     silu_mul_out = mpk.new_tensor(dims=(batch_size, intermediate_size), dtype=mi.bfloat16, name="silu_mul_out", io_category="cuda_tensor")
     mpk.silu_mul_layer(
         input=mlp_mid,
@@ -127,8 +128,14 @@ if __name__ == "__main__":
         grid_dim=(64, 1, 1), # (64, 1, 1)
         block_dim=(128, 1, 1),
     )
+    
+    results = mpk.kn_graph.generate_task_graph(num_gpus=world_size, my_gpu_id=rank)
+    with open(f"./gen/t/task_graph.json", "w") as f:
+        f.write(results["json_file"])
+    with open(f"./gen/t/kernel.cu", "w") as f:
+        f.write(results["cuda_code"])
+        
     mpk.compile(output_dir=args.output_dir)
-  
   
     ###
     warnup_iter = 100
@@ -167,7 +174,9 @@ if __name__ == "__main__":
     torch.cuda.synchronize()
     run_time = starter.elapsed_time(ender)
     print("MPK run time (ms): ", run_time / test_iter)
+    
     ##
+    
     starter.record()
     for _ in range(test_iter):
         test_torch_mlp2(x_torch2, w_gatedup_torch2, w_down_proj_torch2)
@@ -175,7 +184,6 @@ if __name__ == "__main__":
     torch.cuda.synchronize()
     run_time = starter.elapsed_time(ender)
     print("torch run time (ms): ", run_time / test_iter)
-
 
     # from torch.profiler import profile, ProfilerActivity
     # if 1:
