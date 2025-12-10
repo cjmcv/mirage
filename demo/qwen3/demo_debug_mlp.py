@@ -119,7 +119,7 @@ if __name__ == "__main__":
         grid_dim=(32, 1, 1),
         block_dim=(128, 1, 1),
     )
-    mpk.linear_layer(
+    mpk.linear_postfix_layer( # [1, 9728] * [2560, 9728] = [1, 2560]
         input=silu_mul_out,
         weight=w_down_proj,
         output=mlp_out,

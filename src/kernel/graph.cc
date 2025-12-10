@@ -474,7 +474,7 @@ void Graph::register_task(char const *task_type, std::vector<int> params) {
   } else if (name == "linear_postfix") {
     int variant_id = task_register->register_linear_task(
         customized->bgraph, params, false /*with_residual*/, 1);
-    task_config[op] = std::make_tuple(2, 1, TASK_LINEAR, variant_id);
+    task_config[op] = std::make_tuple(2, 1, TASK_LINEAR_POSTFIX, variant_id);
   } else if (name == "linear_with_residual") {
     int variant_id = task_register->register_linear_task(
         customized->bgraph, params, true /*with_residual*/, 0);
