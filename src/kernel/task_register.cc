@@ -498,7 +498,8 @@ int TaskRegister::register_silu_mul_linear_with_residual_task(
 
 int TaskRegister::register_linear_task(threadblock::Graph const &bgraph,
                                        std::vector<int> const &params,
-                                       bool with_residual) {
+                                       bool with_residual,
+                                       int postfix) {
   assert(params.size() == 0);
   int batch_size = 0, output_size = 0, reduction_size = 0, output_stride = 0;
   std::vector<tb::TBInputOp *> input_ops;
@@ -545,12 +546,24 @@ int TaskRegister::register_linear_task(threadblock::Graph const &bgraph,
   if (with_residual) {
     code.e("    runtime_config.my_gpu_id == 0);");
   } else {
-    code.e("    false/*residual*/);");
+    if (postfix != 0) {
+      code.e("    false/*residual*/,");
+      code.e("    1/*postfix*/);");   
+    }
+    else{
+      code.e("    false/*residual*/);");      
+    }
   }
+  
   if (with_residual) {
     return register_task_variant(TASK_LINEAR_WITH_RESIDUAL, code.to_string());
   } else {
-    return register_task_variant(TASK_LINEAR, code.to_string());
+    if (postfix != 0) {
+      return register_task_variant(TASK_LINEAR_POSTFIX, code.to_string());  
+    }
+    else {
+      return register_task_variant(TASK_LINEAR, code.to_string());      
+    }
   }
 }
 

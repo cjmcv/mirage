@@ -119,20 +119,20 @@ if __name__ == "__main__":
 
     x_torch = torch.randn((1, 2560), dtype=torch.bfloat16, device="cuda")
     w_qkv_torch = torch.randn((19456, 2560), dtype=torch.bfloat16, device="cuda")
-    attn_in_torch = torch.zeros((1, 19456), dtype=torch.bfloat16, device="cuda")
+    mpk_out_torch = torch.zeros((1, 19456), dtype=torch.bfloat16, device="cuda")
 
     # x_torch = torch.randn((1, 9728), dtype=torch.bfloat16, device="cuda")
     # w_qkv_torch = torch.randn((2560, 9728), dtype=torch.bfloat16, device="cuda")
-    # attn_in_torch = torch.zeros((1, 2560), dtype=torch.bfloat16, device="cuda")
+    # mpk_out_torch = torch.zeros((1, 2560), dtype=torch.bfloat16, device="cuda")
     
     x = mpk.attach_input(torch_tensor=x_torch, name="in")
     w_qkv = mpk.attach_input(torch_tensor=w_qkv_torch, name="w")
-    attn_in = mpk.attach_input(torch_tensor=attn_in_torch, name="out")
+    mpk_out = mpk.attach_input(torch_tensor=mpk_out_torch, name="out")
     
     mpk.linear_layer(
         input=x,
         weight=w_qkv,
-        output=attn_in,
+        output=mpk_out,
         # grid_dim=(96, 1, 1),
         # grid_dim=(128, 1, 1),
         grid_dim=(64, 1, 1),
@@ -162,8 +162,8 @@ if __name__ == "__main__":
     torch.cuda.synchronize()
     
     # !! A potential memory out-of-bounds issue has occurred, where part of the data in O1 was overwritten during the execution of mpk()
-    # print("torch: ", O1[0], "\nmpk: ", attn_in_torch[0], "\ndiff: ", O1[0] - attn_in_torch[0])
-    print("allclose1:", torch.allclose(attn_in_torch[0], O1[0], rtol=1e-2))
+    # print("torch: ", O1[0], "\nmpk: ", mpk_out_torch[0], "\ndiff: ", O1[0] - mpk_out_torch[0])
+    print("allclose1:", torch.allclose(mpk_out_torch[0], O1[0], rtol=1e-2))
         
     starter.record()
     for i in range(test_iter):

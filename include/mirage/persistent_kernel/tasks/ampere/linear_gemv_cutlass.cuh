@@ -33,6 +33,9 @@
 
 namespace kernel {
 
+// A[1, k] * B[n, k] => C[n]
+// REDUCTION_SIZE => k
+// OUTPUT_SIZE => real_n
 using bfloat16 = type::bfloat16_t;
 template <typename T,
           int BATCH_SIZE,
@@ -45,10 +48,11 @@ __device__ __forceinline__ void linear_kernel(void const *input_ptr,
                                               void const *residual_ptr,
                                               void *output_ptr,
                                               int num_active_tokens,
-                                              bool residual) {
-  // if (threadIdx.x == 0) {
-  //   printf("gemv input_ptr: %lld, weight_ptr: %lld, output_ptr: %lld: %d,%d,%d.\n", input_ptr, weight_ptr, output_ptr, num_active_tokens, OUTPUT_SIZE, REDUCTION_SIZE);
-  // }
+                                              bool residual,
+                                              int postfix = 0) {
+  if (threadIdx.x == 0 && postfix == 1) {
+    printf("[%d] gemv input_ptr: %lld, weight_ptr: %lld, output_ptr: %lld: %d,%d,%d.\n", blockIdx.x, input_ptr, weight_ptr, output_ptr, num_active_tokens, OUTPUT_SIZE, REDUCTION_SIZE);
+  }
   using ElementA = cutlass::bfloat16_t;
   using ElementB = cutlass::bfloat16_t;
   using ElementC = cutlass::bfloat16_t;

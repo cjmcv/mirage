@@ -59,7 +59,7 @@ if __name__ == "__main__":
     else:
         profiler_tensor = None
 
-    num_workers, num_schedulers = 20, 20 # mi.get_configurations_from_gpu(rank)
+    num_workers, num_schedulers = 15, 20 # mi.get_configurations_from_gpu(rank)
     print("num_workers: ", num_workers)
     print("num_schedulers: ", num_schedulers)
     
@@ -105,7 +105,7 @@ if __name__ == "__main__":
         output=mlp_mid,
         # grid_dim=(96, 1, 1),
         # grid_dim=(128, 1, 1),
-        grid_dim=(64, 1, 1),  # (64, 1, 1)
+        grid_dim=(128, 1, 1),  # (64, 1, 1)
         block_dim=(128, 1, 1),
     )
     
@@ -116,7 +116,7 @@ if __name__ == "__main__":
     mpk.silu_mul_layer(
         input=mlp_mid,
         output=silu_mul_out,
-        grid_dim=(16, 1, 1),
+        grid_dim=(32, 1, 1),
         block_dim=(128, 1, 1),
     )
     mpk.linear_layer(
@@ -129,11 +129,11 @@ if __name__ == "__main__":
         block_dim=(128, 1, 1),
     )
     
-    results = mpk.kn_graph.generate_task_graph(num_gpus=world_size, my_gpu_id=rank)
-    with open(f"./gen/t/task_graph.json", "w") as f:
-        f.write(results["json_file"])
-    with open(f"./gen/t/kernel.cu", "w") as f:
-        f.write(results["cuda_code"])
+    # results = mpk.kn_graph.generate_task_graph(num_gpus=world_size, my_gpu_id=rank)
+    # with open(f"./gen/t/task_graph.json", "w") as f:
+    #     f.write(results["json_file"])
+    # with open(f"./gen/t/kernel.cu", "w") as f:
+    #     f.write(results["cuda_code"])
         
     mpk.compile(output_dir=args.output_dir)
   
@@ -157,10 +157,14 @@ if __name__ == "__main__":
     
     for _ in range(5):
         mlp_out_torch.zero_()
-        print("allclose clear: ", torch.allclose(mlp_out_torch[0], torch_out[0], rtol=1e-2))
         mpk.reinitialize()
         mpk()
-        print("allclose: ", torch.allclose(mlp_out_torch[0], torch_out[0], rtol=1e-2))
+        
+        if (torch.allclose(mlp_out_torch[0], torch_out[0], rtol=1e-2)):
+            print("allclose: True")
+        else:
+            print("diff: ", mlp_out_torch[0] - torch_out[0])
+        
     ##############################################################
         
     starter = torch.cuda.Event(enable_timing=True)

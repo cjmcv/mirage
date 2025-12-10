@@ -29,7 +29,9 @@ __device__ __forceinline__ void silu_mul_task_impl(void const *input_ptr,
   T const *__restrict__ d_mul = static_cast<T const *>(input_ptr) + O_STRIDE;
   T *__restrict__ d_output = static_cast<T *>(output_ptr);
 
-  
+  // if (threadIdx.x == 0) {
+  //   printf("[%d] silu_mul input_ptr: %lld, output_ptr: %lld: %d.\n", blockIdx.x, input_ptr, output_ptr, OUTPUT_SIZE);
+  // }
 #pragma unroll
   for (int i = threadIdx.x; i < num_active_tokens * OUTPUT_SIZE;
        i += blockDim.x) {

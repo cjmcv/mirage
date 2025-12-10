@@ -42,7 +42,8 @@ public:
       threadblock::Graph const &bgraph, std::vector<int> const &params);
   int register_linear_task(threadblock::Graph const &bgraph,
                            std::vector<int> const &params,
-                           bool with_residual);
+                           bool with_residual,
+                           int postfix);
   int register_silu_mul_task(threadblock::Graph const &bgraph,
                              std::vector<int> const &params);
   int register_identity_task(threadblock::Graph const &bgraph,

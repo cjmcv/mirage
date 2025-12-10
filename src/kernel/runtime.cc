@@ -503,11 +503,14 @@ void register_mugraph(
       int3 input_map, output_map;
       for (auto const &input : input_ops) {
         for (auto const &output : pre_output_ops) {
+          // op的输入tensor与前一个op的输出tensor是同一个tensor，则二者共享。可以设置input_map/output_map，实现细粒度执行。
+          // 如没有共享的tensor，则需要强制同步后执行？
           if (input->dtensor.guid == output->dtensor.guid) {
             input_map = input->input_map;
             output_map = output->input_map;
             num_shared_tensors++;
           }
+          printf("task_type: %d: guid: %d, %d.\n", task_type, input->dtensor.guid, output->dtensor.guid);
         }
       }
       // assert that their is at least a single tensor shared between ops
@@ -531,9 +534,7 @@ void register_mugraph(
         if (d == output_map.z) {
           producer_partition[d] = pre_op->bgraph.grid_dim.z;
         }
-        if (task_type == TASK_SILU_MUL) {
-          printf("consumer %d vs producer %d.\n", consumer_partition[d], producer_partition[d]);
-        }
+        printf("consumer %d vs producer %d.\n", consumer_partition[d], producer_partition[d]);
       }
       // Step 2.2: create events and add tasks
       // number of events is the product of gcd of producer/consumer
@@ -1431,6 +1432,7 @@ TaskGraphResult print_task_graph(
       "TASK_SILU_MUL_LINEAR_WITH_RESIDUAL";
   task_type_to_name[TASK_LINEAR] = "TASK_LINEAR";
   task_type_to_name[TASK_LINEAR_WITH_RESIDUAL] = "TASK_LINEAR_WITH_RESIDUAL";
+  task_type_to_name[TASK_LINEAR_POSTFIX] = "TASK_LINEAR_POSTFIX";
   task_type_to_name[TASK_ARGMAX_PARTIAL] = "TASK_ARGMAX_PARTIAL";
   task_type_to_name[TASK_ARGMAX_REDUCE] = "TASK_ARGMAX_REDUCE";
   task_type_to_name[TASK_NVSHMEM_COPY] = "TASK_NVSHMEM_COPY";
@@ -1511,6 +1513,7 @@ TaskGraphResult print_task_graph(
 }
 
 TaskGraphResult Graph::generate_task_graph(int _num_gpus, int _my_gpu_id) {
+  printf("Call generate_task_graph.\n");
   std::vector<FullTaskDesc> all_tasks;
   std::vector<EventDesc> all_events;
   std::vector<TaskId> first_tasks;

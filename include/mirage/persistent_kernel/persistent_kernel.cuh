@@ -1071,6 +1071,7 @@ extern "C" void reset_persistent_kernel() {
   //   first_tasks.size() * sizeof(TaskId),
   //   cudaMemcpyHostToDevice);
   // launch init kernel
+  printf("Call reset_persistent_kernel.\n");
   init_kernel<<<dim3(1, 1, 1), dim3(INIT_NUM_THREADS, 1, 1)>>>(
     global_runtime_config);
   cudaDeviceSynchronize();
