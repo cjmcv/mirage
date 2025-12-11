@@ -31,7 +31,7 @@ else:
     from setuptools import setup
     from setuptools.extension import Extension
 
-import z3
+# import z3
 
 nvcc_path = shutil.which("nvcc")
 if nvcc_path:
@@ -46,7 +46,7 @@ cuda_library_dirs = [
     os.path.join(cuda_home, "lib64", "stubs"),
 ]
 
-z3_path = path.dirname(z3.__file__)
+# z3_path = path.dirname(z3.__file__)
 
 # Use version.py to get package version
 version_file = os.path.join(os.path.dirname(__file__), "python/mirage/version.py")
@@ -103,7 +103,7 @@ def config_cython():
                         path.join(mirage_path, "deps", "cutlass", "tools", "util", "include"),
                         # path.join(mirage_path, "build", "abstract_subexpr", "release"),
                         # path.join(mirage_path, "build", "formal_verifier", "release"),
-                        path.join(z3_path, "include"),
+                        # path.join(z3_path, "include"),
                         cuda_include_dir,
                     ],
                     libraries=[
@@ -112,7 +112,7 @@ def config_cython():
                         "cudart_static",
                         "cudart",
                         "cuda",
-                        "z3",
+                        # "z3",
                         "gomp",
                         "rt",
                         # "abstract_subexpr",
@@ -120,7 +120,7 @@ def config_cython():
                     ],
                     library_dirs=[
                         path.join(mirage_path, "build"),
-                        path.join(z3_path, "lib"),
+                        # path.join(z3_path, "lib"),
                         # path.join(mirage_path, "build", "abstract_subexpr", "release"),
                         # path.join(mirage_path, "build", "formal_verifier", "release"),
                     ]
@@ -213,8 +213,8 @@ try:
             "cmake",
             "..",
             "-DCMAKE_BUILD_TYPE=Debug",
-            "-DZ3_CXX_INCLUDE_DIRS=" + z3_path + "/include/",
-            "-DZ3_LIBRARIES=" + path.join(z3_path, "lib", "libz3.so"),
+            # "-DZ3_CXX_INCLUDE_DIRS=" + z3_path + "/include/",
+            # "-DZ3_LIBRARIES=" + path.join(z3_path, "lib", "libz3.so"),
             # '-DABSTRACT_SUBEXPR_LIB=' + path.join(mirage_path, 'build', 'abstract_subexpr', 'release'),
             # '-DABSTRACT_SUBEXPR_LIBRARIES=' + path.join(mirage_path, 'build', 'abstract_subexpr', 'release', 'libabstract_subexpr.so'),
             # '-DFORMAL_VERIFIER_LIB=' + path.join(mirage_path, 'build', 'formal_verifier', 'release'),

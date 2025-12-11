@@ -230,7 +230,7 @@ cdef extern from "mirage/kernel/graph.h" namespace "mirage::kernel":
         int get_input_dtensors(CppDTensor** cinputs)
         int get_input_dtensor_shape_and_stride(const CppDTensor *input, int *strides, int *dims)
         void generate_triton_program(const char *filepath)
-        void generate_cuda_program(const char *filepath)
+        # void generate_cuda_program(const char *filepath)
         size_t get_owner_independent_hash() const
         # Persistent kernel functions
         void attach_torch_tensor(const CppDTensor *input,

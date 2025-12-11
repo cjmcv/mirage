@@ -393,152 +393,152 @@ class KNGraph:
             )
         return output_tensors
 
-    def compile(self, async_=False, **kwargs):
-        if self._is_compiled:
-            return self._cached_results
+    # def compile(self, async_=False, **kwargs):
+    #     if self._is_compiled:
+    #         return self._cached_results
 
-        input_tensors = kwargs.get("inputs", [])
-        input_strides = []
-        # Check that the input_strides match uGraph's specification
-        dtensors = self.cygraph.get_input_dtensors()
-        assert len(dtensors) == len(
-            input_tensors
-        ), "Given number of inputs do not match the uGraph's inputs"
-        for i in range(len(dtensors)):
-            dims, strides = self.cygraph.get_input_dtensor_shape_and_stride(dtensors[i])
-            assert (
-                dims == input_tensors[i].shape
-            ), "Expected input dims {}, got input dims {}".format(
-                dims, input_tensors[i].shape
-            )
-            assert (
-                strides == input_tensors[i].stride()
-            ), "Expected input strides {}, got input strides {}".format(
-                strides, input_tensors[i].stride()
-            )
-            input_strides.append(strides)
-        target_cc = kwargs.get(
-            "target_cc",
-            torch.cuda.get_device_properties(0).major * 10
-            + torch.cuda.get_device_properties(0).minor,
-        )
-        num_warp_groups = kwargs.get("num_warp_groups", 2)
-        pipeline_stages = kwargs.get("pipeline_stages", 2)
-        # TODO, add profling for Ampere later to show gpu wave
-        profiling = kwargs.get("profiling", False)
-        enable_online_softmax = kwargs.get("enable_online_softmax", False)
+    #     input_tensors = kwargs.get("inputs", [])
+    #     input_strides = []
+    #     # Check that the input_strides match uGraph's specification
+    #     dtensors = self.cygraph.get_input_dtensors()
+    #     assert len(dtensors) == len(
+    #         input_tensors
+    #     ), "Given number of inputs do not match the uGraph's inputs"
+    #     for i in range(len(dtensors)):
+    #         dims, strides = self.cygraph.get_input_dtensor_shape_and_stride(dtensors[i])
+    #         assert (
+    #             dims == input_tensors[i].shape
+    #         ), "Expected input dims {}, got input dims {}".format(
+    #             dims, input_tensors[i].shape
+    #         )
+    #         assert (
+    #             strides == input_tensors[i].stride()
+    #         ), "Expected input strides {}, got input strides {}".format(
+    #             strides, input_tensors[i].stride()
+    #         )
+    #         input_strides.append(strides)
+    #     target_cc = kwargs.get(
+    #         "target_cc",
+    #         torch.cuda.get_device_properties(0).major * 10
+    #         + torch.cuda.get_device_properties(0).minor,
+    #     )
+    #     num_warp_groups = kwargs.get("num_warp_groups", 2)
+    #     pipeline_stages = kwargs.get("pipeline_stages", 2)
+    #     # TODO, add profling for Ampere later to show gpu wave
+    #     profiling = kwargs.get("profiling", False)
+    #     enable_online_softmax = kwargs.get("enable_online_softmax", False)
 
-        result = generate_cuda_program(
-            self.cygraph,
-            target_cc=target_cc,
-            input_strides=input_strides,
-            num_warp_groups=num_warp_groups,
-            pipeline_stages=pipeline_stages,
-            profiling=profiling,
-            enable_online_softmax=enable_online_softmax,
-        )
-        if result["max_smem_size"] > get_shared_memory_capacity(target_cc):
-            # the transpiled kernel exceeds shared memory limit
-            print(
-                f"required shared memory size {result['max_smem_size']} exceed max shared memory size of current gpu arch {get_shared_memory_capacity(target_cc)}"
-            )
-            self._is_compiled = True
-            self._valid_cuda_kernels = False
-            self._error_message = "shared memory usage exceed limit"
+    #     result = generate_cuda_program(
+    #         self.cygraph,
+    #         target_cc=target_cc,
+    #         input_strides=input_strides,
+    #         num_warp_groups=num_warp_groups,
+    #         pipeline_stages=pipeline_stages,
+    #         profiling=profiling,
+    #         enable_online_softmax=enable_online_softmax,
+    #     )
+    #     if result["max_smem_size"] > get_shared_memory_capacity(target_cc):
+    #         # the transpiled kernel exceeds shared memory limit
+    #         print(
+    #             f"required shared memory size {result['max_smem_size']} exceed max shared memory size of current gpu arch {get_shared_memory_capacity(target_cc)}"
+    #         )
+    #         self._is_compiled = True
+    #         self._valid_cuda_kernels = False
+    #         self._error_message = "shared memory usage exceed limit"
 
-            if async_:
-                return Handle([], None)
-            else:
-                return None
+    #         if async_:
+    #             return Handle([], None)
+    #         else:
+    #             return None
 
-        MIRAGE_ROOT, INCLUDE_PATH, DEPS_PATH = get_key_paths()
-        # if True:
-        #     tempdir = './test/'
+    #     MIRAGE_ROOT, INCLUDE_PATH, DEPS_PATH = get_key_paths()
+    #     # if True:
+    #     #     tempdir = './test/'
 
-        tempdir_obj = tempfile.TemporaryDirectory()
-        tempdir = tempdir_obj.name
-        saved_addr = ""
-        file_id = kwargs.get("file_id", -1)
-        if file_id != -1:
-            print(f"file_id: {file_id}")
-            saved_addr = f"./generated_codes/{file_id}/"
-        FILE_NAME = os.path.join(tempdir, "test.cu")
-        so_path = os.path.join(tempdir, "test.cpython-38-x86_64-linux-gnu.so")
+    #     tempdir_obj = tempfile.TemporaryDirectory()
+    #     tempdir = tempdir_obj.name
+    #     saved_addr = ""
+    #     file_id = kwargs.get("file_id", -1)
+    #     if file_id != -1:
+    #         print(f"file_id: {file_id}")
+    #         saved_addr = f"./generated_codes/{file_id}/"
+    #     FILE_NAME = os.path.join(tempdir, "test.cu")
+    #     so_path = os.path.join(tempdir, "test.cpython-38-x86_64-linux-gnu.so")
 
-        with open(FILE_NAME, "w") as f:
-            f.write(result["code"] + HARD_CODE)
-            if saved_addr != "":
-                print(f"saved_addr: {saved_addr}")
-                os.makedirs(saved_addr, exist_ok=True)
-                with open(saved_addr + "test" + str(file_id) + ".cu", "w") as f:
-                    f.write(result["code"] + HARD_CODE)
+    #     with open(FILE_NAME, "w") as f:
+    #         f.write(result["code"] + HARD_CODE)
+    #         if saved_addr != "":
+    #             print(f"saved_addr: {saved_addr}")
+    #             os.makedirs(saved_addr, exist_ok=True)
+    #             with open(saved_addr + "test" + str(file_id) + ".cu", "w") as f:
+    #                 f.write(result["code"] + HARD_CODE)
 
-        cc = shutil.which("nvcc")
-        if cc is None:
-            raise RuntimeError(
-                "nvcc not found. Please make sure you have installed CUDA."
-            )
+    #     cc = shutil.which("nvcc")
+    #     if cc is None:
+    #         raise RuntimeError(
+    #             "nvcc not found. Please make sure you have installed CUDA."
+    #         )
 
-        # This function was renamed and made public in Python 3.10
-        if hasattr(sysconfig, "get_default_scheme"):
-            scheme = sysconfig.get_default_scheme()
-        else:
-            scheme = sysconfig._get_default_scheme()
-        # 'posix_local' is a custom scheme on Debian. However, starting Python 3.10, the default install
-        # path changes to include 'local'. This change is required to use triton with system-wide python.
-        if scheme == "posix_local":
-            scheme = "posix_prefix"
-        py_include_dir = sysconfig.get_paths(scheme=scheme)["include"]
-        cc_cmd = get_cc_cmd(
-            target_cc,
-            cc,
-            FILE_NAME,
-            py_include_dir,
-            INCLUDE_PATH,
-            DEPS_PATH,
-            so_path,
-            profiling,
-        )
+    #     # This function was renamed and made public in Python 3.10
+    #     if hasattr(sysconfig, "get_default_scheme"):
+    #         scheme = sysconfig.get_default_scheme()
+    #     else:
+    #         scheme = sysconfig._get_default_scheme()
+    #     # 'posix_local' is a custom scheme on Debian. However, starting Python 3.10, the default install
+    #     # path changes to include 'local'. This change is required to use triton with system-wide python.
+    #     if scheme == "posix_local":
+    #         scheme = "posix_prefix"
+    #     py_include_dir = sysconfig.get_paths(scheme=scheme)["include"]
+    #     cc_cmd = get_cc_cmd(
+    #         target_cc,
+    #         cc,
+    #         FILE_NAME,
+    #         py_include_dir,
+    #         INCLUDE_PATH,
+    #         DEPS_PATH,
+    #         so_path,
+    #         profiling,
+    #     )
 
-        def remain_op():
-            import importlib.util
+    #     def remain_op():
+    #         import importlib.util
 
-            try:
-                spec = importlib.util.spec_from_file_location(
-                    "__mirage_launcher", so_path
-                )
-                mod = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(mod)
-                self.run = getattr(mod, "launch")
+    #         try:
+    #             spec = importlib.util.spec_from_file_location(
+    #                 "__mirage_launcher", so_path
+    #             )
+    #             mod = importlib.util.module_from_spec(spec)
+    #             spec.loader.exec_module(mod)
+    #             self.run = getattr(mod, "launch")
 
-                self._is_compiled = True
-                self._valid_cuda_kernels = True
-                self._cached_results = result
-                self._error_message = "No error"
-                tempdir_obj.cleanup()
-                return self._cached_results
-            except ImportError:
-                # cannot import the built shared library likely due to
-                # compilation errors
-                self._is_compiled = True
-                self._valid_cuda_kernels = False
-                self._cached_results = None
-                self._error_message = "CUDA compilation error"
-                return None
+    #             self._is_compiled = True
+    #             self._valid_cuda_kernels = True
+    #             self._cached_results = result
+    #             self._error_message = "No error"
+    #             tempdir_obj.cleanup()
+    #             return self._cached_results
+    #         except ImportError:
+    #             # cannot import the built shared library likely due to
+    #             # compilation errors
+    #             self._is_compiled = True
+    #             self._valid_cuda_kernels = False
+    #             self._cached_results = None
+    #             self._error_message = "CUDA compilation error"
+    #             return None
 
-        if async_:
-            if global_config.bypass_compile_errors:
-                ret = subprocess.Popen(
-                    cc_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
-                )
-            else:
-                ret = subprocess.Popen(cc_cmd)
-            return Handle([ret], remain_op)
-        else:
-            ret = subprocess.check_call(cc_cmd)
-            return remain_op()
+    #     if async_:
+    #         if global_config.bypass_compile_errors:
+    #             ret = subprocess.Popen(
+    #                 cc_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
+    #             )
+    #         else:
+    #             ret = subprocess.Popen(cc_cmd)
+    #         return Handle([ret], remain_op)
+    #     else:
+    #         ret = subprocess.check_call(cc_cmd)
+    #         return remain_op()
 
-        # so_path = './test.cpython-38-x86_64-linux-gnu.so'
+    #     # so_path = './test.cpython-38-x86_64-linux-gnu.so'
 
     def superoptimize(
         self,

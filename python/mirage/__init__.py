@@ -1,6 +1,6 @@
 import os
 import ctypes
-import z3
+# import z3
 
 def preload_so(lib_path, name_hint):
     try:
@@ -8,9 +8,9 @@ def preload_so(lib_path, name_hint):
     except OSError as e:
         raise ImportError(f"Could not preload {name_hint} ({lib_path}): {e}")
 
-_z3_libdir = os.path.join(os.path.dirname(z3.__file__), "lib")
-_z3_so_path = os.path.join(_z3_libdir, "libz3.so")
-preload_so(_z3_so_path, "libz3.so")
+# _z3_libdir = os.path.join(os.path.dirname(z3.__file__), "lib")
+# _z3_so_path = os.path.join(_z3_libdir, "libz3.so")
+# preload_so(_z3_so_path, "libz3.so")
 
 _this_dir = os.path.dirname(__file__)
 _mirage_root = os.path.abspath(os.path.join(_this_dir, "..", ".."))

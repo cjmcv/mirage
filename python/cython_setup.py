@@ -43,9 +43,9 @@ def config_cython():
                               path.join(mirage_path, "deps", "json", "include"),
                               path.join(mirage_path, "deps", "cutlass", "include"),
                               "/usr/local/cuda/include"],
-                libraries=["mirage_runtime", "cudadevrt", "cudart_static", "cudart", "cuda", "z3", "gomp", "rt"],
+                libraries=["mirage_runtime", "cudadevrt", "cudart_static", "cudart", "cuda", "gomp", "rt"], # "z3", 
                 library_dirs=[path.join(mirage_path, "build"),
-                              path.join(mirage_path, "deps", "z3", "build"),
+                              path.join(mirage_path, "deps", "build"), # , "z3"
                               "/usr/local/cuda/lib",
                               "/usr/local/cuda/lib64",
                               "/usr/local/cuda/lib64/stubs"],

@@ -32,15 +32,15 @@ file(GLOB_RECURSE MIRAGE_SRCS
   src/*.cc
 )
 
-if (${USE_CUDA} STREQUAL "OFF")
-  file(GLOB_RECURSE MIRAGE_EXCLUDE_SRCS
-    src/transpiler/*.cc
-  )
+# if (${USE_CUDA} STREQUAL "OFF")
+#   file(GLOB_RECURSE MIRAGE_EXCLUDE_SRCS
+#     src/transpiler/*.cc
+#   )
 
-  list(REMOVE_ITEM MIRAGE_SRCS ${MIRAGE_EXCLUDE_SRCS})
+#   list(REMOVE_ITEM MIRAGE_SRCS ${MIRAGE_EXCLUDE_SRCS})
   
-  message(STATUS "MIRAGE_SRCS: ${MIRAGE_SRCS}")
-endif()
+#   message(STATUS "MIRAGE_SRCS: ${MIRAGE_SRCS}")
+# endif()
 
 file(GLOB_RECURSE MIRAGE_CUDA_SRCS
   src/*.cu
