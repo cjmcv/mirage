@@ -805,124 +805,124 @@ void from_json(json const &j, Graph &graph) {
                           type::TBEpilogueType::TB_EPILOGUE_NONE);
         break;
       }
-      case type::TBOperatorType::TB_MATMUL_OP: {
-        STensor const &output =
-            graph.matmul(get_tensor_from_guid(
-                             op.at("input_tensors")[0].at("guid").get<int>()),
-                         get_tensor_from_guid(
-                             op.at("input_tensors")[1].at("guid").get<int>()));
-        guid_mapping[output.guid] =
-            op.at("output_tensors")[0].at("guid").get<int>();
-        break;
-      }
-      case type::TBOperatorType::TB_EXP_OP:
-      case type::TBOperatorType::TB_SQUARE_OP:
-      case type::TBOperatorType::TB_SQRT_OP:
-      case type::TBOperatorType::TB_SILU_OP:
-      case type::TBOperatorType::TB_GELU_OP:
-      case type::TBOperatorType::TB_RELU_OP:
-      case type::TBOperatorType::TB_CLAMP_OP:
-      case type::TBOperatorType::TB_MUL_SCALAR_OP: {
-        STensor const &output = graph.elementunary(
-            get_tensor_from_guid(
-                op.at("input_tensors")[0].at("guid").get<int>()),
-            op_type);
-        guid_mapping[output.guid] =
-            op.at("output_tensors")[0].at("guid").get<int>();
-        break;
-      }
-      case type::TBOperatorType::TB_RMS_NORM_OP: {
-        STensor const &output = graph.rms_norm(get_tensor_from_guid(
-            op.at("input_tensors")[0].at("guid").get<int>()));
-        guid_mapping[output.guid] =
-            op.at("output_tensors")[0].at("guid").get<int>();
-        break;
-      }
-      case type::TBOperatorType::TB_ADD_OP:
-      case type::TBOperatorType::TB_MUL_OP:
-      case type::TBOperatorType::TB_DIV_OP:
-      case type::TBOperatorType::TB_SUB_OP:
-      case type::TBOperatorType::TB_POW_OP: {
-        STensor const &output = graph.elementbinary(
-            get_tensor_from_guid(
-                op.at("input_tensors")[0].at("guid").get<int>()),
-            get_tensor_from_guid(
-                op.at("input_tensors")[1].at("guid").get<int>()),
-            op_type);
-        guid_mapping[output.guid] =
-            op.at("output_tensors")[0].at("guid").get<int>();
-        break;
-      }
-      case type::TBOperatorType::TB_REDUCTION_0_OP:
-      case type::TBOperatorType::TB_REDUCTION_1_OP:
-      case type::TBOperatorType::TB_REDUCTION_2_OP: {
-        int dim = op_type - type::TBOperatorType::TB_REDUCTION_0_OP;
-        STensor const &output = graph.reduction(
-            get_tensor_from_guid(
-                op.at("input_tensors")[0].at("guid").get<int>()),
-            dim);
-        guid_mapping[output.guid] =
-            op.at("output_tensors")[0].at("guid").get<int>();
-        break;
-      }
-      case type::TBOperatorType::TB_REDUCTION_0_TO_DIMX_OP:
-      case type::TBOperatorType::TB_REDUCTION_1_TO_DIMX_OP:
-      case type::TBOperatorType::TB_REDUCTION_2_TO_DIMX_OP: {
-        int dim = op_type - type::TBOperatorType::TB_REDUCTION_0_TO_DIMX_OP;
-        STensor const &output = graph.reduction_to_dimx(
-            get_tensor_from_guid(
-                op.at("input_tensors")[0].at("guid").get<int>()),
-            dim);
-        guid_mapping[output.guid] =
-            op.at("output_tensors")[0].at("guid").get<int>();
-        break;
-      }
-      case type::TBOperatorType::TB_CONCAT_0_OP:
-      case type::TBOperatorType::TB_CONCAT_1_OP:
-      case type::TBOperatorType::TB_CONCAT_2_OP: {
-        int dim = op_type - type::TBOperatorType::TB_CONCAT_0_OP;
-        STensor const &output =
-            graph.concat(get_tensor_from_guid(
-                             op.at("input_tensors")[0].at("guid").get<int>()),
-                         get_tensor_from_guid(
-                             op.at("input_tensors")[1].at("guid").get<int>()),
-                         dim);
-        guid_mapping[output.guid] =
-            op.at("output_tensors")[0].at("guid").get<int>();
-        break;
-      }
-      case type::TBOperatorType::TB_FORLOOP_ACCUM_NO_RED_OP:
-      case type::TBOperatorType::TB_FORLOOP_ACCUM_RED_LD_SUM_OP:
-      case type::TBOperatorType::TB_FORLOOP_ACCUM_RED_LD_MEAN_OP:
-      case type::TBOperatorType::TB_FORLOOP_ACCUM_RED_LD_RMS_OP:
-      case type::TBOperatorType::TB_FORLOOP_ACCUM_REDTOX_LD_SUM_OP: {
-        STensor const &output = graph.forloop_accum(
-            get_tensor_from_guid(
-                op.at("input_tensors")[0].at("guid").get<int>()),
-            op_type);
-        guid_mapping[output.guid] =
-            op.at("output_tensors")[0].at("guid").get<int>();
-        break;
-      }
-      case type::TBOperatorType::TB_FORLOOP_ACCUM_NO_RED_RESCALE_OP:
-      case type::TBOperatorType::TB_FORLOOP_ACCUM_RED_LD_SUM_RESCALE_OP: {
-        STensor const &output = graph.forloop_accum_rescale(
-            get_tensor_from_guid(
-                op.at("input_tensors")[0].at("guid").get<int>()),
-            get_tensor_from_guid(
-                op.at("input_tensors")[1].at("guid").get<int>()),
-            op_type);
-        guid_mapping[output.guid] =
-            op.at("output_tensors")[0].at("guid").get<int>();
-        break;
-      }
-      case type::TBOperatorType::TB_FORLOOP_ACCUM_MAX_OP: {
-        STensor const &output = graph.forloop_accum_max(get_tensor_from_guid(
-            op.at("input_tensors")[0].at("guid").get<int>()));
-        guid_mapping[output.guid] =
-            op.at("output_tensors")[0].at("guid").get<int>();
-        break;
-      }
+      // case type::TBOperatorType::TB_MATMUL_OP: {
+      //   STensor const &output =
+      //       graph.matmul(get_tensor_from_guid(
+      //                        op.at("input_tensors")[0].at("guid").get<int>()),
+      //                    get_tensor_from_guid(
+      //                        op.at("input_tensors")[1].at("guid").get<int>()));
+      //   guid_mapping[output.guid] =
+      //       op.at("output_tensors")[0].at("guid").get<int>();
+      //   break;
+      // }
+      // case type::TBOperatorType::TB_EXP_OP:
+      // case type::TBOperatorType::TB_SQUARE_OP:
+      // case type::TBOperatorType::TB_SQRT_OP:
+      // case type::TBOperatorType::TB_SILU_OP:
+      // case type::TBOperatorType::TB_GELU_OP:
+      // case type::TBOperatorType::TB_RELU_OP:
+      // case type::TBOperatorType::TB_CLAMP_OP:
+      // case type::TBOperatorType::TB_MUL_SCALAR_OP: {
+      //   STensor const &output = graph.elementunary(
+      //       get_tensor_from_guid(
+      //           op.at("input_tensors")[0].at("guid").get<int>()),
+      //       op_type);
+      //   guid_mapping[output.guid] =
+      //       op.at("output_tensors")[0].at("guid").get<int>();
+      //   break;
+      // }
+      // case type::TBOperatorType::TB_RMS_NORM_OP: {
+      //   STensor const &output = graph.rms_norm(get_tensor_from_guid(
+      //       op.at("input_tensors")[0].at("guid").get<int>()));
+      //   guid_mapping[output.guid] =
+      //       op.at("output_tensors")[0].at("guid").get<int>();
+      //   break;
+      // }
+      // case type::TBOperatorType::TB_ADD_OP:
+      // case type::TBOperatorType::TB_MUL_OP:
+      // case type::TBOperatorType::TB_DIV_OP:
+      // case type::TBOperatorType::TB_SUB_OP:
+      // case type::TBOperatorType::TB_POW_OP: {
+      //   STensor const &output = graph.elementbinary(
+      //       get_tensor_from_guid(
+      //           op.at("input_tensors")[0].at("guid").get<int>()),
+      //       get_tensor_from_guid(
+      //           op.at("input_tensors")[1].at("guid").get<int>()),
+      //       op_type);
+      //   guid_mapping[output.guid] =
+      //       op.at("output_tensors")[0].at("guid").get<int>();
+      //   break;
+      // }
+      // case type::TBOperatorType::TB_REDUCTION_0_OP:
+      // case type::TBOperatorType::TB_REDUCTION_1_OP:
+      // case type::TBOperatorType::TB_REDUCTION_2_OP: {
+      //   int dim = op_type - type::TBOperatorType::TB_REDUCTION_0_OP;
+      //   STensor const &output = graph.reduction(
+      //       get_tensor_from_guid(
+      //           op.at("input_tensors")[0].at("guid").get<int>()),
+      //       dim);
+      //   guid_mapping[output.guid] =
+      //       op.at("output_tensors")[0].at("guid").get<int>();
+      //   break;
+      // }
+      // case type::TBOperatorType::TB_REDUCTION_0_TO_DIMX_OP:
+      // case type::TBOperatorType::TB_REDUCTION_1_TO_DIMX_OP:
+      // case type::TBOperatorType::TB_REDUCTION_2_TO_DIMX_OP: {
+      //   int dim = op_type - type::TBOperatorType::TB_REDUCTION_0_TO_DIMX_OP;
+      //   STensor const &output = graph.reduction_to_dimx(
+      //       get_tensor_from_guid(
+      //           op.at("input_tensors")[0].at("guid").get<int>()),
+      //       dim);
+      //   guid_mapping[output.guid] =
+      //       op.at("output_tensors")[0].at("guid").get<int>();
+      //   break;
+      // }
+      // case type::TBOperatorType::TB_CONCAT_0_OP:
+      // case type::TBOperatorType::TB_CONCAT_1_OP:
+      // case type::TBOperatorType::TB_CONCAT_2_OP: {
+      //   int dim = op_type - type::TBOperatorType::TB_CONCAT_0_OP;
+      //   STensor const &output =
+      //       graph.concat(get_tensor_from_guid(
+      //                        op.at("input_tensors")[0].at("guid").get<int>()),
+      //                    get_tensor_from_guid(
+      //                        op.at("input_tensors")[1].at("guid").get<int>()),
+      //                    dim);
+      //   guid_mapping[output.guid] =
+      //       op.at("output_tensors")[0].at("guid").get<int>();
+      //   break;
+      // }
+      // case type::TBOperatorType::TB_FORLOOP_ACCUM_NO_RED_OP:
+      // case type::TBOperatorType::TB_FORLOOP_ACCUM_RED_LD_SUM_OP:
+      // case type::TBOperatorType::TB_FORLOOP_ACCUM_RED_LD_MEAN_OP:
+      // case type::TBOperatorType::TB_FORLOOP_ACCUM_RED_LD_RMS_OP:
+      // case type::TBOperatorType::TB_FORLOOP_ACCUM_REDTOX_LD_SUM_OP: {
+      //   STensor const &output = graph.forloop_accum(
+      //       get_tensor_from_guid(
+      //           op.at("input_tensors")[0].at("guid").get<int>()),
+      //       op_type);
+      //   guid_mapping[output.guid] =
+      //       op.at("output_tensors")[0].at("guid").get<int>();
+      //   break;
+      // }
+      // case type::TBOperatorType::TB_FORLOOP_ACCUM_NO_RED_RESCALE_OP:
+      // case type::TBOperatorType::TB_FORLOOP_ACCUM_RED_LD_SUM_RESCALE_OP: {
+      //   STensor const &output = graph.forloop_accum_rescale(
+      //       get_tensor_from_guid(
+      //           op.at("input_tensors")[0].at("guid").get<int>()),
+      //       get_tensor_from_guid(
+      //           op.at("input_tensors")[1].at("guid").get<int>()),
+      //       op_type);
+      //   guid_mapping[output.guid] =
+      //       op.at("output_tensors")[0].at("guid").get<int>();
+      //   break;
+      // }
+      // case type::TBOperatorType::TB_FORLOOP_ACCUM_MAX_OP: {
+      //   STensor const &output = graph.forloop_accum_max(get_tensor_from_guid(
+      //       op.at("input_tensors")[0].at("guid").get<int>()));
+      //   guid_mapping[output.guid] =
+      //       op.at("output_tensors")[0].at("guid").get<int>();
+      //   break;
+      // }
       default:
         assert(false && "Unsupported operator");
     }

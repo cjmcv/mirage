@@ -16,7 +16,7 @@
 #pragma once
 
 #include "mirage/kernel/customized.h"
-#include "mirage/kernel/matmul.h"
+// #include "mirage/kernel/matmul.h"
 #include "mirage/kernel/operator.h"
 #include <unordered_map>
 #include <vector>

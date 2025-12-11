@@ -714,79 +714,79 @@ cdef class CyKNGraph:
                 cstrides[i] = strides[i]
         self.p_kgraph.mark_output(A.c_ptr, cstrides)
 
-    def matmul(self, DTensor A, DTensor B):
-        cdef CppDTensor* ptr = self.p_kgraph.matmul(A.c_ptr, B.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return DTensor(t)
+    # def matmul(self, DTensor A, DTensor B):
+    #     cdef CppDTensor* ptr = self.p_kgraph.matmul(A.c_ptr, B.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return DTensor(t)
 
-    def reduction(self, DTensor input, int dim):
-        cdef CppDTensor* ptr = self.p_kgraph.reduction(input.c_ptr, dim, 1)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return DTensor(t)
+    # def reduction(self, DTensor input, int dim):
+    #     cdef CppDTensor* ptr = self.p_kgraph.reduction(input.c_ptr, dim, 1)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return DTensor(t)
 
-    def rms_norm(self, DTensor input, tuple normalized_shape):
-        cdef vector[int] cshape
-        cshape.resize(len(normalized_shape))
-        for i in range(len(normalized_shape)):
-            cshape[i] = normalized_shape[i]
-        cdef CppDTensor* ptr = self.p_kgraph.rms_norm(input.c_ptr, cshape)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return DTensor(t)
+    # def rms_norm(self, DTensor input, tuple normalized_shape):
+    #     cdef vector[int] cshape
+    #     cshape.resize(len(normalized_shape))
+    #     for i in range(len(normalized_shape)):
+    #         cshape[i] = normalized_shape[i]
+    #     cdef CppDTensor* ptr = self.p_kgraph.rms_norm(input.c_ptr, cshape)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return DTensor(t)
 
-    def exp(self, DTensor input):
-        cdef CppDTensor* ptr = self.p_kgraph.exp(input.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return DTensor(t)
+    # def exp(self, DTensor input):
+    #     cdef CppDTensor* ptr = self.p_kgraph.exp(input.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return DTensor(t)
 
-    def silu(self, DTensor input):
-        cdef CppDTensor* ptr = self.p_kgraph.silu(input.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return DTensor(t)
+    # def silu(self, DTensor input):
+    #     cdef CppDTensor* ptr = self.p_kgraph.silu(input.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return DTensor(t)
     
-    def gelu(self, DTensor input):
-        cdef CppDTensor* ptr = self.p_kgraph.gelu(input.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return DTensor(t)
+    # def gelu(self, DTensor input):
+    #     cdef CppDTensor* ptr = self.p_kgraph.gelu(input.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return DTensor(t)
     
-    def relu(self, DTensor input):
-        cdef CppDTensor* ptr = self.p_kgraph.relu(input.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return DTensor(t)
+    # def relu(self, DTensor input):
+    #     cdef CppDTensor* ptr = self.p_kgraph.relu(input.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return DTensor(t)
     
-    def clamp(self, DTensor input, float min_val, float max_val):
-        cdef CppDTensor* ptr = self.p_kgraph.clamp(input.c_ptr, min_val, max_val)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return DTensor(t)
+    # def clamp(self, DTensor input, float min_val, float max_val):
+    #     cdef CppDTensor* ptr = self.p_kgraph.clamp(input.c_ptr, min_val, max_val)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return DTensor(t)
 
-    def sqrt(self, DTensor input):
-        cdef CppDTensor* ptr = self.p_kgraph.sqrt(input.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return DTensor(t)
+    # def sqrt(self, DTensor input):
+    #     cdef CppDTensor* ptr = self.p_kgraph.sqrt(input.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return DTensor(t)
 
-    def square(self, DTensor input):
-        cdef CppDTensor* ptr = self.p_kgraph.square(input.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return DTensor(t)
+    # def square(self, DTensor input):
+    #     cdef CppDTensor* ptr = self.p_kgraph.square(input.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return DTensor(t)
 
-    def add(self, DTensor A, DTensor B):
-        cdef CppDTensor* ptr = self.p_kgraph.add(A.c_ptr, B.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return DTensor(t)
+    # def add(self, DTensor A, DTensor B):
+    #     cdef CppDTensor* ptr = self.p_kgraph.add(A.c_ptr, B.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return DTensor(t)
 
-    def mul(self, DTensor A, DTensor B):
-        cdef CppDTensor* ptr = self.p_kgraph.mul(A.c_ptr, B.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return DTensor(t)
+    # def mul(self, DTensor A, DTensor B):
+    #     cdef CppDTensor* ptr = self.p_kgraph.mul(A.c_ptr, B.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return DTensor(t)
 
-    def div(self, DTensor A, DTensor B):
-        cdef CppDTensor* ptr = self.p_kgraph.div(A.c_ptr, B.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return DTensor(t)
+    # def div(self, DTensor A, DTensor B):
+    #     cdef CppDTensor* ptr = self.p_kgraph.div(A.c_ptr, B.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return DTensor(t)
 
-    def pow(self, DTensor A, DTensor B):
-        cdef CppDTensor* ptr = self.p_kgraph.pow(A.c_ptr, B.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return DTensor(t)
+    # def pow(self, DTensor A, DTensor B):
+    #     cdef CppDTensor* ptr = self.p_kgraph.pow(A.c_ptr, B.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return DTensor(t)
 
     def customized(self, list inputs, CyTBGraph bgraph):
         cdef vector[const CppDTensor*] cinputs
