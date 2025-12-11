@@ -1166,88 +1166,88 @@ cdef class CyTBGraph:
                 operators.append(CyTBOperator(ptr))
             return operators
 
-def search(CyKNGraph input_graph, *, str backend = "cuda", int max_num_new_graphs = 1024, list imaps = None, list omaps = None, list griddims = None, list blockdims = None, list fmaps = None, list franges = None, str previous_checkpoint = None, bool verbose, str default_config = None, bool is_formal_verified):
-    # set cimaps
-    cdef vector[MInt3] cimaps
-    cimaps.resize(0)
-    if imaps is not None:
-        cimaps.resize(len(imaps))
-        for i in range(len(imaps)):
-            assert type(imaps[i]) is tuple, "Each imap must be a tuple of 3 integers"
-            assert len(imaps[i]) == 3, "Each imap must be a tuple of 3 integers"
-            cimaps[i].x = imaps[i][0]
-            cimaps[i].y = imaps[i][1]
-            cimaps[i].z = imaps[i][2]
-    #set comaps
-    cdef vector[MInt3] comaps
-    comaps.resize(0)
-    if omaps is not None:
-        comaps.resize(len(omaps))
-        for i in range(len(omaps)):
-            assert type(omaps[i]) is tuple, "Each omap must be a tuple of 3 integers"
-            assert len(omaps[i]) == 3, "Each omap must be a tuple of 3 integers"
-            comaps[i].x = omaps[i][0]
-            comaps[i].y = omaps[i][1]
-            comaps[i].z = omaps[i][2]
-    # set griddims
-    cdef vector[MDim3] cgriddims
-    cgriddims.resize(0)
-    if griddims is not None:
-        cgriddims.resize(len(griddims))
-        for i in range(len(griddims)):
-            assert type(griddims[i]) is tuple, "Each griddim must be a tuple of 3 integers"
-            assert len(griddims[i]) == 3, "Each griddim must be a tuple of 3 integers"
-            cgriddims[i].x = griddims[i][0]
-            cgriddims[i].y = griddims[i][1]
-            cgriddims[i].z = griddims[i][2]
-    # set blockdims
-    assert blockdims is None, "TODO: support blockdims"
-    cdef vector[MDim3] cblockdims
-    cblockdims.resize(0)
-    # set fmaps
-    cdef vector[int] cfmaps
-    cfmaps.resize(0)
-    if fmaps is not None:
-        cfmaps.resize(len(fmaps))
-        for i in range(len(fmaps)):
-            cfmaps[i] = fmaps[i]
-    #set franges
-    cdef vector[int] cfranges
-    cfranges.resize(0)
-    if franges is not None:
-        cfranges.resize(len(franges))
-        for i in range(len(franges)):
-            cfranges[i] = franges[i]
-    # allocate new graphs
-    # currently support up to 1024 new graphs
-    assert max_num_new_graphs <= 1024
-    cdef CppKNGraph* cnewgraphs[1024]
-    # set verbose
-    cverbose = verbose
-    # set backend
-    cdef char* cbackend = NULL
-    if backend is not None:
-        py_byte_string_backend = backend.encode('UTF-8')
-        cbackend = py_byte_string_backend
-    # set previous_checkpoint
-    cdef char* cprevious_checkpoint = NULL
-    if previous_checkpoint is not None:
-        py_byte_string_cp = previous_checkpoint.encode('UTF-8')
-        cprevious_checkpoint = py_byte_string_cp
-    # convert config description
-    cdef char* cconfig = NULL
-    if default_config is not None:
-        py_byte_string_config = default_config.encode('UTF-8')
-        cconfig = py_byte_string_config
-    # set is_formal_verified
-    cis_formal_verifed = is_formal_verified
-    num = cython_search(input_graph.p_kgraph, cbackend, max_num_new_graphs, cnewgraphs, cimaps, comaps, cgriddims, cblockdims, cfmaps, cfranges, cprevious_checkpoint, cverbose, cconfig, cis_formal_verifed)
-    new_graphs = list()
-    for i in range(num):
-        ptr = ctypes.cast(<unsigned long long>cnewgraphs[i], ctypes.c_void_p)
-        new_graphs.append(CyKNGraph(ptr))
+# def search(CyKNGraph input_graph, *, str backend = "cuda", int max_num_new_graphs = 1024, list imaps = None, list omaps = None, list griddims = None, list blockdims = None, list fmaps = None, list franges = None, str previous_checkpoint = None, bool verbose, str default_config = None, bool is_formal_verified):
+#     # set cimaps
+#     cdef vector[MInt3] cimaps
+#     cimaps.resize(0)
+#     if imaps is not None:
+#         cimaps.resize(len(imaps))
+#         for i in range(len(imaps)):
+#             assert type(imaps[i]) is tuple, "Each imap must be a tuple of 3 integers"
+#             assert len(imaps[i]) == 3, "Each imap must be a tuple of 3 integers"
+#             cimaps[i].x = imaps[i][0]
+#             cimaps[i].y = imaps[i][1]
+#             cimaps[i].z = imaps[i][2]
+#     #set comaps
+#     cdef vector[MInt3] comaps
+#     comaps.resize(0)
+#     if omaps is not None:
+#         comaps.resize(len(omaps))
+#         for i in range(len(omaps)):
+#             assert type(omaps[i]) is tuple, "Each omap must be a tuple of 3 integers"
+#             assert len(omaps[i]) == 3, "Each omap must be a tuple of 3 integers"
+#             comaps[i].x = omaps[i][0]
+#             comaps[i].y = omaps[i][1]
+#             comaps[i].z = omaps[i][2]
+#     # set griddims
+#     cdef vector[MDim3] cgriddims
+#     cgriddims.resize(0)
+#     if griddims is not None:
+#         cgriddims.resize(len(griddims))
+#         for i in range(len(griddims)):
+#             assert type(griddims[i]) is tuple, "Each griddim must be a tuple of 3 integers"
+#             assert len(griddims[i]) == 3, "Each griddim must be a tuple of 3 integers"
+#             cgriddims[i].x = griddims[i][0]
+#             cgriddims[i].y = griddims[i][1]
+#             cgriddims[i].z = griddims[i][2]
+#     # set blockdims
+#     assert blockdims is None, "TODO: support blockdims"
+#     cdef vector[MDim3] cblockdims
+#     cblockdims.resize(0)
+#     # set fmaps
+#     cdef vector[int] cfmaps
+#     cfmaps.resize(0)
+#     if fmaps is not None:
+#         cfmaps.resize(len(fmaps))
+#         for i in range(len(fmaps)):
+#             cfmaps[i] = fmaps[i]
+#     #set franges
+#     cdef vector[int] cfranges
+#     cfranges.resize(0)
+#     if franges is not None:
+#         cfranges.resize(len(franges))
+#         for i in range(len(franges)):
+#             cfranges[i] = franges[i]
+#     # allocate new graphs
+#     # currently support up to 1024 new graphs
+#     assert max_num_new_graphs <= 1024
+#     cdef CppKNGraph* cnewgraphs[1024]
+#     # set verbose
+#     cverbose = verbose
+#     # set backend
+#     cdef char* cbackend = NULL
+#     if backend is not None:
+#         py_byte_string_backend = backend.encode('UTF-8')
+#         cbackend = py_byte_string_backend
+#     # set previous_checkpoint
+#     cdef char* cprevious_checkpoint = NULL
+#     if previous_checkpoint is not None:
+#         py_byte_string_cp = previous_checkpoint.encode('UTF-8')
+#         cprevious_checkpoint = py_byte_string_cp
+#     # convert config description
+#     cdef char* cconfig = NULL
+#     if default_config is not None:
+#         py_byte_string_config = default_config.encode('UTF-8')
+#         cconfig = py_byte_string_config
+#     # set is_formal_verified
+#     cis_formal_verifed = is_formal_verified
+#     num = cython_search(input_graph.p_kgraph, cbackend, max_num_new_graphs, cnewgraphs, cimaps, comaps, cgriddims, cblockdims, cfmaps, cfranges, cprevious_checkpoint, cverbose, cconfig, cis_formal_verifed)
+#     new_graphs = list()
+#     for i in range(num):
+#         ptr = ctypes.cast(<unsigned long long>cnewgraphs[i], ctypes.c_void_p)
+#         new_graphs.append(CyKNGraph(ptr))
 
-    return new_graphs
+#     return new_graphs
 
 # Generate CUDA program for a uGraph
 # Return (CUDA code, buffer size in bytes)
@@ -1299,19 +1299,19 @@ def generate_cuda_program(CyKNGraph input_graph, *, int target_cc, list input_st
         "output_directives": output_directives
     }
 
-def generate_nki_program(CyKNGraph input_graph, *, int target_cc) -> dict:
-    # Set transpiler_config
-    cdef NKITranspilerConfig transpiler_config
-    transpiler_config.target_cc = target_cc
+# def generate_nki_program(CyKNGraph input_graph, *, int target_cc) -> dict:
+#     # Set transpiler_config
+#     cdef NKITranspilerConfig transpiler_config
+#     transpiler_config.target_cc = target_cc
     
-    # Call transpile
-    cdef NKITranspileResult result = transpile(input_graph.p_kgraph, transpiler_config)
-    cdef list error_list = [error.decode("UTF-8") for error in result.error_state.errors]
+#     # Call transpile
+#     cdef NKITranspileResult result = transpile(input_graph.p_kgraph, transpiler_config)
+#     cdef list error_list = [error.decode("UTF-8") for error in result.error_state.errors]
 
-    return {
-        "code": result.code.decode("UTF-8"),
-        "errors": error_list,
-    }
+#     return {
+#         "code": result.code.decode("UTF-8"),
+#         "errors": error_list,
+#     }
 
 def generate_triton_program(CyKNGraph input_graph, *, int target_cc) -> dict:
     cdef TritonTranspilerConfig transpiler_config
@@ -1327,12 +1327,12 @@ def generate_triton_program(CyKNGraph input_graph, *, int target_cc) -> dict:
 def set_gpu_device_id(gpu_id: int):
     cython_set_gpu_device_id(gpu_id)
 
-def cy_to_json(CyKNGraph input_graph, str filename):
-    cfilename = filename.encode('UTF-8')
-    cython_to_json(input_graph.p_kgraph, cfilename)
+# def cy_to_json(CyKNGraph input_graph, str filename):
+#     cfilename = filename.encode('UTF-8')
+#     cython_to_json(input_graph.p_kgraph, cfilename)
 
-def cy_from_json(str filename):
-    cfilename = filename.encode('UTF-8')
-    ptr = cython_from_json(cfilename)
-    graph = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-    return CyKNGraph(graph)
+# def cy_from_json(str filename):
+#     cfilename = filename.encode('UTF-8')
+#     ptr = cython_from_json(cfilename)
+#     graph = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+#     return CyKNGraph(graph)

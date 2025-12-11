@@ -73,3 +73,5 @@ ncu_tmp
 #nsys
 *.nsys-rep
 *.sqlite
+
+gen/

@@ -331,34 +331,34 @@ cdef extern from "mirage/threadblock/graph.h" namespace "mirage::threadblock":
         int reduction_dimx
         vector[CppTBOperator*] operators
 
-cdef extern from "mirage/search/search_c.h" namespace "mirage::search_c":
-    ctypedef struct MInt3:
-        int x
-        int y
-        int z
-    ctypedef struct MDim3:
-        unsigned int x
-        unsigned int y
-        unsigned int z
+# cdef extern from "mirage/search/search_c.h" namespace "mirage::search_c":
+#     ctypedef struct MInt3:
+#         int x
+#         int y
+#         int z
+#     ctypedef struct MDim3:
+#         unsigned int x
+#         unsigned int y
+#         unsigned int z
 
-    cdef int cython_search(const CppKNGraph *input_graph,
-                           const char *backend,
-                           int max_num_new_graphs,
-                           CppKNGraph** new_graphs,
-                           vector[MInt3] imaps,
-                           vector[MInt3] omaps,
-                           vector[MDim3] griddims,
-                           vector[MDim3] blockdims,
-                           vector[int] fmaps,
-                           vector[int] franges,
-                           const char * filename,
-                           bool verbose,
-                           const char * default_config,
-                           bool is_formal_verified)
+#     cdef int cython_search(const CppKNGraph *input_graph,
+#                            const char *backend,
+#                            int max_num_new_graphs,
+#                            CppKNGraph** new_graphs,
+#                            vector[MInt3] imaps,
+#                            vector[MInt3] omaps,
+#                            vector[MDim3] griddims,
+#                            vector[MDim3] blockdims,
+#                            vector[int] fmaps,
+#                            vector[int] franges,
+#                            const char * filename,
+#                            bool verbose,
+#                            const char * default_config,
+#                            bool is_formal_verified)
     
-    cdef void cython_to_json(const CppKNGraph *input_graph,
-                             const char *filename)
-    cdef CppKNGraph *cython_from_json(const char *filename)
+#     cdef void cython_to_json(const CppKNGraph *input_graph,
+#                              const char *filename)
+#     cdef CppKNGraph *cython_from_json(const char *filename)
 
 cdef extern from "mirage/transpiler/transpile.h" namespace "mirage::transpiler":
     ctypedef struct TranspilerConfig:
@@ -382,16 +382,16 @@ cdef extern from "mirage/transpiler/transpile.h" namespace "mirage::transpiler":
                        const TranspilerConfig config,
                        vector[vector[size_t]] input_strides)
 
-cdef extern from "mirage/nki_transpiler/transpile.h" namespace "mirage::nki_transpiler":
-    ctypedef struct NKITranspilerConfig:
-        int target_cc
-    ctypedef struct NKIErrorInfo:
-        vector[string] errors
-    ctypedef struct NKITranspileResult:
-        string code
-        NKIErrorInfo error_state
-    cdef NKITranspileResult transpile(const CppKNGraph *graph,
-                                      const NKITranspilerConfig config)
+# cdef extern from "mirage/nki_transpiler/transpile.h" namespace "mirage::nki_transpiler":
+#     ctypedef struct NKITranspilerConfig:
+#         int target_cc
+#     ctypedef struct NKIErrorInfo:
+#         vector[string] errors
+#     ctypedef struct NKITranspileResult:
+#         string code
+#         NKIErrorInfo error_state
+#     cdef NKITranspileResult transpile(const CppKNGraph *graph,
+#                                       const NKITranspilerConfig config)
 
 cdef extern from "mirage/triton_transpiler/transpile.h" namespace "mirage::triton_transpiler":
     ctypedef struct TritonTranspilerConfig:
