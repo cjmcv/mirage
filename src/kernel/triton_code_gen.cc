@@ -408,105 +408,105 @@ std::string generate_kernel_code(
   return header.str() + main.str() + ending.str();
 }
 
-void Graph::generate_triton_program(char const *file_path) {
-  using namespace std;
-  stringstream header;
-  vector<std::string> kernels;
-  stringstream launcher;
-  stringstream main_program;
-  main_program << "def main():\n";
-  header << "import triton\nimport torch\nimport triton.language as tl\n";
-  launcher << "def kernel_launcher(";
-  for (KNOperator *const op : this->operators) {
-    for (auto const &output : op->output_tensors) {
-      launcher << dtensor_name(output.guid) << ", ";
-    }
-  }
-  launcher << "):\n";
-  for (KNOperator *const op : this->operators) {
-    for (auto const &output : op->output_tensors) {
-      main_program
-          << "\t" << dtensor_name(output.guid) << " = torch.randn("
-          << tensor_dims(output)
-          << ", dtype=torch.float16, device=\"cuda\", requires_grad=False)\n";
-    }
-    switch (op->op_type) {
-      case type::KNOperatorType::KN_INPUT_OP: {
-        assert(op->output_tensors.size() == 1);
-        break;
-      }
-      case type::KNOperatorType::KN_CUSTOMIZED_OP: {
-        KNCustomizedOp const *customized =
-            static_cast<KNCustomizedOp const *>(op);
-        vector<string> input_names;
-        vector<string> output_names;
-        for (auto const &t : op->input_tensors) {
-          input_names.push_back(dtensor_name(t.guid));
-        }
-        for (auto const &t : op->output_tensors) {
-          output_names.push_back(dtensor_name(t.guid));
-        }
-        std::map<int, mirage::threadblock::STensor> offset_to_stensor;
-        for (auto const &tbo : customized->bgraph.operators) {
-          for (auto const &t : tbo->output_tensors) {
-            offset_to_stensor[t.smem_offset] = t;
-          }
-        }
-        mirage::threadblock::NewKernelParams params =
-            customized->bgraph.get_new_kernel_params(false /*fingerprint*/);
-        string kernel_code =
-            generate_kernel_code(params,
-                                 customized->bgraph.forloop_range,
-                                 customized->bgraph.reduction_dimx,
-                                 "graphdef_kernel_" + to_string(kernels.size()),
-                                 input_names,
-                                 output_names,
-                                 offset_to_stensor);
-        launcher << "\tgrid = (" << customized->bgraph.grid_dim.x << ", "
-                 << customized->bgraph.grid_dim.y << ", "
-                 << customized->bgraph.grid_dim.z << ")\n";
-        launcher << "\tgraphdef_kernel_" << kernels.size() << "[grid](\n\t\t";
-        for (size_t i = 0; i < input_names.size(); i++) {
-          if (i > 0) {
-            launcher << ", \n\t\t";
-          }
-          launcher << input_names[i];
-        }
-        for (size_t i = 0; i < output_names.size(); i++) {
-          launcher << ", \n\t\t";
-          launcher << output_names[i];
-        }
-        launcher << ")\n";
-        kernels.push_back(kernel_code);
-        break;
-      }
-      default: {
-        // assert(false && "Cannot tritonize this operator");
-      }
-    }
-  }
-  // Write profiling code for main_program
-  main_program << "\tfn = lambda: kernel_launcher(";
-  for (KNOperator *const op : this->operators) {
-    for (auto const &output : op->output_tensors) {
-      main_program << dtensor_name(output.guid) << ", ";
-    }
-  }
-  main_program << ")\n";
-  main_program << "\tquantiles = [0.5, 0.1, 0.9]\n";
-  main_program << "\tms, mmin, mmax = triton.testing.do_bench(fn, warmup=1000, "
-                  "rep=1000, quantiles=quantiles)\n";
-  main_program << "\tprint(ms, mmin, mmax)\n";
+// void Graph::generate_triton_program(char const *file_path) {
+//   using namespace std;
+//   stringstream header;
+//   vector<std::string> kernels;
+//   stringstream launcher;
+//   stringstream main_program;
+//   main_program << "def main():\n";
+//   header << "import triton\nimport torch\nimport triton.language as tl\n";
+//   launcher << "def kernel_launcher(";
+//   for (KNOperator *const op : this->operators) {
+//     for (auto const &output : op->output_tensors) {
+//       launcher << dtensor_name(output.guid) << ", ";
+//     }
+//   }
+//   launcher << "):\n";
+//   for (KNOperator *const op : this->operators) {
+//     for (auto const &output : op->output_tensors) {
+//       main_program
+//           << "\t" << dtensor_name(output.guid) << " = torch.randn("
+//           << tensor_dims(output)
+//           << ", dtype=torch.float16, device=\"cuda\", requires_grad=False)\n";
+//     }
+//     switch (op->op_type) {
+//       case type::KNOperatorType::KN_INPUT_OP: {
+//         assert(op->output_tensors.size() == 1);
+//         break;
+//       }
+//       case type::KNOperatorType::KN_CUSTOMIZED_OP: {
+//         KNCustomizedOp const *customized =
+//             static_cast<KNCustomizedOp const *>(op);
+//         vector<string> input_names;
+//         vector<string> output_names;
+//         for (auto const &t : op->input_tensors) {
+//           input_names.push_back(dtensor_name(t.guid));
+//         }
+//         for (auto const &t : op->output_tensors) {
+//           output_names.push_back(dtensor_name(t.guid));
+//         }
+//         std::map<int, mirage::threadblock::STensor> offset_to_stensor;
+//         for (auto const &tbo : customized->bgraph.operators) {
+//           for (auto const &t : tbo->output_tensors) {
+//             offset_to_stensor[t.smem_offset] = t;
+//           }
+//         }
+//         mirage::threadblock::NewKernelParams params =
+//             customized->bgraph.get_new_kernel_params(false /*fingerprint*/);
+//         string kernel_code =
+//             generate_kernel_code(params,
+//                                  customized->bgraph.forloop_range,
+//                                  customized->bgraph.reduction_dimx,
+//                                  "graphdef_kernel_" + to_string(kernels.size()),
+//                                  input_names,
+//                                  output_names,
+//                                  offset_to_stensor);
+//         launcher << "\tgrid = (" << customized->bgraph.grid_dim.x << ", "
+//                  << customized->bgraph.grid_dim.y << ", "
+//                  << customized->bgraph.grid_dim.z << ")\n";
+//         launcher << "\tgraphdef_kernel_" << kernels.size() << "[grid](\n\t\t";
+//         for (size_t i = 0; i < input_names.size(); i++) {
+//           if (i > 0) {
+//             launcher << ", \n\t\t";
+//           }
+//           launcher << input_names[i];
+//         }
+//         for (size_t i = 0; i < output_names.size(); i++) {
+//           launcher << ", \n\t\t";
+//           launcher << output_names[i];
+//         }
+//         launcher << ")\n";
+//         kernels.push_back(kernel_code);
+//         break;
+//       }
+//       default: {
+//         // assert(false && "Cannot tritonize this operator");
+//       }
+//     }
+//   }
+//   // Write profiling code for main_program
+//   main_program << "\tfn = lambda: kernel_launcher(";
+//   for (KNOperator *const op : this->operators) {
+//     for (auto const &output : op->output_tensors) {
+//       main_program << dtensor_name(output.guid) << ", ";
+//     }
+//   }
+//   main_program << ")\n";
+//   main_program << "\tquantiles = [0.5, 0.1, 0.9]\n";
+//   main_program << "\tms, mmin, mmax = triton.testing.do_bench(fn, warmup=1000, "
+//                   "rep=1000, quantiles=quantiles)\n";
+//   main_program << "\tprint(ms, mmin, mmax)\n";
 
-  std::ofstream file(file_path);
-  file << header.str() << "\n";
-  for (auto const &k : kernels) {
-    file << k << "\n";
-  }
-  file << launcher.str() << "\n" << main_program.str() << "\n";
-  file << "if __name__ == \"__main__\":\n\tmain()\n";
-  file.close();
-}
+//   std::ofstream file(file_path);
+//   file << header.str() << "\n";
+//   for (auto const &k : kernels) {
+//     file << k << "\n";
+//   }
+//   file << launcher.str() << "\n" << main_program.str() << "\n";
+//   file << "if __name__ == \"__main__\":\n\tmain()\n";
+//   file.close();
+// }
 
 } // namespace kernel
 } // namespace mirage

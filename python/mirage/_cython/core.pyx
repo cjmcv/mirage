@@ -807,12 +807,12 @@ cdef class CyKNGraph:
             outputs.append(DTensor(ptr))
         return outputs
 
-    def generate_triton_program(self, str filepath):
-        assert filepath is not None, "filepath cannot be empty"
-        py_byte_string = filepath.encode('UTF-8')
-        cdef char* cfilepath = NULL
-        cfilepath = py_byte_string
-        self.p_kgraph.generate_triton_program(cfilepath)
+    # def generate_triton_program(self, str filepath):
+    #     assert filepath is not None, "filepath cannot be empty"
+    #     py_byte_string = filepath.encode('UTF-8')
+    #     cdef char* cfilepath = NULL
+    #     cfilepath = py_byte_string
+    #     self.p_kgraph.generate_triton_program(cfilepath)
 
     def get_input_dtensors(self):
         cdef CppDTensor* cinputs[1024]
@@ -1314,16 +1314,16 @@ cdef class CyTBGraph:
 #         "errors": error_list,
 #     }
 
-def generate_triton_program(CyKNGraph input_graph, *, int target_cc) -> dict:
-    cdef TritonTranspilerConfig transpiler_config
-    transpiler_config.target_cc = target_cc
+# def generate_triton_program(CyKNGraph input_graph, *, int target_cc) -> dict:
+#     cdef TritonTranspilerConfig transpiler_config
+#     transpiler_config.target_cc = target_cc
 
-    cdef TritonTranspileResult result = transpile(input_graph.p_kgraph, transpiler_config)
+#     cdef TritonTranspileResult result = transpile(input_graph.p_kgraph, transpiler_config)
 
-    return {
-        "code": result.code.decode("UTF-8"),
-        "output_shapes": result.output_shapes
-    }
+#     return {
+#         "code": result.code.decode("UTF-8"),
+#         "output_shapes": result.output_shapes
+#     }
 
 def set_gpu_device_id(gpu_id: int):
     cython_set_gpu_device_id(gpu_id)

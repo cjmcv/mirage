@@ -252,12 +252,12 @@ def copy_include():
         # instead of python/mirage/include/include/mirage/transpiler/runtime/*
         include_mirage_dirs = [
             "include/mirage/transpiler/runtime",
-            "include/mirage/triton_transpiler/runtime",
+            # "include/mirage/triton_transpiler/runtime",
             "include/mirage/persistent_kernel",
         ]
         include_mirage_dsts = [
             path.join(INCLUDE_BASE, "mirage/transpiler/runtime"),
-            path.join(INCLUDE_BASE, "mirage/triton_transpiler/runtime"),
+            # path.join(INCLUDE_BASE, "mirage/triton_transpiler/runtime"),
             path.join(INCLUDE_BASE, "mirage/persistent_kernel"),
         ]
         for include_mirage_dir, include_mirage_dst in zip(

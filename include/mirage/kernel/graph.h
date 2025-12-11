@@ -175,7 +175,7 @@ public:
   int get_input_dtensor_shape_and_stride(DTensor const *input,
                                          int *strides,
                                          int *dims) const;
-  void generate_triton_program(char const *filepath);
+  // void generate_triton_program(char const *filepath);
 
   bool can_allocate(DTensor const &tensor,
                     bool allocate_fingerprint = true) const;

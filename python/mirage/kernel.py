@@ -705,59 +705,59 @@ class KNGraph:
                     backend=backend,
                 )
             return best_graph
-        elif backend == "nki":
-            return all_graphs
-        elif backend == "triton":
-            from .triton_profiler import profile_and_select_best_graph
+        # elif backend == "nki":
+        #     return all_graphs
+        # elif backend == "triton":
+        #     from .triton_profiler import profile_and_select_best_graph
 
-            MIRAGE_ROOT, INCLUDE_PATH, _ = get_key_paths()
-            os.environ["KERNELS_PATH"] = os.path.join(
-                INCLUDE_PATH, "mirage/triton_transpiler/runtime"
-            )  # for triton
-            best_graph, best_file_path, best_output_shapes = (
-                profile_and_select_best_graph(
-                    all_graphs,
-                    target_cc=torch.cuda.get_device_properties(0).major * 10
-                    + torch.cuda.get_device_properties(0).minor,
-                    warmup_iters=warmup_iters,
-                    profile_iters=profile_iters,
-                    debug_mode=verbose,
-                    save_codes=save_codes,
-                )
-            )
-            # load execute_mugraph func from the generated file
-            print(f"Loading the best muGraph from {best_file_path}")
-            if not os.path.exists(best_file_path):
-                raise FileNotFoundError(f"File not found: {best_file_path}")
-            import importlib.util
+        #     MIRAGE_ROOT, INCLUDE_PATH, _ = get_key_paths()
+        #     os.environ["KERNELS_PATH"] = os.path.join(
+        #         INCLUDE_PATH, "mirage/triton_transpiler/runtime"
+        #     )  # for triton
+        #     best_graph, best_file_path, best_output_shapes = (
+        #         profile_and_select_best_graph(
+        #             all_graphs,
+        #             target_cc=torch.cuda.get_device_properties(0).major * 10
+        #             + torch.cuda.get_device_properties(0).minor,
+        #             warmup_iters=warmup_iters,
+        #             profile_iters=profile_iters,
+        #             debug_mode=verbose,
+        #             save_codes=save_codes,
+        #         )
+        #     )
+        #     # load execute_mugraph func from the generated file
+        #     print(f"Loading the best muGraph from {best_file_path}")
+        #     if not os.path.exists(best_file_path):
+        #         raise FileNotFoundError(f"File not found: {best_file_path}")
+        #     import importlib.util
 
-            spec = importlib.util.spec_from_file_location(
-                "__mirage_launcher", best_file_path
-            )
-            mod = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(mod)
-            if hasattr(mod, "execute_mugraph"):
-                best_graph.run = getattr(mod, "execute_mugraph")
-            else:
-                raise AttributeError(
-                    "The module does not contain an 'execute_mugraph' function."
-                )
-            best_graph._cached_results = {"output_shapes": best_output_shapes}
-            best_graph.backend = "triton"
-            if use_graph_dataset:
-                graph_dataset.store(
-                    input_graph=self.cygraph,
-                    optimized_graph=best_graph,
-                    imaps=imaps,
-                    omaps=omaps,
-                    griddims=griddims,
-                    blockdims=blockdims,
-                    fmaps=fmaps,
-                    franges=franges,
-                    backend=backend,
-                )
+        #     spec = importlib.util.spec_from_file_location(
+        #         "__mirage_launcher", best_file_path
+        #     )
+        #     mod = importlib.util.module_from_spec(spec)
+        #     spec.loader.exec_module(mod)
+        #     if hasattr(mod, "execute_mugraph"):
+        #         best_graph.run = getattr(mod, "execute_mugraph")
+        #     else:
+        #         raise AttributeError(
+        #             "The module does not contain an 'execute_mugraph' function."
+        #         )
+        #     best_graph._cached_results = {"output_shapes": best_output_shapes}
+        #     best_graph.backend = "triton"
+        #     if use_graph_dataset:
+        #         graph_dataset.store(
+        #             input_graph=self.cygraph,
+        #             optimized_graph=best_graph,
+        #             imaps=imaps,
+        #             omaps=omaps,
+        #             griddims=griddims,
+        #             blockdims=blockdims,
+        #             fmaps=fmaps,
+        #             franges=franges,
+        #             backend=backend,
+        #         )
 
-            return best_graph
+        #     return best_graph
         else:
             assert False, "Unsupported backend"
             return None
