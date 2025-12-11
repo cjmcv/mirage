@@ -49,5 +49,5 @@ def get_configurations_from_gpu(rank):
     elif sm_cnt >= 30:
         worker = 20
     else:
-        worker = 10
+        worker = 18
     return worker, get_scheduler(sm_cnt, worker)

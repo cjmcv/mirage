@@ -529,11 +529,21 @@ int TaskRegister::register_linear_task(threadblock::Graph const &bgraph,
 
   mirage::transpiler::CodeKeeper code;
   code.inc_indent();
-  code.e("kernel::linear_kernel<bfloat16, $, $, $, $>(",
-         batch_size,
-         output_size,
-         reduction_size,
-         output_stride);
+  if (postfix != 0) {
+    code.e("kernel::linear_postfix_kernel<bfloat16, $, $, $, $>(",
+          batch_size,
+          output_size,
+          input_ops[0]->output_tensors[0].dim[1],
+          output_stride);
+  }
+  else {
+    code.e("kernel::linear_kernel<bfloat16, $, $, $, $>(",
+          batch_size,
+          output_size,
+          reduction_size,
+          output_stride);    
+  }
+
   code.e("    task_desc->input_ptrs[0],");
   code.e("    task_desc->input_ptrs[1],");
   if (with_residual) {
@@ -546,13 +556,7 @@ int TaskRegister::register_linear_task(threadblock::Graph const &bgraph,
   if (with_residual) {
     code.e("    runtime_config.my_gpu_id == 0);");
   } else {
-    if (postfix != 0) {
-      code.e("    false/*residual*/,");
-      code.e("    1/*postfix*/);");   
-    }
-    else{
-      code.e("    false/*residual*/);");      
-    }
+    code.e("    false/*residual*/);");
   }
   
   if (with_residual) {

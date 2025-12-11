@@ -20,10 +20,10 @@ HARD_CODE = """
 static PyObject *init_func(PyObject *self, PyObject *args) {
   PyObject *meta_list, *py_profiler_buffer;
   std::vector<void*> meta_tensors;
-  int my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers, total_num_requests, init_mode;
+  int my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers, total_num_requests;
   void *profiler_buffer;
 
-  if (!PyArg_ParseTuple(args, "OOiiiiii", &meta_list, &py_profiler_buffer, &my_mpi_rank, &num_workers, &num_local_schedulers, &num_remote_schedulers, &total_num_requests, &init_mode)) {
+  if (!PyArg_ParseTuple(args, "OOiiiii", &meta_list, &py_profiler_buffer, &my_mpi_rank, &num_workers, &num_local_schedulers, &num_remote_schedulers, &total_num_requests)) {
     PyErr_SetString(PyExc_TypeError, "Invalid parameters");
     return NULL;
   }
@@ -46,10 +46,7 @@ static PyObject *init_func(PyObject *self, PyObject *args) {
   }
   profiler_buffer = PyLong_AsVoidPtr(py_profiler_buffer);
 
-  if (init_mode == 0)
-    init_persistent_kernel(meta_tensors, profiler_buffer, my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers, total_num_requests);
-  else 
-    reset_persistent_kernel();
+  init_persistent_kernel(meta_tensors, profiler_buffer, my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers, total_num_requests);
   Py_RETURN_NONE;
 }
 
@@ -959,9 +956,9 @@ class PersistentKernel:
         assert weight.num_dims == 2  # (hidden_size, hidden_size / world_size)
         assert output.num_dims == 2  # (batch_size, hidden_size)
         tb_graph = TBGraph(CyTBGraph(grid_dim, block_dim, 1, 64))
-        tb_graph.new_input(input,  (1, -1, -1), 1, True)
-        tb_graph.new_input(weight, (0, -1, -1), 1, True)
-        tb_graph.new_input(output, (1, -1, -1), -1, True)
+        tb_graph.new_input(input,  (1, -1, -1), 1, True) # 1 跨 x 轴推进，一步size/vir_gridDim.x
+        tb_graph.new_input(weight, (1, 0, -1), -1, True)  # 第一个 1 跨 x 轴推进，一步size/blockDim.x, 第二个0跨y轴推进，一步跨size.y/blockDim.y
+        tb_graph.new_input(output, (0, 1, -1), -1, True) # 0 跨 y 轴推进, 一步2560
         self.kn_graph.customized([input, weight, output], tb_graph)
 
         if self.target_cc == 80 or self.target_cc == 89:
@@ -1462,30 +1459,11 @@ class PersistentKernel:
             self.num_local_schedulers,
             self.num_remote_schedulers,
             1, 
-            0,
         )
 
         self._is_compiled = True
 
         # self.call_func = getattr(mod, "call_func")
-
-    def reinitialize(self):
-        meta_tensors = list()
-        meta_tensors.append(self.meta_tensors["qo_indptr_buffer"])
-        meta_tensors_ptr = [tensor.data_ptr() for tensor in meta_tensors]
-        profiler_buffer_ptr = (
-            self.profiler_tensor.data_ptr() if self.profiler_tensor is not None else 0
-        )
-        self.init_func(
-            meta_tensors_ptr,
-            profiler_buffer_ptr,
-            self.mpi_rank,
-            self.num_workers,
-            self.num_local_schedulers,
-            self.num_remote_schedulers,
-            1,
-            1, # reset
-        )
         
     def __call__(self, **kwargs):
         # stream = kwargs.get("stream", None)

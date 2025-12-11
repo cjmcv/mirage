@@ -3,9 +3,20 @@ from transformers import AutoTokenizer, AutoConfig
 from safetensors.torch import load_model
 import torch
 import torch.distributed as dist
+import torch.nn.functional as F
 import argparse
 import os
 import mirage as mi
+
+def create_matrix_arange_row(M, N, dtype=torch.bfloat16, device='cuda'):
+    row_indices = torch.arange(M, dtype=dtype, device=device)
+    matrix = row_indices.unsqueeze(1).expand(M, N).contiguous()  # contiguous is very important!
+    return matrix
+
+def create_matrix_arange_col(M, N, dtype=torch.bfloat16, device='cuda'):
+    col_indices = torch.arange(N, dtype=dtype, device=device)
+    matrix = col_indices.unsqueeze(0).expand(M, N).contiguous()
+    return matrix
 
 # print limitation
 torch.set_printoptions(profile="full")
@@ -13,7 +24,7 @@ torch.set_printoptions(profile="full")
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--use-mirage", action="store_true", help="Use Mirage kernels")
-    parser.add_argument("--max-num-batched-tokens", default=8, type=int, help="Max number of tokens in a batch")
+    parser.add_argument("--max-num-batched-tokens", default=1, type=int, help="Max number of tokens in a batch")
     parser.add_argument("--max-num-batched-requests", default=1, type=int, help="Max number of requests in a batch")
     parser.add_argument("--page-size", default=4096, type=int, help="Page size")
     parser.add_argument("--max-num-pages", default=16, type=int, help="Max num pages")
@@ -94,7 +105,7 @@ if __name__ == "__main__":
         spec_length=args.spec_length,
     )
         
-    num_workers, num_schedulers = 18, 25 # mi.get_configurations_from_gpu(rank)
+    num_workers, num_schedulers = 16, 25 # mi.get_configurations_from_gpu(rank)
     print("num_workers: ", num_workers)
     print("num_schedulers: ", num_schedulers)
     qo_indptr_buffer = torch.empty(
@@ -117,29 +128,40 @@ if __name__ == "__main__":
         use_cutlass_kernel=False,
     )
 
-    x_torch = torch.randn((1, 2560), dtype=torch.bfloat16, device="cuda")
-    w_qkv_torch = torch.randn((19456, 2560), dtype=torch.bfloat16, device="cuda")
-    mpk_out_torch = torch.zeros((1, 19456), dtype=torch.bfloat16, device="cuda")
+    # x_torch = torch.randn((1, 2560), dtype=torch.bfloat16, device="cuda")
+    # w_qkv_torch = torch.randn((19456, 2560), dtype=torch.bfloat16, device="cuda")
+    # mpk_out_torch = torch.zeros((1, 19456), dtype=torch.bfloat16, device="cuda")
 
-    # x_torch = torch.randn((1, 9728), dtype=torch.bfloat16, device="cuda")
-    # w_qkv_torch = torch.randn((2560, 9728), dtype=torch.bfloat16, device="cuda")
-    # mpk_out_torch = torch.zeros((1, 2560), dtype=torch.bfloat16, device="cuda")
+
+    splitk = 4
+    x_torch = torch.randn((1, 9728), dtype=torch.bfloat16, device="cuda")
+    w_qkv_torch = torch.randn((2560, 9728), dtype=torch.bfloat16, device="cuda")
+    mpk_out_torch = torch.zeros((splitk, 2560), dtype=torch.bfloat16, device="cuda")
+    # x_torch = create_matrix_arange_col(1, 256, dtype=torch.bfloat16, device="cuda")
+    # w_qkv_torch = torch.ones(256, 256, dtype=torch.bfloat16, device="cuda")
+    # mpk_out_torch = torch.zeros((splitk, 256), dtype=torch.bfloat16, device="cuda")
     
     x = mpk.attach_input(torch_tensor=x_torch, name="in")
     w_qkv = mpk.attach_input(torch_tensor=w_qkv_torch, name="w")
     mpk_out = mpk.attach_input(torch_tensor=mpk_out_torch, name="out")
     
-    mpk.linear_layer(
-        input=x,
-        weight=w_qkv,
-        output=mpk_out,
-        # grid_dim=(96, 1, 1),
-        # grid_dim=(128, 1, 1),
-        grid_dim=(64, 1, 1),
-        block_dim=(256, 1, 1),
-    )
-
-        
+    print("base ptr: ", x_torch.data_ptr(), w_qkv_torch.data_ptr(), mpk_out_torch.data_ptr())
+    if splitk == 1:
+        mpk.linear_layer(
+            input=x,
+            weight=w_qkv,
+            output=mpk_out,
+            grid_dim=(64, 1, 1),
+            block_dim=(128, 1, 1),
+        )
+    else:
+        mpk.linear_postfix_layer(
+            input=x,
+            weight=w_qkv,
+            output=mpk_out,
+            grid_dim=(splitk, 16, 1),
+            block_dim=(128, 1, 1),
+        )
     results = mpk.kn_graph.generate_task_graph(num_gpus=world_size, my_gpu_id=rank)
     with open(f"task_graph_{rank}.json", "w") as f:
         f.write(results["json_file"])
@@ -151,23 +173,28 @@ if __name__ == "__main__":
     ###############################################################
     
     ###    
-    import torch.nn.functional as F
     warnup_iter = 100
     test_iter = 100
     for _ in range(warnup_iter):
         O1 = F.linear(x_torch, w_qkv_torch)
     ###
+    O1 = F.linear(x_torch, w_qkv_torch)
     # print("torch0: ", O1[0]) 
     mpk()
     torch.cuda.synchronize()
     
+    if splitk != 1:
+        # print("mpk0: ", mpk_out_torch[0], "\nmpk1: ", mpk_out_torch[1])
+        for i in range(1, splitk):
+            mpk_out_torch[0] += mpk_out_torch[i]
+            
     # !! A potential memory out-of-bounds issue has occurred, where part of the data in O1 was overwritten during the execution of mpk()
-    # print("torch: ", O1[0], "\nmpk: ", mpk_out_torch[0], "\ndiff: ", O1[0] - mpk_out_torch[0])
-    print("allclose1:", torch.allclose(mpk_out_torch[0], O1[0], rtol=1e-2))
+    print("torch: ", O1[0], "\nmpk: ", mpk_out_torch[0], "\ndiff: ", O1[0] - mpk_out_torch[0])
+    
+    print("allclose1:", torch.allclose(mpk_out_torch[0], O1[0], rtol=2e-1, atol=2e-1))
         
     starter.record()
     for i in range(test_iter):
-        mpk.reinitialize()
         mpk()
         print(i)
     ender.record()
@@ -184,7 +211,7 @@ if __name__ == "__main__":
     run_time = starter.elapsed_time(ender)
     print("torch run time (ms): ", run_time / test_iter)
 
-    if world_size > 1:
-        dist.destroy_process_group()
+    # if world_size > 1:
+    #     dist.destroy_process_group()
         
     

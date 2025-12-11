@@ -134,9 +134,9 @@ __global__ void init_kernel(RuntimeConfig config) {
     //   config.step[i] = 0;
     // }
     *config.next_request_id = 0;
-    for (int i = 0; i < MPK_MAX_NUM_BATCHED_REQUESTS; i++) {
-      config.request_ids[i] = -1;
-    }
+    // for (int i = 0; i < MPK_MAX_NUM_BATCHED_REQUESTS; i++) {
+    //   config.request_ids[i] = -1;
+    // }
     for (int i = 0; i < MPK_MAX_NUM_BATCHED_REQUESTS + 1; i++) {
       config.qo_indptr_buffer[i] = 0;
     }
@@ -145,6 +145,21 @@ __global__ void init_kernel(RuntimeConfig config) {
 
 __global__ void prepare_kernel(RuntimeConfig config,
                                int end_of_task_graph_event_pos) {
+  if (threadIdx.x == 0) {
+    // initialize metadata
+    // for (int i = 0; i < config.total_num_requests; i++) {
+    //   config.step[i] = 0;
+    // }
+    *config.next_request_id = 0;
+    // for (int i = 0; i < MPK_MAX_NUM_BATCHED_REQUESTS; i++) {
+    //   config.request_ids[i] = -1;
+    // }
+    for (int i = 0; i < MPK_MAX_NUM_BATCHED_REQUESTS + 1; i++) {
+      config.qo_indptr_buffer[i] = 0;
+    }
+  }
+  ///////////////////////////////////////////////////////////////////
+
   // Initialize worker queue last task id
   // Each worker now maintains a local and a remote worker queue
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -184,43 +199,43 @@ __device__ __forceinline__ bool
   // int page_queue_head = *config.page_queue_head;
   // int page_queue_tail = *config.page_queue_tail;
   // Step 1: finalize previous batch
-  for (int i = 0; i < MPK_MAX_NUM_BATCHED_REQUESTS; i++) {
-    int16_t request_id = config.request_ids[i];
-    if (request_id != -1) {
-      // // Step 1.1: move output_tokens to tokens
-      // int step = config.step[request_id];
-      // int qo_indptr = config.qo_indptr_buffer[i];
-      // int num_tokens = config.qo_indptr_buffer[i + 1] - qo_indptr;
-      // int prompt_len = config.prompt_length[request_id];
-      // for (int j = 0; j < num_tokens; j++) {
-      //   if (step + j + 1 >= prompt_len &&
-      //       step + j + 1 < config.max_seq_length) {
-      //     config.tokens[request_id * MPK_MAX_SEQ_LENGTH + step + j + 1] =
-      //         config.output_tokens[qo_indptr + j];
-      //   }
-      // }
-      // config.step[request_id] = step + num_tokens;
-// #ifdef MPK_ENABLE_PROFILING
-      if (true) {
-// #else
-//       if ((step + num_tokens + 1 >= config.max_seq_length) ||
-//           ((config.tokens[request_id * MPK_MAX_SEQ_LENGTH + step +
-//                           num_tokens] == config.eos_token_id) &&
-//            (step + num_tokens >= prompt_len))) {
-// #endif
-        // Request is done
-        config.request_ids[i] = -1;
-        // // Free pages
-        // int kv_indptr = config.paged_kv_indptr_buffer[i];
-        // int num_pages = config.paged_kv_indptr_buffer[i + 1] - kv_indptr;
-        // for (int j = 0; j < num_pages; j++) {
-        //   config.page_queue[page_queue_tail % MPK_MAX_NUM_PAGES] =
-        //       config.paged_kv_indices_buffer[kv_indptr + j];
-        //   page_queue_tail++;
-        // }
-      }
-    }
-  }
+//   for (int i = 0; i < MPK_MAX_NUM_BATCHED_REQUESTS; i++) {
+//     int16_t request_id = config.request_ids[i];
+//     if (request_id != -1) {
+//       // // Step 1.1: move output_tokens to tokens
+//       // int step = config.step[request_id];
+//       // int qo_indptr = config.qo_indptr_buffer[i];
+//       // int num_tokens = config.qo_indptr_buffer[i + 1] - qo_indptr;
+//       // int prompt_len = config.prompt_length[request_id];
+//       // for (int j = 0; j < num_tokens; j++) {
+//       //   if (step + j + 1 >= prompt_len &&
+//       //       step + j + 1 < config.max_seq_length) {
+//       //     config.tokens[request_id * MPK_MAX_SEQ_LENGTH + step + j + 1] =
+//       //         config.output_tokens[qo_indptr + j];
+//       //   }
+//       // }
+//       // config.step[request_id] = step + num_tokens;
+// // #ifdef MPK_ENABLE_PROFILING
+//       // if (true) {
+// // #else
+// //       if ((step + num_tokens + 1 >= config.max_seq_length) ||
+// //           ((config.tokens[request_id * MPK_MAX_SEQ_LENGTH + step +
+// //                           num_tokens] == config.eos_token_id) &&
+// //            (step + num_tokens >= prompt_len))) {
+// // #endif
+//         // Request is done
+//         config.request_ids[i] = -1;
+//         // // Free pages
+//         // int kv_indptr = config.paged_kv_indptr_buffer[i];
+//         // int num_pages = config.paged_kv_indptr_buffer[i + 1] - kv_indptr;
+//         // for (int j = 0; j < num_pages; j++) {
+//         //   config.page_queue[page_queue_tail % MPK_MAX_NUM_PAGES] =
+//         //       config.paged_kv_indices_buffer[kv_indptr + j];
+//         //   page_queue_tail++;
+//         // }
+//       // }
+//     }
+//   }
 
   // // Step 2: copy kv_indices to shared mem
   // int num_pages = config.paged_kv_indptr_buffer[MPK_MAX_NUM_BATCHED_REQUESTS];
@@ -1044,38 +1059,12 @@ std::vector<int> host_all_event_counters;
 std::vector<TaskId *> host_worker_queues;
 std::vector<EventId *> host_sched_queues;
 
-extern "C" void reset_persistent_kernel() {
-  // int num_schedulers = global_runtime_config.num_local_schedulers + global_runtime_config.num_remote_schedulers;
-  // cudaMemcpy(global_runtime_config.all_event_num_triggers,
-  //   host_all_event_counters.data(),
-  //   all_events.size() * sizeof(int),
-  //   cudaMemcpyHostToDevice);
-  // cudaMemcpy(global_runtime_config.all_tasks,
-  //   all_tasks.data(),
-  //   all_tasks.size() * sizeof(TaskDesc),
-  //   cudaMemcpyHostToDevice);
-  // cudaMemcpy(global_runtime_config.all_events,
-  //   all_events.data(),
-  //   all_events.size() * sizeof(EventDesc),
-  //   cudaMemcpyHostToDevice);
-  // cudaMemcpy(global_runtime_config.worker_queues,
-  //   host_worker_queues.data(),
-  //   (global_runtime_config.num_workers * 2) * sizeof(TaskId *),
-  //   cudaMemcpyHostToDevice);
-  // cudaMemcpy(global_runtime_config.sched_queues,
-  //   host_sched_queues.data(),
-  //   (num_schedulers + 1) * sizeof(EventId *),
-  //   cudaMemcpyHostToDevice);
-  // cudaMemcpy(global_runtime_config.first_tasks,
-  //   first_tasks.data(),
-  //   first_tasks.size() * sizeof(TaskId),
-  //   cudaMemcpyHostToDevice);
-  // launch init kernel
-  printf("Call reset_persistent_kernel.\n");
-  init_kernel<<<dim3(1, 1, 1), dim3(INIT_NUM_THREADS, 1, 1)>>>(
-    global_runtime_config);
-  cudaDeviceSynchronize();
-}
+// extern "C" void reset_persistent_kernel() {
+//   // printf("Call reset_persistent_kernel.\n");
+//   init_kernel<<<dim3(1, 1, 1), dim3(INIT_NUM_THREADS, 1, 1)>>>(
+//     global_runtime_config);
+//   // cudaDeviceSynchronize();
+// }
 
 extern "C" void init_persistent_kernel(std::vector<void *> meta_tensors,
                                        void *profiler_buffer,
@@ -1271,14 +1260,14 @@ extern "C" void init_persistent_kernel(std::vector<void *> meta_tensors,
   cudaStreamCreate(&global_runtime_config.worker_stream);
   cudaStreamCreate(&global_runtime_config.scheduler_stream);
 
-  // launch init kernel
-  init_kernel<<<dim3(1, 1, 1), dim3(INIT_NUM_THREADS, 1, 1)>>>(
-      global_runtime_config);
-  cudaDeviceSynchronize();
-#ifdef USE_NVSHMEM
-  // Add a global barrier for all init_kernel to complete
-  nvshmem_barrier_all();
-#endif
+  // // launch init kernel
+  // init_kernel<<<dim3(1, 1, 1), dim3(INIT_NUM_THREADS, 1, 1)>>>(
+  //     global_runtime_config);
+  // cudaDeviceSynchronize();
+// #ifdef USE_NVSHMEM
+//   // Add a global barrier for all init_kernel to complete
+//   nvshmem_barrier_all();
+// #endif
 }
 
 // Entry point for C/C++
@@ -1288,6 +1277,10 @@ extern "C" void launch_persistent_kernel() {
   // cudaGetDevice(&device);
   // int sm_count;
   // cudaDeviceGetAttribute(&sm_count, cudaDevAttrMultiProcessorCount, device);
+
+  // init_kernel<<<dim3(1, 1, 1), dim3(INIT_NUM_THREADS, 1, 1)>>>(
+  //   global_runtime_config);
+
   //  Prepare next persistent kernel by resetting queue pointers
   {
     int end_of_task_graph_event_pos = global_runtime_config.num_events - 1;
