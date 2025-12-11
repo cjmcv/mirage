@@ -37,7 +37,7 @@
 #include "mirage/threadblock/serializer/rms_norm_serializer.h"
 #include "mirage/utils/cuda_helper.h"
 #include "mirage/utils/fingerprint_functions.h"
-#include "mirage/warp/cuda/matmul.h"
+// #include "mirage/warp/cuda/matmul.h"
 
 namespace mirage {
 namespace kernel {

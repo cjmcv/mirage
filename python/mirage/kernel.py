@@ -141,7 +141,6 @@ def get_cc_cmd(
         FILE_NAME,
         "-O3",
         f"-I{py_include_dir}",
-        f"-I{os.path.join(INCLUDE_PATH, 'mirage/transpiler/runtime')}",
         f"-I{os.path.join(DEPS_PATH, 'cutlass/include')}",
         "-DMIRAGE_BACKEND_USE_CUDA",
         "-shared",

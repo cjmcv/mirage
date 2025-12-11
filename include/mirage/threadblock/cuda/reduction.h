@@ -19,7 +19,7 @@
 
 #include "mirage/utils/cuda_helper.h"
 #include "mirage/utils/fingerprint_functions.h"
-#include "mirage/utils/static_switch.h"
+// #include "mirage/utils/static_switch.h"
 
 namespace mirage {
 namespace threadblock {

@@ -20,7 +20,7 @@
 #include "cutlass/cutlass.h"
 #include "cutlass/fast_math.h"
 #include "mirage/utils/cuda_helper.h"
-#include "mirage/utils/static_switch.h"
+// #include "mirage/utils/static_switch.h"
 
 namespace mirage {
 namespace threadblock {

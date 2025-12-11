@@ -53,30 +53,10 @@ version_file = os.path.join(os.path.dirname(__file__), "python/mirage/version.py
 with open(version_file, "r") as f:
     exec(f.read())  # This will define __version__
 
-def get_backend_macros(config_file):
-    flags = {
-        "USE_CUDA":   None,
-        "USE_NKI":    None,
-    }
-
-    pattern = re.compile(r'^\s*set\s*\(\s*(USE_CUDA|USE_NKI)\s+(ON|OFF)\s*\)', re.IGNORECASE)
-    
-    with open(config_file, 'r') as f:
-        for line in f:
-            match = pattern.match(line)
-            if match:
-                var, val = match.groups()
-                flags[var] = (val.upper() == "ON")
-    
+def get_backend_macros():
     macros = []
-    if flags.get("USE_CUDA"):
-        macros.append(("MIRAGE_BACKEND_USE_CUDA", None))
-        macros.append(("MIRAGE_FINGERPRINT_USE_CUDA", None))
-    elif flags.get("USE_NKI"):
-        macros.append(("MIRAGE_BACKEND_USE_NKI", None))
-        macros.append(("MIRAGE_FINGERPRINT_USE_CPU", None))
-    else:
-        raise KeyError("Please select either USE_CUDA or USE_NKI in config.cmake file")
+    macros.append(("MIRAGE_BACKEND_USE_CUDA", None))
+    macros.append(("MIRAGE_FINGERPRINT_USE_CUDA", None))
     return macros
 
 def config_cython():
@@ -86,8 +66,8 @@ def config_cython():
 
         ret = []
         mirage_path = ''
-        config_path = path.join(mirage_path, "config.cmake")
-        macros = get_backend_macros(config_path)
+        # config_path = path.join(mirage_path, "config.cmake")
+        macros = get_backend_macros()
         cython_path = path.join(mirage_path, "python/mirage/_cython")
         for fn in os.listdir(cython_path):
             if not fn.endswith(".pyx"):
