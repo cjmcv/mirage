@@ -518,15 +518,15 @@ cdef class CyKNGraph:
         t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
         return DTensor(t)
 
-    def mark_output(self, DTensor A, tuple strides):
-        cdef vector[size_t] cstrides
-        if strides is None:
-            cstrides.resize(0)
-        else:
-            cstrides.resize(len(strides))
-            for i in range(len(strides)):
-                cstrides[i] = strides[i]
-        self.p_kgraph.mark_output(A.c_ptr, cstrides)
+    # def mark_output(self, DTensor A, tuple strides):
+    #     cdef vector[size_t] cstrides
+    #     if strides is None:
+    #         cstrides.resize(0)
+    #     else:
+    #         cstrides.resize(len(strides))
+    #         for i in range(len(strides)):
+    #             cstrides[i] = strides[i]
+    #     self.p_kgraph.mark_output(A.c_ptr, cstrides)
 
     def customized(self, list inputs, CyTBGraph bgraph):
         cdef vector[const CppDTensor*] cinputs
@@ -633,8 +633,8 @@ cdef class CyKNGraph:
     def get_num_inputs(self):
         return self.p_kgraph.get_num_input_dtensors()
 
-    def get_num_outputs(self):
-        return self.p_kgraph.get_num_output_dtensors()
+    # def get_num_outputs(self):
+    #     return self.p_kgraph.get_num_output_dtensors()
 
     def get_input_dtensor_shape_and_stride(self, DTensor A):
         cdef int cstrides[128]

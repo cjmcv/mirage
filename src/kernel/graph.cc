@@ -67,15 +67,15 @@ int Graph::get_num_input_dtensors() const {
   return num_inputs;
 }
 
-int Graph::get_num_output_dtensors() const {
-  int num_outputs = 0;
-  for (auto const &op : this->operators) {
-    if (op->op_type == mirage::type::KN_OUTPUT_OP) {
-      num_outputs++;
-    }
-  }
-  return num_outputs;
-}
+// int Graph::get_num_output_dtensors() const {
+//   int num_outputs = 0;
+//   for (auto const &op : this->operators) {
+//     if (op->op_type == mirage::type::KN_OUTPUT_OP) {
+//       num_outputs++;
+//     }
+//   }
+//   return num_outputs;
+// }
 
 int Graph::get_input_dtensor_shape_and_stride(DTensor const *input,
                                               int *strides,
@@ -225,14 +225,14 @@ void from_json(json const &j, Graph &g) {
         guid_mapping[output.guid] = guidO;
         break;
       }
-      case type::KNOperatorType::KN_OUTPUT_OP: {
-        size_t guid;
-        jop.at("input_tensors")[0].at("guid").get_to(guid);
-        std::vector<size_t> output_strides;
-        jop.at("output_strides").get_to(output_strides);
-        g.mark_output(get_tensor_from_guid(guid), output_strides);
-        break;
-      }
+      // case type::KNOperatorType::KN_OUTPUT_OP: {
+      //   size_t guid;
+      //   jop.at("input_tensors")[0].at("guid").get_to(guid);
+      //   std::vector<size_t> output_strides;
+      //   jop.at("output_strides").get_to(output_strides);
+      //   g.mark_output(get_tensor_from_guid(guid), output_strides);
+      //   break;
+      // }
       case type::KNOperatorType::KN_CUSTOMIZED_OP: {
         std::vector<DTensor> inputs;
         for (auto const &jinput : jop.at("input_tensors")) {

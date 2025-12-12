@@ -114,26 +114,12 @@ cdef extern from "mirage/kernel/graph.h" namespace "mirage::kernel":
                                   vector[size_t] strides,
                                   DataType data_type,
                                   DmemLayout layout)
-        void mark_output(const CppDTensor* A, vector[size_t] strides)
-        CppDTensor* matmul(const CppDTensor* A, const CppDTensor* B)
-        CppDTensor* reduction(const CppDTensor* input, int dim, int size)
-        CppDTensor* rms_norm(const CppDTensor* input, vector[int])
-        CppDTensor* exp(const CppDTensor* input)
-        CppDTensor* silu(const CppDTensor* input)
-        CppDTensor* gelu(const CppDTensor* input)
-        CppDTensor* relu(const CppDTensor* input)
-        CppDTensor* clamp(const CppDTensor* input, float min_val, float max_val)
-        CppDTensor* sqrt(const CppDTensor* input)
-        CppDTensor* square(const CppDTensor* input)
-        CppDTensor* add(const CppDTensor* op1, const CppDTensor* op2)
-        CppDTensor* mul(const CppDTensor* op1, const CppDTensor* op2)
-        CppDTensor* div(const CppDTensor* op1, const CppDTensor* op2)
-        CppDTensor* pow(const CppDTensor* op1, const CppDTensor* op2)
+        # void mark_output(const CppDTensor* A, vector[size_t] strides)
         int customized(vector[const CppDTensor*] inputs,
                        CppDTensor** outputs,
                        CppTBGraph* bgraph)
         int get_num_input_dtensors()
-        int get_num_output_dtensors()
+        # int get_num_output_dtensors()
         int get_input_dtensors(CppDTensor** cinputs)
         int get_input_dtensor_shape_and_stride(const CppDTensor *input, int *strides, int *dims)
         # void generate_triton_program(const char *filepath)

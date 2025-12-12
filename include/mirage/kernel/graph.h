@@ -49,11 +49,11 @@ public:
                               std::vector<size_t> const &strides,
                               mirage::type::DataType data_type,
                               mirage::layout::DmemLayout layout);
-  // output operator
-  void mark_output(DTensor const &A);
-  void mark_output(DTensor const *A);
-  void mark_output(DTensor const &A, std::vector<size_t> const &strides);
-  void mark_output(DTensor const *A, std::vector<size_t> const &strides);
+  // // output operator
+  // void mark_output(DTensor const &A);
+  // void mark_output(DTensor const *A);
+  // void mark_output(DTensor const &A, std::vector<size_t> const &strides);
+  // void mark_output(DTensor const *A, std::vector<size_t> const &strides);
   KNOperator *create_output_op(DTensor const &A,
                                std::vector<size_t> const &strides);
   // customized operator
@@ -83,7 +83,7 @@ public:
 
   // helper functions
   int get_num_input_dtensors() const;
-  int get_num_output_dtensors() const;
+  // int get_num_output_dtensors() const;
   int get_input_dtensors(DTensor **inputs) const;
   int get_input_dtensor_shape_and_stride(DTensor const *input,
                                          int *strides,
