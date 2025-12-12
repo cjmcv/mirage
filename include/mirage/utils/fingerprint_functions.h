@@ -161,60 +161,60 @@ inline __execution_space__ void accum_square_fingerprint(FPType &accum,
 
 #undef __execution_space__
 
-#ifdef MIRAGE_FINGERPRINT_USE_CPU
-inline void compute_matmul_fingerprint(
-    FPType *A_ptr, FPType *B_ptr, FPType *C_ptr, int B, int M, int N, int K) {
-  memset(C_ptr, 0, B * M * N * sizeof(FPType));
-  for (int b = 0; b < B; ++b) {
-    for (int i = 0; i < M; ++i) {
-      for (int k = 0; k < K; ++k) {
-        for (int j = 0; j < N; ++j) {
-          accum_fingerprint(
-              C_ptr[b * M * N + i * N + j],
-              compute_mul_fingerprint(A_ptr[b * M * K + i * K + k],
-                                      B_ptr[b * K * N + k * N + j]));
-        }
-      }
-    }
-  }
-}
+// #ifdef MIRAGE_FINGERPRINT_USE_CPU
+// inline void compute_matmul_fingerprint(
+//     FPType *A_ptr, FPType *B_ptr, FPType *C_ptr, int B, int M, int N, int K) {
+//   memset(C_ptr, 0, B * M * N * sizeof(FPType));
+//   for (int b = 0; b < B; ++b) {
+//     for (int i = 0; i < M; ++i) {
+//       for (int k = 0; k < K; ++k) {
+//         for (int j = 0; j < N; ++j) {
+//           accum_fingerprint(
+//               C_ptr[b * M * N + i * N + j],
+//               compute_mul_fingerprint(A_ptr[b * M * K + i * K + k],
+//                                       B_ptr[b * K * N + k * N + j]));
+//         }
+//       }
+//     }
+//   }
+// }
 
-inline void compute_rms_norm_fingerprint(FPType *input_ptr,
-                                         FPType *output_ptr,
-                                         FPType *div_p_lookup_table,
-                                         FPType *div_q_lookup_table,
-                                         FPType *sqrt_p_lookup_table,
-                                         FPType *sqrt_q_lookup_table,
-                                         int num_samples,
-                                         int norm_size) {
-  for (int i = 0; i < num_samples; ++i) {
-    FPType square_sum = 0;
-    for (int k = 0; k < norm_size; k++) {
-      FPType x = input_ptr[i * norm_size + k];
-      accum_square_fingerprint(square_sum, x);
-    }
-    // Compute rooted mean square
-    FPType rms = 0;
-    {
-      FPType x = square_sum;
-      FPType n = norm_size % FP_PQ;
-      // Compute z = x / n
-      FPType z =
-          compute_div_fingerprint(x, n, div_p_lookup_table, div_q_lookup_table);
-      // Perform sqrt for root-mean-square
-      rms =
-          compute_sqrt_fingerprint(z, sqrt_p_lookup_table, sqrt_q_lookup_table);
-    }
-    for (int k = 0; k < norm_size; k++) {
-      FPType x = input_ptr[i * norm_size + k];
-      // Compute x / rms
-      FPType z = compute_div_fingerprint(
-          x, rms, div_p_lookup_table, div_q_lookup_table);
-      output_ptr[i * norm_size + k] = z;
-    }
-  }
-}
-#endif
+// inline void compute_rms_norm_fingerprint(FPType *input_ptr,
+//                                          FPType *output_ptr,
+//                                          FPType *div_p_lookup_table,
+//                                          FPType *div_q_lookup_table,
+//                                          FPType *sqrt_p_lookup_table,
+//                                          FPType *sqrt_q_lookup_table,
+//                                          int num_samples,
+//                                          int norm_size) {
+//   for (int i = 0; i < num_samples; ++i) {
+//     FPType square_sum = 0;
+//     for (int k = 0; k < norm_size; k++) {
+//       FPType x = input_ptr[i * norm_size + k];
+//       accum_square_fingerprint(square_sum, x);
+//     }
+//     // Compute rooted mean square
+//     FPType rms = 0;
+//     {
+//       FPType x = square_sum;
+//       FPType n = norm_size % FP_PQ;
+//       // Compute z = x / n
+//       FPType z =
+//           compute_div_fingerprint(x, n, div_p_lookup_table, div_q_lookup_table);
+//       // Perform sqrt for root-mean-square
+//       rms =
+//           compute_sqrt_fingerprint(z, sqrt_p_lookup_table, sqrt_q_lookup_table);
+//     }
+//     for (int k = 0; k < norm_size; k++) {
+//       FPType x = input_ptr[i * norm_size + k];
+//       // Compute x / rms
+//       FPType z = compute_div_fingerprint(
+//           x, rms, div_p_lookup_table, div_q_lookup_table);
+//       output_ptr[i * norm_size + k] = z;
+//     }
+//   }
+// }
+// #endif
 
 } // namespace utils
 } // namespace mirage
