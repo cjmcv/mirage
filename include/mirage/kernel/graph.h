@@ -56,93 +56,93 @@ public:
   void mark_output(DTensor const *A, std::vector<size_t> const &strides);
   KNOperator *create_output_op(DTensor const &A,
                                std::vector<size_t> const &strides);
-  // matmul operator
-  DTensor matmul(DTensor const &A, DTensor const &B);
-  DTensor *matmul(DTensor const *A, DTensor const *B);
-  KNOperator *create_matmul_op(DTensor const &A, DTensor const &B);
-  // elementunary operator
-  DTensor exp(DTensor const &input);
-  DTensor *exp(DTensor const *input);
-  DTensor square(DTensor const &input);
-  DTensor *square(DTensor const *input);
-  DTensor sqrt(DTensor const &input);
-  DTensor *sqrt(DTensor const *input);
-  DTensor silu(DTensor const &input);
-  DTensor *silu(DTensor const *input);
-  DTensor gelu(DTensor const &input);
-  DTensor *gelu(DTensor const *input);
-  DTensor relu(DTensor const &input);
-  DTensor *relu(DTensor const *input);
-  DTensor
-      clamp(DTensor const &input, float const &min_val, float const &max_val);
-  DTensor *
-      clamp(DTensor const *input, float const &min_val, float const &max_val);
-  DTensor elementunary(DTensor const &input,
-                       mirage::type::KNOperatorType _type);
-  DTensor *elementunary(DTensor const *input,
-                        mirage::type::KNOperatorType _type);
+  // // matmul operator
+  // DTensor matmul(DTensor const &A, DTensor const &B);
+  // DTensor *matmul(DTensor const *A, DTensor const *B);
+  // KNOperator *create_matmul_op(DTensor const &A, DTensor const &B);
+  // // elementunary operator
+  // DTensor exp(DTensor const &input);
+  // DTensor *exp(DTensor const *input);
+  // DTensor square(DTensor const &input);
+  // DTensor *square(DTensor const *input);
+  // DTensor sqrt(DTensor const &input);
+  // DTensor *sqrt(DTensor const *input);
+  // DTensor silu(DTensor const &input);
+  // DTensor *silu(DTensor const *input);
+  // DTensor gelu(DTensor const &input);
+  // DTensor *gelu(DTensor const *input);
+  // DTensor relu(DTensor const &input);
+  // DTensor *relu(DTensor const *input);
+  // DTensor
+  //     clamp(DTensor const &input, float const &min_val, float const &max_val);
+  // DTensor *
+  //     clamp(DTensor const *input, float const &min_val, float const &max_val);
+  // DTensor elementunary(DTensor const &input,
+  //                      mirage::type::KNOperatorType _type);
+  // DTensor *elementunary(DTensor const *input,
+  //                       mirage::type::KNOperatorType _type);
 
-  KNOperator *create_elementunary_op(DTensor const &input,
-                                     mirage::type::KNOperatorType _type);
+  // KNOperator *create_elementunary_op(DTensor const &input,
+  //                                    mirage::type::KNOperatorType _type);
 
-  DTensor elementunary_clamp(DTensor const &input,
-                             float const &min_val,
-                             float const &max_val);
-  DTensor *elementunary_clamp(DTensor const *input,
-                              float const &min_val,
-                              float const &max_val);
+  // DTensor elementunary_clamp(DTensor const &input,
+  //                            float const &min_val,
+  //                            float const &max_val);
+  // DTensor *elementunary_clamp(DTensor const *input,
+  //                             float const &min_val,
+  //                             float const &max_val);
 
-  KNOperator *create_elementunary_clamp_op(DTensor const &input,
-                                           float const &min_val,
-                                           float const &max_val);
+  // KNOperator *create_elementunary_clamp_op(DTensor const &input,
+  //                                          float const &min_val,
+  //                                          float const &max_val);
 
-  // elementunary operator
-  DTensor add(DTensor const &input1, DTensor const &input2);
-  DTensor mul(DTensor const &input1, DTensor const &input2);
-  DTensor div(DTensor const &input1, DTensor const &input2);
-  DTensor pow(DTensor const &input1, DTensor const &input2);
-  DTensor *add(DTensor const *input1, DTensor const *input2);
-  DTensor *mul(DTensor const *input1, DTensor const *input2);
-  DTensor *div(DTensor const *input1, DTensor const *input2);
-  DTensor *pow(DTensor const *input1, DTensor const *input2);
+  // // elementunary operator
+  // DTensor add(DTensor const &input1, DTensor const &input2);
+  // DTensor mul(DTensor const &input1, DTensor const &input2);
+  // DTensor div(DTensor const &input1, DTensor const &input2);
+  // DTensor pow(DTensor const &input1, DTensor const &input2);
+  // DTensor *add(DTensor const *input1, DTensor const *input2);
+  // DTensor *mul(DTensor const *input1, DTensor const *input2);
+  // DTensor *div(DTensor const *input1, DTensor const *input2);
+  // DTensor *pow(DTensor const *input1, DTensor const *input2);
 
-  DTensor elementbinary(DTensor const &input1,
-                        DTensor const &input2,
-                        mirage::type::KNOperatorType _type);
-  DTensor *elementbinary(DTensor const *input1,
-                         DTensor const *input2,
-                         mirage::type::KNOperatorType _type);
-  KNOperator *create_elementbinary_op(DTensor const &input1,
-                                      DTensor const &input2,
-                                      mirage::type::KNOperatorType _type);
-  // reduction operator
-  DTensor reduction(DTensor const &input, int dim, int size = 1);
-  DTensor *reduction(DTensor const *input, int dim, int size = 1);
-  KNOperator *create_reduction_op(DTensor const &input, int dim, int factor);
-  // normalization operator
-  DTensor rms_norm(DTensor const &input,
-                   std::vector<int> const &normalized_shape);
-  DTensor *rms_norm(DTensor const *input,
-                    std::vector<int> const &normalized_shape);
-  KNOperator *create_rms_norm_op(DTensor const &input,
-                                 std::vector<int> const &normalized_shape);
-  DTensor rms_norm(DTensor const &input,
-                   DTensor const &elementwise_afffine,
-                   std::vector<int> const &normalized_shape);
-  DTensor *rms_norm(DTensor const *input,
-                    DTensor const *elementwise_affine,
-                    std::vector<int> const &normalized_shape);
-  KNOperator *create_rms_norm_op(DTensor const &input,
-                                 DTensor const &elementwise_affine,
-                                 std::vector<int> const &normalized_shape);
-  // allreduce operator
-  DTensor all_reduce(DTensor const &input, bool inplace = true);
-  DTensor *all_reduce(DTensor const *input, bool inplace = true);
-  KNOperator *create_all_reduce_op(DTensor const &input, bool inplace);
-  // chunk operator
-  std::vector<DTensor> chunk(DTensor const &input, int chunk_size, int dim);
-  int chunk(DTensor const *input, int chunk_size, int dim);
-  KNOperator *create_chunk_op(DTensor const &input, int chunk_size, int dim);
+  // DTensor elementbinary(DTensor const &input1,
+  //                       DTensor const &input2,
+  //                       mirage::type::KNOperatorType _type);
+  // DTensor *elementbinary(DTensor const *input1,
+  //                        DTensor const *input2,
+  //                        mirage::type::KNOperatorType _type);
+  // KNOperator *create_elementbinary_op(DTensor const &input1,
+  //                                     DTensor const &input2,
+  //                                     mirage::type::KNOperatorType _type);
+  // // reduction operator
+  // DTensor reduction(DTensor const &input, int dim, int size = 1);
+  // DTensor *reduction(DTensor const *input, int dim, int size = 1);
+  // KNOperator *create_reduction_op(DTensor const &input, int dim, int factor);
+  // // normalization operator
+  // DTensor rms_norm(DTensor const &input,
+  //                  std::vector<int> const &normalized_shape);
+  // DTensor *rms_norm(DTensor const *input,
+  //                   std::vector<int> const &normalized_shape);
+  // KNOperator *create_rms_norm_op(DTensor const &input,
+  //                                std::vector<int> const &normalized_shape);
+  // DTensor rms_norm(DTensor const &input,
+  //                  DTensor const &elementwise_afffine,
+  //                  std::vector<int> const &normalized_shape);
+  // DTensor *rms_norm(DTensor const *input,
+  //                   DTensor const *elementwise_affine,
+  //                   std::vector<int> const &normalized_shape);
+  // KNOperator *create_rms_norm_op(DTensor const &input,
+  //                                DTensor const &elementwise_affine,
+  //                                std::vector<int> const &normalized_shape);
+  // // allreduce operator
+  // DTensor all_reduce(DTensor const &input, bool inplace = true);
+  // DTensor *all_reduce(DTensor const *input, bool inplace = true);
+  // KNOperator *create_all_reduce_op(DTensor const &input, bool inplace);
+  // // chunk operator
+  // std::vector<DTensor> chunk(DTensor const &input, int chunk_size, int dim);
+  // int chunk(DTensor const *input, int chunk_size, int dim);
+  // KNOperator *create_chunk_op(DTensor const &input, int chunk_size, int dim);
   // customized operator
   std::vector<DTensor> customized(std::vector<DTensor> const &inputs,
                                   mirage::threadblock::Graph const &_graph);

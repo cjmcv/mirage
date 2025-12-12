@@ -18,19 +18,19 @@
 namespace mirage {
 namespace utils {
 
-cudaDataType_t to_cuda_datatype(mirage::type::DataType type) {
-  switch (type) {
-    case mirage::type::DT_FLOAT16:
-      return CUDA_R_16F;
-    case mirage::type::DT_FLOAT32:
-      return CUDA_R_32F;
-    case mirage::type::DT_DOUBLE:
-      return CUDA_R_64F;
-    default:
-      assert(false && "Unspoorted cuda data type");
-  }
-  return CUDA_R_16F;
-}
+// cudaDataType_t to_cuda_datatype(mirage::type::DataType type) {
+//   switch (type) {
+//     case mirage::type::DT_FLOAT16:
+//       return CUDA_R_16F;
+//     case mirage::type::DT_FLOAT32:
+//       return CUDA_R_32F;
+//     case mirage::type::DT_DOUBLE:
+//       return CUDA_R_64F;
+//     default:
+//       assert(false && "Unspoorted cuda data type");
+//   }
+//   return CUDA_R_16F;
+// }
 
 size_t get_max_shared_mem() {
   int device;

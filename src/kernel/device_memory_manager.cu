@@ -22,6 +22,8 @@ namespace kernel {
 using namespace mirage::type;
 using namespace mirage::config;
 
+DeviceMemoryManager *DeviceMemoryManager::singleton = nullptr;
+
 #ifdef MIRAGE_FINGERPRINT_USE_CUDA
 DeviceMemoryManager::DeviceMemoryManager(int _num_gpus, int _gpu_id)
     : num_devices(_num_gpus), gpu_id(_gpu_id) {

@@ -233,66 +233,6 @@ void from_json(json const &j, Graph &g) {
         g.mark_output(get_tensor_from_guid(guid), output_strides);
         break;
       }
-      // case type::KNOperatorType::KN_MATMUL_OP: {
-      //   size_t guidA, guidB, guidO;
-      //   jop.at("input_tensors")[0].at("guid").get_to(guidA);
-      //   jop.at("input_tensors")[1].at("guid").get_to(guidB);
-      //   jop.at("output_tensors")[0].at("guid").get_to(guidO);
-      //   DTensor const &output =
-      //       g.matmul(get_tensor_from_guid(guidA), get_tensor_from_guid(guidB));
-      //   guid_mapping[output.guid] = guidO;
-      //   break;
-      // }
-      // case type::KNOperatorType::KN_EXP_OP:
-      // case type::KNOperatorType::KN_SQUARE_OP:
-      // case type::KNOperatorType::KN_SQRT_OP:
-      // case type::KNOperatorType::KN_SILU_OP:
-      // case type::KNOperatorType::KN_GELU_OP:
-      // case type::KNOperatorType::KN_RELU_OP: {
-      //   size_t guid, guidO;
-      //   jop.at("input_tensors")[0].at("guid").get_to(guid);
-      //   jop.at("output_tensors")[0].at("guid").get_to(guidO);
-      //   DTensor const &output =
-      //       g.elementunary(get_tensor_from_guid(guid), op_type);
-      //   guid_mapping[output.guid] = guidO;
-      //   break;
-      // }
-      // case type::KNOperatorType::KN_CLAMP_OP: {
-      //   size_t guid, guidO;
-      //   jop.at("input_tensors")[0].at("guid").get_to(guid);
-      //   jop.at("output_tensors")[0].at("guid").get_to(guidO);
-      //   DTensor const &output =
-      //       g.elementunary_clamp(get_tensor_from_guid(guid),
-      //                            type::CLAMP_MIN_MAX["min_val"],
-      //                            type::CLAMP_MIN_MAX["max_val"]);
-      //   guid_mapping[output.guid] = guidO;
-      //   break;
-      // }
-      // case type::KNOperatorType::KN_DIV_OP:
-      // case type::KNOperatorType::KN_ADD_OP:
-      // case type::KNOperatorType::KN_MUL_OP:
-      // case type::KNOperatorType::KN_POW_OP: {
-      //   size_t guidA, guidB, guidO;
-      //   jop.at("input_tensors")[0].at("guid").get_to(guidA);
-      //   jop.at("input_tensors")[1].at("guid").get_to(guidB);
-      //   jop.at("output_tensors")[0].at("guid").get_to(guidO);
-      //   DTensor const &output = g.elementbinary(
-      //       get_tensor_from_guid(guidA), get_tensor_from_guid(guidB), op_type);
-      //   guid_mapping[output.guid] = guidO;
-      //   break;
-      // }
-      // case type::KNOperatorType::KN_REDUCTION_0_OP:
-      // case type::KNOperatorType::KN_REDUCTION_1_OP:
-      // case type::KNOperatorType::KN_REDUCTION_2_OP: {
-      //   size_t guid, guidO;
-      //   jop.at("input_tensors")[0].at("guid").get_to(guid);
-      //   jop.at("output_tensors")[0].at("guid").get_to(guidO);
-      //   DTensor const &output =
-      //       g.reduction(get_tensor_from_guid(guid),
-      //                   op_type - type::KNOperatorType::KN_REDUCTION_0_OP);
-      //   guid_mapping[output.guid] = guidO;
-      //   break;
-      // }
       case type::KNOperatorType::KN_CUSTOMIZED_OP: {
         std::vector<DTensor> inputs;
         for (auto const &jinput : jop.at("input_tensors")) {

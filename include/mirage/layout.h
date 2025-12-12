@@ -70,7 +70,7 @@ enum CmemLayout {
   CmemUnknownLayout = 399,
 };
 
-CmemLayout dmemlayout_to_cmemlayout(DmemLayout dmem_layout);
+// CmemLayout dmemlayout_to_cmemlayout(DmemLayout dmem_layout);
 
 } // namespace layout
 } // namespace mirage
