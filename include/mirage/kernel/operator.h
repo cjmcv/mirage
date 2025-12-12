@@ -63,7 +63,7 @@ public:
             mirage::layout::DmemLayout layout,
             int3 input_map = {-1, -1, -1});
   ~KNInputOp();
-  bool fingerprint(void);
+  // bool fingerprint(void);
 
   operator json() const override;
 
@@ -79,7 +79,7 @@ public:
              std::vector<size_t> const &strides,
              int3 output_map = {-1, -1, -1});
   ~KNOutputOp();
-  bool fingerprint(void);
+  // bool fingerprint(void);
 
   operator json() const override;
 

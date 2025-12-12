@@ -21,7 +21,7 @@
 #include "mirage/threadblock/operator.h"
 // #include "mirage/threadblock/reduction.h"
 #include "mirage/threadblock/smem_tensor.h"
-#include "mirage/utils/fingerprint_functions.h"
+// #include "mirage/utils/fingerprint_functions.h"
 #include "mirage/utils/hash_utils.h"
 #include "omp.h"
 #include <cassert>

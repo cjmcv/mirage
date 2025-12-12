@@ -48,10 +48,6 @@ namespace mirage {
 namespace utils {
 using namespace mirage::type;
 
-struct FpPointerList {
-  mirage::type::FPType *ptrs[mirage::config::MAX_NUM_DEVICES];
-};
-
 size_t get_max_shared_mem();
 
 } // namespace utils
