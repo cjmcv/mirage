@@ -64,61 +64,6 @@ cdef extern from "mirage/type.h" namespace "mirage::type":
         TB_UNKOWN = 2000,
         TB_INPUT_OP = 2001,
         TB_OUTPUT_OP = 2002,
-        TB_MATMUL_OP = 2003,
-        # ElementUnary
-        TB_EXP_OP = 2100,
-        TB_SQUARE_OP = 2101,
-        TB_SQRT_OP = 2102,
-        TB_MUL_SCALAR_OP = 2103,
-        TB_SILU_OP = 2104,
-        TB_SIGMOID_OP = 2105,
-        TB_GELU_OP = 2106,
-        TB_RELU_OP = 2150,
-        TB_CLAMP_OP = 2151,
-        TB_LOG_OP = 2160,
-        # ElementBinary
-        TB_ADD_OP = 2200,
-        TB_MUL_OP = 2201,
-        TB_DIV_OP = 2202,
-        TB_SUB_OP = 2203,
-        TB_POW_OP = 2204,
-        # Reduction and Normalization
-        TB_REDUCTION_FIRST_OP_ID = 2300,
-        TB_REDUCTION_0_OP = 2301,
-        TB_REDUCTION_1_OP = 2302,
-        TB_REDUCTION_2_OP = 2303,
-        TB_REDUCTION_0_TO_DIMX_OP = 2304,
-        TB_REDUCTION_1_TO_DIMX_OP = 2305,
-        TB_REDUCTION_2_TO_DIMX_OP = 2306,
-        TB_REDUCTION_0_MAX_OP = 2307,
-        TB_REDUCTION_1_MAX_OP = 2308,
-        TB_REDUCTION_2_MAX_OP = 2309,
-        TB_REDUCTION_LAST_OP_ID = 2349,
-        TB_RMS_NORM_OP = 2350,
-        # Concat
-        TB_CONCAT_FIRST_OP_ID = 2400,
-        TB_CONCAT_0_OP = 2400,
-        TB_CONCAT_1_OP = 2401,
-        TB_CONCAT_2_OP = 2402,
-        TB_CONCAT_LAST_OP_ID = 2409,
-        TB_CONCAT_THEN_MATMUL_OP = 2411,
-        TB_SPLIT_FIRST_OP_ID = 2420,
-        TB_SPLIT_0_OP = 2420,
-        TB_SPLIT_1_OP = 2421,
-        TB_SPLIT_2_OP = 2422,
-        TB_SPLIT_LAST_OP_ID = 2429,
-        # Forloop Accum
-        # LD indicates last dimension
-        TB_FORLOOP_ACCUM_FIRST_OP = 2500,
-        TB_FORLOOP_ACCUM_NO_RED_OP = 2500,
-        TB_FORLOOP_ACCUM_RED_LD_SUM_OP = 2501,
-        TB_FORLOOP_ACCUM_RED_LD_MEAN_OP = 2502,
-        TB_FORLOOP_ACCUM_RED_LD_RMS_OP = 2503,
-        TB_FORLOOP_ACCUM_REDTOX_LD_SUM_OP = 2504,
-        TB_FORLOOP_ACCUM_NO_RED_RESCALE_OP = 2505,
-        TB_FORLOOP_ACCUM_RED_LD_SUM_RESCALE_OP = 2506,
-        TB_FORLOOP_ACCUM_MAX_OP = 2507,
-        TB_FORLOOP_ACCUM_LAST_OP = 2599,
         TB_CUSTOMIZED_OP = 2999
 
 cdef extern from "mirage/layout.h" namespace "mirage::layout":
@@ -364,5 +309,5 @@ cdef extern from "mirage/threadblock/graph.h" namespace "mirage::threadblock":
 #     cdef TritonTranspileResult transpile(const CppKNGraph *graph,
 #                                          const TritonTranspilerConfig config)
 
-cdef extern from "mirage/kernel/device_memory_manager.h" namespace "mirage::kernel":
-    cdef int cython_set_gpu_device_id(int gpu_id)
+# cdef extern from "mirage/kernel/device_memory_manager.h" namespace "mirage::kernel":
+#     cdef int cython_set_gpu_device_id(int gpu_id)

@@ -32,7 +32,7 @@ public:
   int num_devices;
 #ifdef MIRAGE_FINGERPRINT_USE_CUDA
   DeviceMemoryManager(int device_id, int num_gpus);
-  static void set_gpu_device_id(int gpu_id);
+  // static void set_gpu_device_id(int gpu_id);
   int gpu_id;
   cudaStream_t stream[mirage::config::MAX_NUM_DEVICES];
   cublasHandle_t blas[mirage::config::MAX_NUM_DEVICES];
@@ -62,7 +62,7 @@ public:
   char *stensor_fp_base_ptr;
 };
 
-void cython_set_gpu_device_id(int gpu_id);
+// void cython_set_gpu_device_id(int gpu_id);
 
 } // namespace kernel
 } // namespace mirage

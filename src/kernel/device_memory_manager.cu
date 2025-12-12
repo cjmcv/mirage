@@ -170,18 +170,18 @@ DeviceMemoryManager *DeviceMemoryManager::get_instance() {
   return singleton;
 }
 
-/*static*/
-void DeviceMemoryManager::set_gpu_device_id(int gpu_id) {
-  // set_gpu_device_id must be called before creating DeviceMemoryManager
-  assert(singleton == nullptr);
-  int num_devices;
-  checkCUDA(cudaGetDeviceCount(&num_devices));
-  singleton = new DeviceMemoryManager(1 /*num_devices*/, gpu_id /*gpu_id*/);
-}
+// /*static*/
+// void DeviceMemoryManager::set_gpu_device_id(int gpu_id) {
+//   // set_gpu_device_id must be called before creating DeviceMemoryManager
+//   assert(singleton == nullptr);
+//   int num_devices;
+//   checkCUDA(cudaGetDeviceCount(&num_devices));
+//   singleton = new DeviceMemoryManager(1 /*num_devices*/, gpu_id /*gpu_id*/);
+// }
 
-void cython_set_gpu_device_id(int gpu_id) {
-  DeviceMemoryManager::set_gpu_device_id(gpu_id);
-}
+// void cython_set_gpu_device_id(int gpu_id) {
+//   DeviceMemoryManager::set_gpu_device_id(gpu_id);
+// }
 #endif // MIRAGE_FINGERPRINT_USE_CUDA
 
 } // namespace kernel

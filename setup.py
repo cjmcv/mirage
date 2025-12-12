@@ -31,8 +31,6 @@ else:
     from setuptools import setup
     from setuptools.extension import Extension
 
-# import z3
-
 nvcc_path = shutil.which("nvcc")
 if nvcc_path:
     cuda_home = os.path.dirname(os.path.dirname(nvcc_path))
@@ -45,8 +43,6 @@ cuda_library_dirs = [
     os.path.join(cuda_home, "lib64"),
     os.path.join(cuda_home, "lib64", "stubs"),
 ]
-
-# z3_path = path.dirname(z3.__file__)
 
 # Use version.py to get package version
 version_file = os.path.join(os.path.dirname(__file__), "python/mirage/version.py")
@@ -81,9 +77,6 @@ def config_cython():
                         path.join(mirage_path, "deps", "json", "include"),
                         path.join(mirage_path, "deps", "cutlass", "include"),
                         path.join(mirage_path, "deps", "cutlass", "tools", "util", "include"),
-                        # path.join(mirage_path, "build", "abstract_subexpr", "release"),
-                        # path.join(mirage_path, "build", "formal_verifier", "release"),
-                        # path.join(z3_path, "include"),
                         cuda_include_dir,
                     ],
                     libraries=[
@@ -92,17 +85,11 @@ def config_cython():
                         "cudart_static",
                         "cudart",
                         "cuda",
-                        # "z3",
                         "gomp",
                         "rt",
-                        # "abstract_subexpr",
-                        # "formal_verifier",
                     ],
                     library_dirs=[
                         path.join(mirage_path, "build"),
-                        # path.join(z3_path, "lib"),
-                        # path.join(mirage_path, "build", "abstract_subexpr", "release"),
-                        # path.join(mirage_path, "build", "formal_verifier", "release"),
                     ]
                     + cuda_library_dirs,
                     define_macros=macros,
@@ -111,8 +98,6 @@ def config_cython():
                         "-fPIC",
                         "-fopenmp",
                         "-lrt",
-                        # f"-Wl,-rpath,{path.join('$ORIGIN', '..', '..', 'build', 'abstract_subexpr', 'release')}",
-                        # f"-Wl,-rpath,{path.join('$ORIGIN', '..', '..', 'build', 'formal_verifier', 'release')}",
                     ],
                     language="c++",
                 )
@@ -137,43 +122,12 @@ except FileNotFoundError:
     # Add the cargo binary directory to the PATH
     os.environ["PATH"] = f"{os.path.join(os.environ.get('HOME', '/root'), '.cargo', 'bin')}:{os.environ.get('PATH', '')}"
 
-mirage_path = path.dirname(__file__)
-# z3_path = os.path.join(mirage_path, 'deps', 'z3', 'build')
-# os.environ['Z3_DIR'] = z3_path
-if mirage_path == '':
-    mirage_path = '.'
-
-# try:
-#     subprocess.check_output(['cargo', 'build', '--release', '--target-dir', '../../../../build/abstract_subexpr'], cwd='src/search/abstract_expr/abstract_subexpr')
-# except subprocess.CalledProcessError as e:
-#     print("Failed to build abstract_subexpr Rust library, building it ...")
-#     try:
-#         subprocess.run(['cargo', 'build', '--release', '--target-dir', '../../../../build/abstract_subexpr'], cwd='src/search/abstract_expr/abstract_subexpr', check=True)
-#         print("Abstract_subexpr Rust library built successfully.")
-#     except subprocess.CalledProcessError as e:
-#         print("Failed to build abstract_subexpr Rust library.")
-#     os.environ['ABSTRACT_SUBEXPR_LIB'] = os.path.join(mirage_path,'build', 'abstract_subexpr', 'release', 'libabstract_subexpr.so')
-
-# try:
-#     subprocess.check_output(['cargo', 'build', '--release', '--target-dir', '../../../../build/formal_verifier'], cwd='src/search/verification/formal_verifier_equiv')
-# except subprocess.CalledProcessError as e:
-#     print("Failed to build formal_verifier Rust library, building it ...")
-#     try:
-#         subprocess.run(['cargo', 'build', '--release', '--target-dir', '../../../../build/formal_verifier'], cwd='src/search/verification/formal_verifier_equiv', check=True)
-#         print("formal_verifier Rust library built successfully.")
-#     except subprocess.CalledProcessError as e:
-#         print("Failed to build formal_verifier Rust library.")
-#     os.environ['FORMAL_VERIFIER_LIB'] = os.path.join(mirage_path,'build', 'formal_verifier', 'release', 'libformal_verifier.so')
-
-
 # build Mirage runtime library
 try:
     os.environ["CUDACXX"] = nvcc_path if nvcc_path else os.path.join(
         cuda_home, "bin", "nvcc"
     )
     mirage_path = path.dirname(__file__)
-    # z3_path = os.path.join(mirage_path, 'deps', 'z3', 'build')
-    # os.environ['Z3_DIR'] = z3_path
     if mirage_path == "":
         mirage_path = "."
     os.makedirs(mirage_path, exist_ok=True)
@@ -193,12 +147,6 @@ try:
             "cmake",
             "..",
             "-DCMAKE_BUILD_TYPE=Debug",
-            # "-DZ3_CXX_INCLUDE_DIRS=" + z3_path + "/include/",
-            # "-DZ3_LIBRARIES=" + path.join(z3_path, "lib", "libz3.so"),
-            # '-DABSTRACT_SUBEXPR_LIB=' + path.join(mirage_path, 'build', 'abstract_subexpr', 'release'),
-            # '-DABSTRACT_SUBEXPR_LIBRARIES=' + path.join(mirage_path, 'build', 'abstract_subexpr', 'release', 'libabstract_subexpr.so'),
-            # '-DFORMAL_VERIFIER_LIB=' + path.join(mirage_path, 'build', 'formal_verifier', 'release'),
-            # '-DFORMAL_VERIFIER_LIBRARIES=' + path.join(mirage_path, 'build', 'formal_verifier', 'release', 'libformal_verifier.so'),
             "-DCMAKE_C_COMPILER=" + os.environ["CC"],
             "-DCMAKE_CXX_COMPILER=" + os.environ["CXX"],
         ],
@@ -231,13 +179,9 @@ def copy_include():
         # to python/mirage/include/mirage/transpiler/runtime/*
         # instead of python/mirage/include/include/mirage/transpiler/runtime/*
         include_mirage_dirs = [
-            # "include/mirage/transpiler/runtime",
-            # "include/mirage/triton_transpiler/runtime",
             "include/mirage/persistent_kernel",
         ]
         include_mirage_dsts = [
-            # path.join(INCLUDE_BASE, "mirage/transpiler/runtime"),
-            # path.join(INCLUDE_BASE, "mirage/triton_transpiler/runtime"),
             path.join(INCLUDE_BASE, "mirage/persistent_kernel"),
         ]
         for include_mirage_dir, include_mirage_dst in zip(
