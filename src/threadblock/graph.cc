@@ -14,15 +14,15 @@
  */
 
 #include "mirage/threadblock/graph.h"
-#include "mirage/threadblock/serializer/concat_serializer.h"
-#include "mirage/threadblock/serializer/element_binary_serializer.h"
-#include "mirage/threadblock/serializer/element_unary_serializer.h"
-#include "mirage/threadblock/serializer/forloop_accum_serializer.h"
+// #include "mirage/threadblock/serializer/concat_serializer.h"
+// #include "mirage/threadblock/serializer/element_binary_serializer.h"
+// #include "mirage/threadblock/serializer/element_unary_serializer.h"
+// #include "mirage/threadblock/serializer/forloop_accum_serializer.h"
 #include "mirage/threadblock/serializer/input_loader_serializer.h"
-#include "mirage/threadblock/serializer/matmul_serializer.h"
+// #include "mirage/threadblock/serializer/matmul_serializer.h"
 #include "mirage/threadblock/serializer/output_saver_serializer.h"
-#include "mirage/threadblock/serializer/reduction_serializer.h"
-#include "mirage/threadblock/serializer/rms_norm_serializer.h"
+// #include "mirage/threadblock/serializer/reduction_serializer.h"
+// #include "mirage/threadblock/serializer/rms_norm_serializer.h"
 #include "mirage/utils/hash_utils.h"
 
 namespace mirage {
@@ -96,32 +96,10 @@ size_t Graph::calculate_shared_memory_usage(TBOperator *new_op) {
   // currently use a simple heuristic to calculate shmem usage
   // TODO: replace the following with a transpiler-based method
   for (auto const &op : operators) {
+    // printf("op->op_type: %d.\n", op->op_type);
     switch (op->op_type) {
       case mirage::type::TB_INPUT_OP:
-      case mirage::type::TB_OUTPUT_OP:
-      case mirage::type::TB_MATMUL_OP:
-      // Element-wise binary
-      case mirage::type::TB_DIV_OP:
-      case mirage::type::TB_ADD_OP:
-      case mirage::type::TB_MUL_OP:
-      case mirage::type::TB_SUB_OP:
-      case mirage::type::TB_POW_OP:
-      // Reduction
-      case mirage::type::TB_REDUCTION_0_OP:
-      case mirage::type::TB_REDUCTION_1_OP:
-      case mirage::type::TB_REDUCTION_2_OP:
-      case mirage::type::TB_REDUCTION_0_TO_DIMX_OP:
-      case mirage::type::TB_REDUCTION_1_TO_DIMX_OP:
-      case mirage::type::TB_REDUCTION_2_TO_DIMX_OP:
-      case mirage::type::TB_REDUCTION_0_MAX_OP:
-      case mirage::type::TB_REDUCTION_1_MAX_OP:
-      case mirage::type::TB_REDUCTION_2_MAX_OP:
-      // Normalization
-      case mirage::type::TB_RMS_NORM_OP:
-      // Concat
-      case mirage::type::TB_CONCAT_0_OP:
-      case mirage::type::TB_CONCAT_1_OP:
-      case mirage::type::TB_CONCAT_2_OP: {
+      case mirage::type::TB_OUTPUT_OP: {
         for (size_t i = 0; i < op->output_tensors.size(); i++) {
           // Do not store in smem when store_in_demm is set
           if (op->output_tensors[i].store_in_dmem) {
@@ -131,82 +109,114 @@ size_t Graph::calculate_shared_memory_usage(TBOperator *new_op) {
         }
         break;
       }
-      // Element-wise unary
-      case mirage::type::TB_EXP_OP:
-      case mirage::type::TB_SQUARE_OP:
-      case mirage::type::TB_SQRT_OP:
-      case mirage::type::TB_SILU_OP:
-      case mirage::type::TB_GELU_OP:
-      case mirage::type::TB_RELU_OP:
-      case mirage::type::TB_CLAMP_OP:
-      case mirage::type::TB_MUL_SCALAR_OP: {
-        // inplace optimization for element-wise unary
-        break;
-      }
-      // Forloop accumulator
-      case mirage::type::TB_FORLOOP_ACCUM_NO_RED_OP: {
-        // inplace optimization for non-reduction accum
-        break;
-      }
-      case mirage::type::TB_FORLOOP_ACCUM_RED_LD_SUM_OP: {
-        // we will inline accumulation but need to perform
-        // a redue_sum
-        assert(op->output_tensors.size() == 1);
-        // don't allow offloading for accumulators
-        assert(!op->output_tensors[0].store_in_dmem);
-        usage += op->output_tensors[0].size();
-        break;
-      }
-      case mirage::type::TB_FORLOOP_ACCUM_RED_LD_MEAN_OP: {
-        // we will inline accumulation but need to perform
-        // a reduction
-        assert(op->output_tensors.size() == 1);
-        // don't allow offloading for accumulators
-        assert(!op->output_tensors[0].store_in_dmem);
-        usage += op->output_tensors[0].size();
-        break;
-      }
-      case mirage::type::TB_FORLOOP_ACCUM_RED_LD_RMS_OP: {
-        // This operator will be transpiled to the following operators:
-        // 1. square (element-wise unary)
-        // 2. mul_scalar (element-wise unary)
-        // 3. forloop_accum (non-reduction accumulator)
-        // 4. reduction
-        // 5. sqrt (element-wise unary)
-        // So we only need to allocate shared memory for reduction, whose
-        // size is the same as output_tensors[0]
-        assert(op->output_tensors.size() == 1);
-        usage += op->output_tensors[0].size();
-        break;
-      }
-      case mirage::type::TB_FORLOOP_ACCUM_REDTOX_LD_SUM_OP: {
-        // we will inline accumulation but need to perform
-        // a reduuction_to_dimx
-        assert(op->output_tensors.size() == 1);
-        // don't allow offloading for accumulators
-        assert(!op->output_tensors[0].store_in_dmem);
-        usage += op->output_tensors[0].size();
-        break;
-      }
-      case mirage::type::TB_FORLOOP_ACCUM_NO_RED_RESCALE_OP: {
-        // we will inline accumulation but need to perform
-        // a rescale
-        assert(op->output_tensors.size() == 1);
-        usage += op->output_tensors[0].size();
-        break;
-      }
-      case mirage::type::TB_FORLOOP_ACCUM_RED_LD_SUM_RESCALE_OP: {
-        // we will inline accumulation but need to perform
-        // a rescale
-        assert(op->output_tensors.size() == 1);
-        usage += op->output_tensors[0].size();
-        break;
-      }
-      case mirage::type::TB_FORLOOP_ACCUM_MAX_OP: {
-        assert(op->output_tensors.size() == 1);
-        usage += op->output_tensors[0].size();
-        break;
-      }
+      // case mirage::type::TB_MATMUL_OP:
+      // // Element-wise binary
+      // case mirage::type::TB_DIV_OP:
+      // case mirage::type::TB_ADD_OP:
+      // case mirage::type::TB_MUL_OP:
+      // case mirage::type::TB_SUB_OP:
+      // case mirage::type::TB_POW_OP:
+      // // Reduction
+      // case mirage::type::TB_REDUCTION_0_OP:
+      // case mirage::type::TB_REDUCTION_1_OP:
+      // case mirage::type::TB_REDUCTION_2_OP:
+      // case mirage::type::TB_REDUCTION_0_TO_DIMX_OP:
+      // case mirage::type::TB_REDUCTION_1_TO_DIMX_OP:
+      // case mirage::type::TB_REDUCTION_2_TO_DIMX_OP:
+      // case mirage::type::TB_REDUCTION_0_MAX_OP:
+      // case mirage::type::TB_REDUCTION_1_MAX_OP:
+      // case mirage::type::TB_REDUCTION_2_MAX_OP:
+      // // Normalization
+      // case mirage::type::TB_RMS_NORM_OP:
+      // // Concat
+      // case mirage::type::TB_CONCAT_0_OP:
+      // case mirage::type::TB_CONCAT_1_OP:
+      // case mirage::type::TB_CONCAT_2_OP: {
+      //   for (size_t i = 0; i < op->output_tensors.size(); i++) {
+      //     // Do not store in smem when store_in_demm is set
+      //     if (op->output_tensors[i].store_in_dmem) {
+      //       continue;
+      //     }
+      //     usage += op->output_tensors[i].size();
+      //   }
+      //   break;
+      // }
+      // // Element-wise unary
+      // case mirage::type::TB_EXP_OP:
+      // case mirage::type::TB_SQUARE_OP:
+      // case mirage::type::TB_SQRT_OP:
+      // case mirage::type::TB_SILU_OP:
+      // case mirage::type::TB_GELU_OP:
+      // case mirage::type::TB_RELU_OP:
+      // case mirage::type::TB_CLAMP_OP:
+      // case mirage::type::TB_MUL_SCALAR_OP: {
+      //   // inplace optimization for element-wise unary
+      //   break;
+      // }
+      // // Forloop accumulator
+      // case mirage::type::TB_FORLOOP_ACCUM_NO_RED_OP: {
+      //   // inplace optimization for non-reduction accum
+      //   break;
+      // }
+      // case mirage::type::TB_FORLOOP_ACCUM_RED_LD_SUM_OP: {
+      //   // we will inline accumulation but need to perform
+      //   // a redue_sum
+      //   assert(op->output_tensors.size() == 1);
+      //   // don't allow offloading for accumulators
+      //   assert(!op->output_tensors[0].store_in_dmem);
+      //   usage += op->output_tensors[0].size();
+      //   break;
+      // }
+      // case mirage::type::TB_FORLOOP_ACCUM_RED_LD_MEAN_OP: {
+      //   // we will inline accumulation but need to perform
+      //   // a reduction
+      //   assert(op->output_tensors.size() == 1);
+      //   // don't allow offloading for accumulators
+      //   assert(!op->output_tensors[0].store_in_dmem);
+      //   usage += op->output_tensors[0].size();
+      //   break;
+      // }
+      // case mirage::type::TB_FORLOOP_ACCUM_RED_LD_RMS_OP: {
+      //   // This operator will be transpiled to the following operators:
+      //   // 1. square (element-wise unary)
+      //   // 2. mul_scalar (element-wise unary)
+      //   // 3. forloop_accum (non-reduction accumulator)
+      //   // 4. reduction
+      //   // 5. sqrt (element-wise unary)
+      //   // So we only need to allocate shared memory for reduction, whose
+      //   // size is the same as output_tensors[0]
+      //   assert(op->output_tensors.size() == 1);
+      //   usage += op->output_tensors[0].size();
+      //   break;
+      // }
+      // case mirage::type::TB_FORLOOP_ACCUM_REDTOX_LD_SUM_OP: {
+      //   // we will inline accumulation but need to perform
+      //   // a reduuction_to_dimx
+      //   assert(op->output_tensors.size() == 1);
+      //   // don't allow offloading for accumulators
+      //   assert(!op->output_tensors[0].store_in_dmem);
+      //   usage += op->output_tensors[0].size();
+      //   break;
+      // }
+      // case mirage::type::TB_FORLOOP_ACCUM_NO_RED_RESCALE_OP: {
+      //   // we will inline accumulation but need to perform
+      //   // a rescale
+      //   assert(op->output_tensors.size() == 1);
+      //   usage += op->output_tensors[0].size();
+      //   break;
+      // }
+      // case mirage::type::TB_FORLOOP_ACCUM_RED_LD_SUM_RESCALE_OP: {
+      //   // we will inline accumulation but need to perform
+      //   // a rescale
+      //   assert(op->output_tensors.size() == 1);
+      //   usage += op->output_tensors[0].size();
+      //   break;
+      // }
+      // case mirage::type::TB_FORLOOP_ACCUM_MAX_OP: {
+      //   assert(op->output_tensors.size() == 1);
+      //   usage += op->output_tensors[0].size();
+      //   break;
+      // }
       default: {
         assert(false && "Unsupported operator");
       }
@@ -455,227 +465,227 @@ NewKernelParams Graph::get_new_kernel_params(bool fingerprint) const {
             output_op->epilogue);
         break;
       }
-      case mirage::type::TB_FORLOOP_ACCUM_NO_RED_OP:
-      case mirage::type::TB_FORLOOP_ACCUM_RED_LD_SUM_OP:
-      case mirage::type::TB_FORLOOP_ACCUM_RED_LD_MEAN_OP:
-      case mirage::type::TB_FORLOOP_ACCUM_RED_LD_RMS_OP:
-      case mirage::type::TB_FORLOOP_ACCUM_REDTOX_LD_SUM_OP: {
-        // TODO: currently assuming we only reduce along the last dim
-        assert(operators[i]->input_tensors.size() == 1);
-        assert(operators[i]->output_tensors.size() == 1);
-        mirage::threadblock::STensor input = operators[i]->input_tensors[0];
-        mirage::threadblock::STensor accum = operators[i]->output_tensors[0];
-        assert(input.num_dims == accum.num_dims);
-        int per_iter_reduction_degree =
-            input.num_elements() / accum.num_elements();
-        for (int i = 0; i < input.num_dims; i++) {
-          if (input.dim[i] != accum.dim[i]) {
-            assert(input.dim[i] == accum.dim[i] * per_iter_reduction_degree);
-          }
-        }
-        int inner_range = accum.dim[accum.num_dims - 1];
-        mirage::threadblock::serialize_forloop_accum_parameters(
-            params.parameters,
-            params.num_parameters,
-            (int)accum.num_elements(),
-            per_iter_reduction_degree,
-            inner_range,
-            input.smem_offset,
-            accum.smem_offset);
-        break;
-      }
-      case mirage::type::TB_MATMUL_OP: {
-        assert(operators[i]->input_tensors.size() == 2);
-        assert(operators[i]->output_tensors.size() == 1);
-        mirage::threadblock::STensor A = operators[i]->input_tensors[0];
-        mirage::threadblock::STensor B = operators[i]->input_tensors[1];
-        mirage::threadblock::STensor C = operators[i]->output_tensors[0];
-        int num_dims = A.num_dims;
-        assert(B.num_dims == num_dims);
-        assert(C.num_dims == num_dims);
-        // Currently do not support batch matmul in TB
-        for (int i = 0; i < num_dims - 2; i++) {
-          assert(A.dim[i] == 1);
-          assert(B.dim[i] == 1);
-          assert(C.dim[i] == 1);
-        }
-        int m = A.dim[num_dims - 2];
-        int n = B.dim[num_dims - 1];
-        int k = A.dim[num_dims - 1];
-        assert(B.dim[num_dims - 2] == k);
-        assert(C.dim[num_dims - 2] == m);
-        assert(C.dim[num_dims - 1] == n);
-        mirage::threadblock::serialize_matmul_op_parameters(
-            params.parameters,
-            params.num_parameters,
-            m,
-            n,
-            k,
-            A.smem_offset,
-            B.smem_offset,
-            C.smem_offset);
-        break;
-      }
-      case mirage::type::TB_EXP_OP:
-      case mirage::type::TB_SQUARE_OP:
-      case mirage::type::TB_SQRT_OP:
-      case mirage::type::TB_SILU_OP:
-      case mirage::type::TB_GELU_OP:
-      case mirage::type::TB_RELU_OP:
-      case mirage::type::TB_CLAMP_OP:
-      case mirage::type::TB_MUL_SCALAR_OP: {
-        assert(operators[i]->input_tensors.size() == 1);
-        assert(operators[i]->output_tensors.size() == 1);
-        mirage::threadblock::STensor input = operators[i]->input_tensors[0];
-        mirage::threadblock::STensor output = operators[i]->output_tensors[0];
-        // assert inplace
-        assert(input.smem_offset == output.smem_offset);
-        assert(input.num_elements() == output.num_elements());
-        mirage::threadblock::serialize_elementunary_op_parameters(
-            params.parameters,
-            params.num_parameters,
-            input.smem_offset,
-            (int)input.num_elements());
-        break;
-      }
-      case mirage::type::TB_DIV_OP:
-      case mirage::type::TB_MUL_OP:
-      case mirage::type::TB_ADD_OP:
-      case mirage::type::TB_SUB_OP:
-      case mirage::type::TB_POW_OP: {
-        assert(operators[i]->input_tensors.size() == 2);
-        assert(operators[i]->output_tensors.size() == 1);
-        mirage::threadblock::STensor input1 = operators[i]->input_tensors[0];
-        mirage::threadblock::STensor input2 = operators[i]->input_tensors[1];
-        mirage::threadblock::STensor output = operators[i]->output_tensors[0];
-        int3 input1_shape = {1, 1, 1}, input2_shape = {1, 1, 1};
-        // assert that only the last three dimensions can be larger than 1
-        // since we only serialize these
-        for (int i = 0; i < input1.num_dims - 3; i++) {
-          assert(input1.dim[i] == 1);
-        }
-        for (int i = 0; i < input2.num_dims - 3; i++) {
-          assert(input2.dim[i] == 1);
-        }
-        input1_shape.z =
-            input1.num_dims > 0 ? input1.dim[input1.num_dims - 1] : 1;
-        input1_shape.y =
-            input1.num_dims > 1 ? input1.dim[input1.num_dims - 2] : 1;
-        input1_shape.x =
-            input1.num_dims > 2 ? input1.dim[input1.num_dims - 3] : 1;
-        input2_shape.z =
-            input2.num_dims > 0 ? input2.dim[input2.num_dims - 1] : 1;
-        input2_shape.y =
-            input2.num_dims > 1 ? input2.dim[input2.num_dims - 2] : 1;
-        input2_shape.x =
-            input2.num_dims > 2 ? input2.dim[input2.num_dims - 3] : 1;
-        mirage::threadblock::serialize_elementbinary_op_parameters(
-            params.parameters,
-            params.num_parameters,
-            input1_shape,
-            input2_shape,
-            input1.smem_offset,
-            input2.smem_offset,
-            output.smem_offset);
-        break;
-      }
-      case mirage::type::TB_REDUCTION_0_OP:
-      case mirage::type::TB_REDUCTION_1_OP:
-      case mirage::type::TB_REDUCTION_2_OP:
-      case mirage::type::TB_REDUCTION_0_TO_DIMX_OP:
-      case mirage::type::TB_REDUCTION_1_TO_DIMX_OP:
-      case mirage::type::TB_REDUCTION_2_TO_DIMX_OP: {
-        assert(operators[i]->input_tensors.size() == 1);
-        assert(operators[i]->output_tensors.size() == 1);
-        mirage::threadblock::STensor input = operators[i]->input_tensors[0];
-        mirage::threadblock::STensor output = operators[i]->output_tensors[0];
-        mirage::type::TBOperatorType type = operators[i]->op_type;
-        int reduction_dim = -1;
-        if (type >= mirage::type::TB_REDUCTION_0_TO_DIMX_OP &&
-            type <= mirage::type::TB_REDUCTION_2_TO_DIMX_OP) {
-          reduction_dim = type - mirage::type::TB_REDUCTION_0_TO_DIMX_OP;
-        } else if (type >= mirage::type::TB_REDUCTION_0_OP &&
-                   type <= mirage::type::TB_REDUCTION_2_OP) {
-          reduction_dim = type - mirage::type::TB_REDUCTION_0_OP;
-        } else {
-          assert(false);
-        }
-        assert(input.num_dims == output.num_dims);
-        int reduction_degree = input.num_elements() / output.num_elements();
-        for (int i = 0; i < input.num_dims; i++) {
-          if (i != reduction_dim) {
-            assert(input.dim[i] == output.dim[i]);
-          } else {
-            assert(input.dim[i] == output.dim[i] * reduction_degree);
-          }
-        }
-        int inner_range = 1;
-        for (int i = reduction_dim; i < output.num_dims; i++) {
-          inner_range *= output.dim[i];
-        }
-        mirage::threadblock::serialize_reduction_op_parameters(
-            params.parameters,
-            params.num_parameters,
-            (int)output.num_elements(),
-            reduction_degree,
-            inner_range,
-            input.smem_offset,
-            output.smem_offset);
-        break;
-      }
-      case mirage::type::TB_RMS_NORM_OP: {
-        assert(operators[i]->input_tensors.size() == 1);
-        assert(operators[i]->output_tensors.size() == 1);
-        mirage::threadblock::STensor input = operators[i]->input_tensors[0];
-        mirage::threadblock::STensor output = operators[i]->output_tensors[0];
-        int norm_size = output.dim[output.num_dims - 1];
-        // printf("norm_size(%d) num_elements(%d)\n", norm_size,
-        // (int)output.num_elements());
-        assert(input.num_elements() == output.num_elements());
-        mirage::threadblock::serialize_rms_norm_op_parameters(
-            params.parameters,
-            params.num_parameters,
-            (int)output.num_elements(),
-            norm_size,
-            input.smem_offset,
-            output.smem_offset);
-        break;
-      }
-      case mirage::type::TB_CONCAT_0_OP:
-      case mirage::type::TB_CONCAT_1_OP:
-      case mirage::type::TB_CONCAT_2_OP: {
-        assert(operators[i]->input_tensors.size() == 2);
-        assert(operators[i]->output_tensors.size() == 1);
-        mirage::threadblock::STensor A = operators[i]->input_tensors[0];
-        mirage::threadblock::STensor B = operators[i]->input_tensors[1];
-        mirage::threadblock::STensor output = operators[i]->output_tensors[0];
-        int concat_dim = operators[i]->op_type - mirage::type::TB_CONCAT_0_OP;
-        assert(A.num_dims == B.num_dims);
-        assert(A.num_dims == output.num_dims);
-        int inner_size = 1;
-        for (int i = 0; i < A.num_dims; i++) {
-          if (i == concat_dim) {
-            assert(A.dim[i] + B.dim[i] == output.dim[i]);
-          } else {
-            assert(A.dim[i] == output.dim[i]);
-            assert(B.dim[i] == output.dim[i]);
-          }
-          if (i > concat_dim) {
-            inner_size = inner_size * output.dim[i];
-          }
-        }
-        mirage::threadblock::serialize_concat_op_parameters(
-            params.parameters,
-            params.num_parameters,
-            (int)output.num_elements(),
-            A.dim[concat_dim],
-            B.dim[concat_dim],
-            inner_size,
-            A.smem_offset,
-            B.smem_offset,
-            output.smem_offset);
-        break;
-      }
+      // case mirage::type::TB_FORLOOP_ACCUM_NO_RED_OP:
+      // case mirage::type::TB_FORLOOP_ACCUM_RED_LD_SUM_OP:
+      // case mirage::type::TB_FORLOOP_ACCUM_RED_LD_MEAN_OP:
+      // case mirage::type::TB_FORLOOP_ACCUM_RED_LD_RMS_OP:
+      // case mirage::type::TB_FORLOOP_ACCUM_REDTOX_LD_SUM_OP: {
+      //   // TODO: currently assuming we only reduce along the last dim
+      //   assert(operators[i]->input_tensors.size() == 1);
+      //   assert(operators[i]->output_tensors.size() == 1);
+      //   mirage::threadblock::STensor input = operators[i]->input_tensors[0];
+      //   mirage::threadblock::STensor accum = operators[i]->output_tensors[0];
+      //   assert(input.num_dims == accum.num_dims);
+      //   int per_iter_reduction_degree =
+      //       input.num_elements() / accum.num_elements();
+      //   for (int i = 0; i < input.num_dims; i++) {
+      //     if (input.dim[i] != accum.dim[i]) {
+      //       assert(input.dim[i] == accum.dim[i] * per_iter_reduction_degree);
+      //     }
+      //   }
+      //   int inner_range = accum.dim[accum.num_dims - 1];
+      //   mirage::threadblock::serialize_forloop_accum_parameters(
+      //       params.parameters,
+      //       params.num_parameters,
+      //       (int)accum.num_elements(),
+      //       per_iter_reduction_degree,
+      //       inner_range,
+      //       input.smem_offset,
+      //       accum.smem_offset);
+      //   break;
+      // }
+      // case mirage::type::TB_MATMUL_OP: {
+      //   assert(operators[i]->input_tensors.size() == 2);
+      //   assert(operators[i]->output_tensors.size() == 1);
+      //   mirage::threadblock::STensor A = operators[i]->input_tensors[0];
+      //   mirage::threadblock::STensor B = operators[i]->input_tensors[1];
+      //   mirage::threadblock::STensor C = operators[i]->output_tensors[0];
+      //   int num_dims = A.num_dims;
+      //   assert(B.num_dims == num_dims);
+      //   assert(C.num_dims == num_dims);
+      //   // Currently do not support batch matmul in TB
+      //   for (int i = 0; i < num_dims - 2; i++) {
+      //     assert(A.dim[i] == 1);
+      //     assert(B.dim[i] == 1);
+      //     assert(C.dim[i] == 1);
+      //   }
+      //   int m = A.dim[num_dims - 2];
+      //   int n = B.dim[num_dims - 1];
+      //   int k = A.dim[num_dims - 1];
+      //   assert(B.dim[num_dims - 2] == k);
+      //   assert(C.dim[num_dims - 2] == m);
+      //   assert(C.dim[num_dims - 1] == n);
+      //   mirage::threadblock::serialize_matmul_op_parameters(
+      //       params.parameters,
+      //       params.num_parameters,
+      //       m,
+      //       n,
+      //       k,
+      //       A.smem_offset,
+      //       B.smem_offset,
+      //       C.smem_offset);
+      //   break;
+      // }
+      // case mirage::type::TB_EXP_OP:
+      // case mirage::type::TB_SQUARE_OP:
+      // case mirage::type::TB_SQRT_OP:
+      // case mirage::type::TB_SILU_OP:
+      // case mirage::type::TB_GELU_OP:
+      // case mirage::type::TB_RELU_OP:
+      // case mirage::type::TB_CLAMP_OP:
+      // case mirage::type::TB_MUL_SCALAR_OP: {
+      //   assert(operators[i]->input_tensors.size() == 1);
+      //   assert(operators[i]->output_tensors.size() == 1);
+      //   mirage::threadblock::STensor input = operators[i]->input_tensors[0];
+      //   mirage::threadblock::STensor output = operators[i]->output_tensors[0];
+      //   // assert inplace
+      //   assert(input.smem_offset == output.smem_offset);
+      //   assert(input.num_elements() == output.num_elements());
+      //   mirage::threadblock::serialize_elementunary_op_parameters(
+      //       params.parameters,
+      //       params.num_parameters,
+      //       input.smem_offset,
+      //       (int)input.num_elements());
+      //   break;
+      // }
+      // case mirage::type::TB_DIV_OP:
+      // case mirage::type::TB_MUL_OP:
+      // case mirage::type::TB_ADD_OP:
+      // case mirage::type::TB_SUB_OP:
+      // case mirage::type::TB_POW_OP: {
+      //   assert(operators[i]->input_tensors.size() == 2);
+      //   assert(operators[i]->output_tensors.size() == 1);
+      //   mirage::threadblock::STensor input1 = operators[i]->input_tensors[0];
+      //   mirage::threadblock::STensor input2 = operators[i]->input_tensors[1];
+      //   mirage::threadblock::STensor output = operators[i]->output_tensors[0];
+      //   int3 input1_shape = {1, 1, 1}, input2_shape = {1, 1, 1};
+      //   // assert that only the last three dimensions can be larger than 1
+      //   // since we only serialize these
+      //   for (int i = 0; i < input1.num_dims - 3; i++) {
+      //     assert(input1.dim[i] == 1);
+      //   }
+      //   for (int i = 0; i < input2.num_dims - 3; i++) {
+      //     assert(input2.dim[i] == 1);
+      //   }
+      //   input1_shape.z =
+      //       input1.num_dims > 0 ? input1.dim[input1.num_dims - 1] : 1;
+      //   input1_shape.y =
+      //       input1.num_dims > 1 ? input1.dim[input1.num_dims - 2] : 1;
+      //   input1_shape.x =
+      //       input1.num_dims > 2 ? input1.dim[input1.num_dims - 3] : 1;
+      //   input2_shape.z =
+      //       input2.num_dims > 0 ? input2.dim[input2.num_dims - 1] : 1;
+      //   input2_shape.y =
+      //       input2.num_dims > 1 ? input2.dim[input2.num_dims - 2] : 1;
+      //   input2_shape.x =
+      //       input2.num_dims > 2 ? input2.dim[input2.num_dims - 3] : 1;
+      //   mirage::threadblock::serialize_elementbinary_op_parameters(
+      //       params.parameters,
+      //       params.num_parameters,
+      //       input1_shape,
+      //       input2_shape,
+      //       input1.smem_offset,
+      //       input2.smem_offset,
+      //       output.smem_offset);
+      //   break;
+      // }
+      // case mirage::type::TB_REDUCTION_0_OP:
+      // case mirage::type::TB_REDUCTION_1_OP:
+      // case mirage::type::TB_REDUCTION_2_OP:
+      // case mirage::type::TB_REDUCTION_0_TO_DIMX_OP:
+      // case mirage::type::TB_REDUCTION_1_TO_DIMX_OP:
+      // case mirage::type::TB_REDUCTION_2_TO_DIMX_OP: {
+      //   assert(operators[i]->input_tensors.size() == 1);
+      //   assert(operators[i]->output_tensors.size() == 1);
+      //   mirage::threadblock::STensor input = operators[i]->input_tensors[0];
+      //   mirage::threadblock::STensor output = operators[i]->output_tensors[0];
+      //   mirage::type::TBOperatorType type = operators[i]->op_type;
+      //   int reduction_dim = -1;
+      //   if (type >= mirage::type::TB_REDUCTION_0_TO_DIMX_OP &&
+      //       type <= mirage::type::TB_REDUCTION_2_TO_DIMX_OP) {
+      //     reduction_dim = type - mirage::type::TB_REDUCTION_0_TO_DIMX_OP;
+      //   } else if (type >= mirage::type::TB_REDUCTION_0_OP &&
+      //              type <= mirage::type::TB_REDUCTION_2_OP) {
+      //     reduction_dim = type - mirage::type::TB_REDUCTION_0_OP;
+      //   } else {
+      //     assert(false);
+      //   }
+      //   assert(input.num_dims == output.num_dims);
+      //   int reduction_degree = input.num_elements() / output.num_elements();
+      //   for (int i = 0; i < input.num_dims; i++) {
+      //     if (i != reduction_dim) {
+      //       assert(input.dim[i] == output.dim[i]);
+      //     } else {
+      //       assert(input.dim[i] == output.dim[i] * reduction_degree);
+      //     }
+      //   }
+      //   int inner_range = 1;
+      //   for (int i = reduction_dim; i < output.num_dims; i++) {
+      //     inner_range *= output.dim[i];
+      //   }
+      //   mirage::threadblock::serialize_reduction_op_parameters(
+      //       params.parameters,
+      //       params.num_parameters,
+      //       (int)output.num_elements(),
+      //       reduction_degree,
+      //       inner_range,
+      //       input.smem_offset,
+      //       output.smem_offset);
+      //   break;
+      // }
+      // case mirage::type::TB_RMS_NORM_OP: {
+      //   assert(operators[i]->input_tensors.size() == 1);
+      //   assert(operators[i]->output_tensors.size() == 1);
+      //   mirage::threadblock::STensor input = operators[i]->input_tensors[0];
+      //   mirage::threadblock::STensor output = operators[i]->output_tensors[0];
+      //   int norm_size = output.dim[output.num_dims - 1];
+      //   // printf("norm_size(%d) num_elements(%d)\n", norm_size,
+      //   // (int)output.num_elements());
+      //   assert(input.num_elements() == output.num_elements());
+      //   mirage::threadblock::serialize_rms_norm_op_parameters(
+      //       params.parameters,
+      //       params.num_parameters,
+      //       (int)output.num_elements(),
+      //       norm_size,
+      //       input.smem_offset,
+      //       output.smem_offset);
+      //   break;
+      // }
+      // case mirage::type::TB_CONCAT_0_OP:
+      // case mirage::type::TB_CONCAT_1_OP:
+      // case mirage::type::TB_CONCAT_2_OP: {
+      //   assert(operators[i]->input_tensors.size() == 2);
+      //   assert(operators[i]->output_tensors.size() == 1);
+      //   mirage::threadblock::STensor A = operators[i]->input_tensors[0];
+      //   mirage::threadblock::STensor B = operators[i]->input_tensors[1];
+      //   mirage::threadblock::STensor output = operators[i]->output_tensors[0];
+      //   int concat_dim = operators[i]->op_type - mirage::type::TB_CONCAT_0_OP;
+      //   assert(A.num_dims == B.num_dims);
+      //   assert(A.num_dims == output.num_dims);
+      //   int inner_size = 1;
+      //   for (int i = 0; i < A.num_dims; i++) {
+      //     if (i == concat_dim) {
+      //       assert(A.dim[i] + B.dim[i] == output.dim[i]);
+      //     } else {
+      //       assert(A.dim[i] == output.dim[i]);
+      //       assert(B.dim[i] == output.dim[i]);
+      //     }
+      //     if (i > concat_dim) {
+      //       inner_size = inner_size * output.dim[i];
+      //     }
+      //   }
+      //   mirage::threadblock::serialize_concat_op_parameters(
+      //       params.parameters,
+      //       params.num_parameters,
+      //       (int)output.num_elements(),
+      //       A.dim[concat_dim],
+      //       B.dim[concat_dim],
+      //       inner_size,
+      //       A.smem_offset,
+      //       B.smem_offset,
+      //       output.smem_offset);
+      //   break;
+      // }
       default: {
         assert(false && "Unsupported TB operator");
       }

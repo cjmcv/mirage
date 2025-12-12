@@ -1041,108 +1041,108 @@ cdef class CyTBGraph:
         epilogue_type = string_to_tbepilogue(epilogue)
         self.p_bgraph.new_output(stensor.c_ptr, c_output_map, forloop_dim, epilogue_type)  
 
-    def matmul(self, STensor A, STensor B):
-        cdef CppSTensor* ptr = self.p_bgraph.matmul(A.c_ptr, B.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return STensor(t)
+    # def matmul(self, STensor A, STensor B):
+    #     cdef CppSTensor* ptr = self.p_bgraph.matmul(A.c_ptr, B.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return STensor(t)
 
-    def exp(self, STensor A):
-        cdef CppSTensor* ptr = self.p_bgraph.exp(A.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return STensor(t)
+    # def exp(self, STensor A):
+    #     cdef CppSTensor* ptr = self.p_bgraph.exp(A.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return STensor(t)
 
-    def silu(self, STensor A):
-        cdef CppSTensor* ptr = self.p_bgraph.silu(A.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return STensor(t)
+    # def silu(self, STensor A):
+    #     cdef CppSTensor* ptr = self.p_bgraph.silu(A.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return STensor(t)
     
-    def gelu(self, STensor A):
-        cdef CppSTensor* ptr = self.p_bgraph.gelu(A.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return STensor(t)
+    # def gelu(self, STensor A):
+    #     cdef CppSTensor* ptr = self.p_bgraph.gelu(A.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return STensor(t)
     
-    def relu(self, STensor A):
-        cdef CppSTensor* ptr = self.p_bgraph.relu(A.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return STensor(t)
+    # def relu(self, STensor A):
+    #     cdef CppSTensor* ptr = self.p_bgraph.relu(A.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return STensor(t)
     
-    def clamp(self, STensor A, float min_val, float max_val):
-        cdef CppSTensor* ptr = self.p_bgraph.clamp(A.c_ptr, min_val, max_val)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return STensor(t)
+    # def clamp(self, STensor A, float min_val, float max_val):
+    #     cdef CppSTensor* ptr = self.p_bgraph.clamp(A.c_ptr, min_val, max_val)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return STensor(t)
         
-    def square(self, STensor A):
-        cdef CppSTensor* ptr = self.p_bgraph.square(A.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return STensor(t)
+    # def square(self, STensor A):
+    #     cdef CppSTensor* ptr = self.p_bgraph.square(A.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return STensor(t)
 
-    def sqrt(self, STensor A):
-        cdef CppSTensor* ptr = self.p_bgraph.sqrt(A.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return STensor(t)
+    # def sqrt(self, STensor A):
+    #     cdef CppSTensor* ptr = self.p_bgraph.sqrt(A.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return STensor(t)
 
-    def mul_scalar(self, STensor A, float scalar):
-        cdef CppSTensor* ptr = self.p_bgraph.mul_scalar(A.c_ptr, scalar)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return STensor(t)
+    # def mul_scalar(self, STensor A, float scalar):
+    #     cdef CppSTensor* ptr = self.p_bgraph.mul_scalar(A.c_ptr, scalar)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return STensor(t)
 
-    def add(self, STensor A, STensor B):
-        cdef CppSTensor* ptr = self.p_bgraph.add(A.c_ptr, B.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return STensor(t)
+    # def add(self, STensor A, STensor B):
+    #     cdef CppSTensor* ptr = self.p_bgraph.add(A.c_ptr, B.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return STensor(t)
 
-    def mul(self, STensor A, STensor B):
-        cdef CppSTensor* ptr = self.p_bgraph.mul(A.c_ptr, B.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return STensor(t)
+    # def mul(self, STensor A, STensor B):
+    #     cdef CppSTensor* ptr = self.p_bgraph.mul(A.c_ptr, B.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return STensor(t)
 
-    def div(self, STensor A, STensor B):
-        cdef CppSTensor* ptr = self.p_bgraph.div(A.c_ptr, B.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return STensor(t)
+    # def div(self, STensor A, STensor B):
+    #     cdef CppSTensor* ptr = self.p_bgraph.div(A.c_ptr, B.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return STensor(t)
 
-    def sub(self, STensor A, STensor B):
-        cdef CppSTensor* ptr = self.p_bgraph.sub(A.c_ptr, B.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return STensor(t)
+    # def sub(self, STensor A, STensor B):
+    #     cdef CppSTensor* ptr = self.p_bgraph.sub(A.c_ptr, B.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return STensor(t)
 
-    def reduction(self, STensor A, int dim):
-        cdef CppSTensor* ptr = self.p_bgraph.reduction(A.c_ptr, dim)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return STensor(t)
+    # def reduction(self, STensor A, int dim):
+    #     cdef CppSTensor* ptr = self.p_bgraph.reduction(A.c_ptr, dim)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return STensor(t)
 
-    def reduction_max(self, STensor A, int dim):
-        cdef vector[CppSTensor*] ptr = self.p_bgraph.reduction_max(A.c_ptr, dim)
-        t0 = ctypes.cast(<unsigned long long>ptr[0], ctypes.c_void_p)
-        t1 = ctypes.cast(<unsigned long long>ptr[1], ctypes.c_void_p)
-        return STensor(t0), STensor(t1)
+    # def reduction_max(self, STensor A, int dim):
+    #     cdef vector[CppSTensor*] ptr = self.p_bgraph.reduction_max(A.c_ptr, dim)
+    #     t0 = ctypes.cast(<unsigned long long>ptr[0], ctypes.c_void_p)
+    #     t1 = ctypes.cast(<unsigned long long>ptr[1], ctypes.c_void_p)
+    #     return STensor(t0), STensor(t1)
 
-    def rms_norm(self, STensor A):
-        cdef CppSTensor* ptr = self.p_bgraph.rms_norm(A.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return STensor(t)
+    # def rms_norm(self, STensor A):
+    #     cdef CppSTensor* ptr = self.p_bgraph.rms_norm(A.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return STensor(t)
 
-    def concat(self, STensor A, STensor B, int dim):
-        cdef CppSTensor* ptr = self.p_bgraph.concat(A.c_ptr, B.c_ptr, dim)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return STensor(t)
+    # def concat(self, STensor A, STensor B, int dim):
+    #     cdef CppSTensor* ptr = self.p_bgraph.concat(A.c_ptr, B.c_ptr, dim)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return STensor(t)
 
-    def forloop_accum(self, STensor A, str acc):
-        optype = string_to_accum_optype(acc)
-        cdef CppSTensor* ptr = self.p_bgraph.forloop_accum(A.c_ptr, optype)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return STensor(t)
+    # def forloop_accum(self, STensor A, str acc):
+    #     optype = string_to_accum_optype(acc)
+    #     cdef CppSTensor* ptr = self.p_bgraph.forloop_accum(A.c_ptr, optype)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return STensor(t)
 
-    def forloop_accum_rescale(self, STensor A, STensor B, str acc):
-        optype = string_to_accum_rescale_optype(acc)
-        cdef CppSTensor* ptr = self.p_bgraph.forloop_accum_rescale(A.c_ptr, B.c_ptr, optype)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return STensor(t)
+    # def forloop_accum_rescale(self, STensor A, STensor B, str acc):
+    #     optype = string_to_accum_rescale_optype(acc)
+    #     cdef CppSTensor* ptr = self.p_bgraph.forloop_accum_rescale(A.c_ptr, B.c_ptr, optype)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return STensor(t)
 
-    def forloop_accum_max(self, STensor A):
-        cdef CppSTensor* ptr = self.p_bgraph.forloop_accum_max(A.c_ptr)
-        t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
-        return STensor(t)
+    # def forloop_accum_max(self, STensor A):
+    #     cdef CppSTensor* ptr = self.p_bgraph.forloop_accum_max(A.c_ptr)
+    #     t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
+    #     return STensor(t)
 
     property grid_dim:
         def __get__(self):

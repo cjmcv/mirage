@@ -15,8 +15,6 @@
 
 #pragma once
 
-#ifdef MIRAGE_BACKEND_USE_CUDA
-
 #include "mirage/kernel/device_tensor.h"
 #include "mirage/threadblock/operator.h"
 #include "mirage/threadblock/smem_tensor.h"
@@ -63,4 +61,3 @@ struct alignas(16) KernelParams {
 
 } // namespace threadblock
 } // namespace mirage
-#endif

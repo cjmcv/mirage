@@ -295,36 +295,36 @@ cdef extern from "mirage/threadblock/graph.h" namespace "mirage::threadblock":
                             int3 output_map,
                             int forloop_dim,
                             TBEpilogueType epilogue)
-        CppSTensor* matmul(const CppSTensor *A,
-                        const CppSTensor *B)
-        CppSTensor* exp(const CppSTensor *A)
-        CppSTensor* silu(const CppSTensor *A)
-        CppSTensor* gelu(const CppSTensor *A)
-        CppSTensor* relu(const CppSTensor *A)
-        CppSTensor* clamp(const CppSTensor *A, float min_val, float max_val)
-        CppSTensor* square(const CppSTensor *A)
-        CppSTensor* sqrt(const CppSTensor *A)
-        CppSTensor* mul_scalar(const CppSTensor *A, float scalar)
-        CppSTensor* add(const CppSTensor *A,
-                     const CppSTensor *B)
-        CppSTensor* mul(const CppSTensor *A,
-                     const CppSTensor *B)
-        CppSTensor* div(const CppSTensor *A,
-                     const CppSTensor *B)
-        CppSTensor* sub(const CppSTensor *A,
-                     const CppSTensor *B)
-        CppSTensor* reduction(const CppSTensor *A, int dim)
-        vector[CppSTensor*] reduction_max(const CppSTensor *A, int dim)
-        CppSTensor* rms_norm(const CppSTensor *A)
-        CppSTensor* concat(const CppSTensor *A,
-                        const CppSTensor *B,
-                        int dim)
-        CppSTensor* forloop_accum(const CppSTensor *A,
-                               TBOperatorType optype)
-        CppSTensor* forloop_accum_rescale(const CppSTensor *A,
-                               const CppSTensor *B,
-                               TBOperatorType optype)
-        CppSTensor* forloop_accum_max(const CppSTensor *A)
+        # CppSTensor* matmul(const CppSTensor *A,
+        #                 const CppSTensor *B)
+        # CppSTensor* exp(const CppSTensor *A)
+        # CppSTensor* silu(const CppSTensor *A)
+        # CppSTensor* gelu(const CppSTensor *A)
+        # CppSTensor* relu(const CppSTensor *A)
+        # CppSTensor* clamp(const CppSTensor *A, float min_val, float max_val)
+        # CppSTensor* square(const CppSTensor *A)
+        # CppSTensor* sqrt(const CppSTensor *A)
+        # CppSTensor* mul_scalar(const CppSTensor *A, float scalar)
+        # CppSTensor* add(const CppSTensor *A,
+        #              const CppSTensor *B)
+        # CppSTensor* mul(const CppSTensor *A,
+        #              const CppSTensor *B)
+        # CppSTensor* div(const CppSTensor *A,
+        #              const CppSTensor *B)
+        # CppSTensor* sub(const CppSTensor *A,
+        #              const CppSTensor *B)
+        # CppSTensor* reduction(const CppSTensor *A, int dim)
+        # vector[CppSTensor*] reduction_max(const CppSTensor *A, int dim)
+        # CppSTensor* rms_norm(const CppSTensor *A)
+        # CppSTensor* concat(const CppSTensor *A,
+        #                 const CppSTensor *B,
+        #                 int dim)
+        # CppSTensor* forloop_accum(const CppSTensor *A,
+        #                        TBOperatorType optype)
+        # CppSTensor* forloop_accum_rescale(const CppSTensor *A,
+        #                        const CppSTensor *B,
+        #                        TBOperatorType optype)
+        # CppSTensor* forloop_accum_max(const CppSTensor *A)
         dim3 grid_dim
         dim3 block_dim
         int forloop_range

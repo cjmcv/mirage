@@ -16,25 +16,25 @@
 #include "mirage/kernel/customized.h"
 #include "mirage/kernel/device_memory_manager.h"
 #include "mirage/kernel/graph.h"
-#include "mirage/threadblock/cuda/concat.h"
-#include "mirage/threadblock/cuda/element_binary.h"
-#include "mirage/threadblock/cuda/element_unary.h"
-#include "mirage/threadblock/cuda/forloop_accum.h"
+// #include "mirage/threadblock/cuda/concat.h"
+// #include "mirage/threadblock/cuda/element_binary.h"
+// #include "mirage/threadblock/cuda/element_unary.h"
+// #include "mirage/threadblock/cuda/forloop_accum.h"
 #include "mirage/threadblock/cuda/input_loader.h"
-#include "mirage/threadblock/cuda/matmul.h"
+// #include "mirage/threadblock/cuda/matmul.h"
 #include "mirage/threadblock/cuda/output_saver.h"
-#include "mirage/threadblock/cuda/reduction.h"
-#include "mirage/threadblock/cuda/rms_norm.h"
+// #include "mirage/threadblock/cuda/reduction.h"
+// #include "mirage/threadblock/cuda/rms_norm.h"
 #include "mirage/threadblock/graph.h"
-#include "mirage/threadblock/serializer/concat_serializer.h"
-#include "mirage/threadblock/serializer/element_binary_serializer.h"
-#include "mirage/threadblock/serializer/element_unary_serializer.h"
-#include "mirage/threadblock/serializer/forloop_accum_serializer.h"
+// #include "mirage/threadblock/serializer/concat_serializer.h"
+// #include "mirage/threadblock/serializer/element_binary_serializer.h"
+// #include "mirage/threadblock/serializer/element_unary_serializer.h"
+// #include "mirage/threadblock/serializer/forloop_accum_serializer.h"
 #include "mirage/threadblock/serializer/input_loader_serializer.h"
-#include "mirage/threadblock/serializer/matmul_serializer.h"
+// #include "mirage/threadblock/serializer/matmul_serializer.h"
 #include "mirage/threadblock/serializer/output_saver_serializer.h"
-#include "mirage/threadblock/serializer/reduction_serializer.h"
-#include "mirage/threadblock/serializer/rms_norm_serializer.h"
+// #include "mirage/threadblock/serializer/reduction_serializer.h"
+// #include "mirage/threadblock/serializer/rms_norm_serializer.h"
 #include "mirage/utils/cuda_helper.h"
 #include "mirage/utils/fingerprint_functions.h"
 // #include "mirage/warp/cuda/matmul.h"
@@ -143,49 +143,49 @@ __global__ void compute_customizedop_fingerprint(
           __syncthreads();
           break;
         }
-        case mirage::type::TB_FORLOOP_ACCUM_NO_RED_OP:
-        case mirage::type::TB_FORLOOP_ACCUM_RED_LD_SUM_OP:
-        case mirage::type::TB_FORLOOP_ACCUM_RED_LD_MEAN_OP:
-        case mirage::type::TB_FORLOOP_ACCUM_RED_LD_RMS_OP:
-        case mirage::type::TB_FORLOOP_ACCUM_REDTOX_LD_SUM_OP: {
-          int input_smem_offset, accum_smem_offset;
-          int accum_num_elements, per_iter_reduction_degree, inner_range;
-          mirage::threadblock::deserialize_forloop_accum_parameters(
-              new_params.parameters,
-              param_idx,
-              accum_num_elements,
-              per_iter_reduction_degree,
-              inner_range,
-              input_smem_offset,
-              accum_smem_offset);
-          // Forloop accum is NOT after forloop accum: since we should
-          // accumulate in each iteration
-          assert(!skip_operator_after_forloop_accum);
-          mirage::type::FPType *input_stensor_ptr =
-              (mirage::type::FPType *)(smem_buffer + input_smem_offset);
-          mirage::type::FPType *accum_stensor_ptr =
-              (mirage::type::FPType *)(smem_buffer + accum_smem_offset);
-          bool reset_output = (i == 0);
-          bool post_process = (i == (forloop_range - 1));
-          mirage::threadblock::TBForloopAccumFingerprinter fp(
-              new_params.operator_types[op],
-              input_stensor_ptr,
-              accum_stensor_ptr,
-              div_p_lookup_table,
-              div_q_lookup_table,
-              sqrt_p_lookup_table,
-              sqrt_q_lookup_table,
-              accum_num_elements,
-              per_iter_reduction_degree,
-              inner_range,
-              forloop_range,
-              reset_output,
-              post_process,
-              threadIdx.x,
-              blockDim.x);
-          __syncthreads();
-          break;
-        }
+        // case mirage::type::TB_FORLOOP_ACCUM_NO_RED_OP:
+        // case mirage::type::TB_FORLOOP_ACCUM_RED_LD_SUM_OP:
+        // case mirage::type::TB_FORLOOP_ACCUM_RED_LD_MEAN_OP:
+        // case mirage::type::TB_FORLOOP_ACCUM_RED_LD_RMS_OP:
+        // case mirage::type::TB_FORLOOP_ACCUM_REDTOX_LD_SUM_OP: {
+        //   int input_smem_offset, accum_smem_offset;
+        //   int accum_num_elements, per_iter_reduction_degree, inner_range;
+        //   mirage::threadblock::deserialize_forloop_accum_parameters(
+        //       new_params.parameters,
+        //       param_idx,
+        //       accum_num_elements,
+        //       per_iter_reduction_degree,
+        //       inner_range,
+        //       input_smem_offset,
+        //       accum_smem_offset);
+        //   // Forloop accum is NOT after forloop accum: since we should
+        //   // accumulate in each iteration
+        //   assert(!skip_operator_after_forloop_accum);
+        //   mirage::type::FPType *input_stensor_ptr =
+        //       (mirage::type::FPType *)(smem_buffer + input_smem_offset);
+        //   mirage::type::FPType *accum_stensor_ptr =
+        //       (mirage::type::FPType *)(smem_buffer + accum_smem_offset);
+        //   bool reset_output = (i == 0);
+        //   bool post_process = (i == (forloop_range - 1));
+        //   mirage::threadblock::TBForloopAccumFingerprinter fp(
+        //       new_params.operator_types[op],
+        //       input_stensor_ptr,
+        //       accum_stensor_ptr,
+        //       div_p_lookup_table,
+        //       div_q_lookup_table,
+        //       sqrt_p_lookup_table,
+        //       sqrt_q_lookup_table,
+        //       accum_num_elements,
+        //       per_iter_reduction_degree,
+        //       inner_range,
+        //       forloop_range,
+        //       reset_output,
+        //       post_process,
+        //       threadIdx.x,
+        //       blockDim.x);
+        //   __syncthreads();
+        //   break;
+        // }
         case mirage::type::TB_OUTPUT_OP: {
           int3 output_matrix_row_offset_block_stride;
           int3 output_matrix_column_offset_block_stride;
@@ -272,211 +272,211 @@ __global__ void compute_customizedop_fingerprint(
           }
           break;
         }
-        case mirage::type::TB_MATMUL_OP: {
-          int m, n, k;
-          int A_smem_offset, B_smem_offset, C_smem_offset;
-          mirage::threadblock::deserialize_matmul_op_parameters(
-              new_params.parameters,
-              param_idx,
-              m,
-              n,
-              k,
-              A_smem_offset,
-              B_smem_offset,
-              C_smem_offset);
-          // Skip the current operator's fingerprint calculation
-          // since it is after forloop accum and we are not at the
-          // last iteration yet
-          if (skip_operator_after_forloop_accum) {
-            continue;
-          }
-          mirage::type::FPType *A_ptr =
-              (mirage::type::FPType *)(smem_buffer + A_smem_offset);
-          mirage::type::FPType *B_ptr =
-              (mirage::type::FPType *)(smem_buffer + B_smem_offset);
-          mirage::type::FPType *C_ptr =
-              (mirage::type::FPType *)(smem_buffer + C_smem_offset);
+        // case mirage::type::TB_MATMUL_OP: {
+        //   int m, n, k;
+        //   int A_smem_offset, B_smem_offset, C_smem_offset;
+        //   mirage::threadblock::deserialize_matmul_op_parameters(
+        //       new_params.parameters,
+        //       param_idx,
+        //       m,
+        //       n,
+        //       k,
+        //       A_smem_offset,
+        //       B_smem_offset,
+        //       C_smem_offset);
+        //   // Skip the current operator's fingerprint calculation
+        //   // since it is after forloop accum and we are not at the
+        //   // last iteration yet
+        //   if (skip_operator_after_forloop_accum) {
+        //     continue;
+        //   }
+        //   mirage::type::FPType *A_ptr =
+        //       (mirage::type::FPType *)(smem_buffer + A_smem_offset);
+        //   mirage::type::FPType *B_ptr =
+        //       (mirage::type::FPType *)(smem_buffer + B_smem_offset);
+        //   mirage::type::FPType *C_ptr =
+        //       (mirage::type::FPType *)(smem_buffer + C_smem_offset);
 
-          mirage::threadblock::TBMatmulFingerprinter fp(
-              A_ptr, B_ptr, C_ptr, m, n, k, threadIdx.x, blockDim.x);
-          __syncthreads();
-          break;
-        }
-        case mirage::type::TB_EXP_OP:
-        case mirage::type::TB_SQUARE_OP:
-        case mirage::type::TB_SQRT_OP:
-        case mirage::type::TB_SILU_OP:
-        case mirage::type::TB_GELU_OP:
-        case mirage::type::TB_RELU_OP:
-        case mirage::type::TB_CLAMP_OP: {
-          int smem_offset, num_elements;
-          mirage::threadblock::deserialize_elementunary_op_parameters(
-              new_params.parameters, param_idx, smem_offset, num_elements);
-          mirage::type::FPType *base_ptr =
-              (mirage::type::FPType *)(smem_buffer + smem_offset);
-          // Skip the current operator's fingerprint calculation
-          // since it is after forloop accum and we are not at the
-          // last iteration yet
-          if (skip_operator_after_forloop_accum) {
-            continue;
-          }
-          mirage::threadblock::TBElementUnaryFingerPrinter fp(
-              new_params.operator_types[op],
-              exp_lookup_table /*lookup_table*/,
-              sqrt_p_lookup_table,
-              sqrt_q_lookup_table,
-              base_ptr,
-              num_elements,
-              threadIdx.x,
-              blockDim.x);
-          __syncthreads();
-          break;
-        }
-        case mirage::type::TB_ADD_OP:
-        case mirage::type::TB_MUL_OP:
-        case mirage::type::TB_DIV_OP:
-        case mirage::type::TB_POW_OP: {
-          int3 input1_shape, input2_shape;
-          int input1_smem_offset, input2_smem_offset, output_smem_offset;
-          mirage::threadblock::deserialize_elementbinary_op_parameters(
-              new_params.parameters,
-              param_idx,
-              input1_shape,
-              input2_shape,
-              input1_smem_offset,
-              input2_smem_offset,
-              output_smem_offset);
-          mirage::type::FPType *input1_ptr =
-              (mirage::type::FPType *)(smem_buffer + input1_smem_offset);
-          mirage::type::FPType *input2_ptr =
-              (mirage::type::FPType *)(smem_buffer + input2_smem_offset);
-          mirage::type::FPType *output_ptr =
-              (mirage::type::FPType *)(smem_buffer + output_smem_offset);
-          // Skip the current operator's fingerprint calculation
-          // since it is after forloop accum and we are not at the
-          // last iteration yet
-          if (skip_operator_after_forloop_accum) {
-            continue;
-          }
-          mirage::threadblock::TBElementBinaryFingerPrinter fp(
-              new_params.operator_types[op],
-              div_p_lookup_table /*div_p_lookup*/,
-              div_q_lookup_table /*div_q_lookup*/,
-              input1_ptr,
-              input2_ptr,
-              output_ptr,
-              input1_shape,
-              input2_shape,
-              threadIdx.x,
-              blockDim.x);
-          __syncthreads();
-          break;
-        }
-        case mirage::type::TB_REDUCTION_0_OP:
-        case mirage::type::TB_REDUCTION_1_OP:
-        case mirage::type::TB_REDUCTION_2_OP:
-        case mirage::type::TB_REDUCTION_0_TO_DIMX_OP:
-        case mirage::type::TB_REDUCTION_1_TO_DIMX_OP:
-        case mirage::type::TB_REDUCTION_2_TO_DIMX_OP: {
-          int output_num_elements, reduction_degree, inner_range;
-          int input_smem_offset, output_smem_offset;
-          mirage::threadblock::deserialize_reduction_op_parameters(
-              new_params.parameters,
-              param_idx,
-              output_num_elements,
-              reduction_degree,
-              inner_range,
-              input_smem_offset,
-              output_smem_offset);
-          mirage::type::FPType *output_ptr =
-              (mirage::type::FPType *)(smem_buffer + output_smem_offset);
-          mirage::type::FPType *input_ptr =
-              (mirage::type::FPType *)(smem_buffer + input_smem_offset);
-          // Skip the current operator's fingerprint calculation
-          // since it is after forloop accum and we are not at the
-          // last iteration yet
-          if (skip_operator_after_forloop_accum) {
-            continue;
-          }
-          mirage::threadblock::TBReductionFingerprinter fp(
-              new_params.operator_types[op],
-              input_ptr,
-              output_ptr,
-              output_num_elements,
-              reduction_degree,
-              inner_range,
-              threadIdx.x,
-              blockDim.x);
-          __syncthreads();
-          break;
-        }
-        case mirage::type::TB_RMS_NORM_OP: {
-          int output_num_elements, norm_size;
-          int input_smem_offset, output_smem_offset;
-          mirage::threadblock::deserialize_rms_norm_op_parameters(
-              new_params.parameters,
-              param_idx,
-              output_num_elements,
-              norm_size,
-              input_smem_offset,
-              output_smem_offset);
-          mirage::type::FPType *output_ptr =
-              (mirage::type::FPType *)(smem_buffer + output_smem_offset);
-          mirage::type::FPType *input_ptr =
-              (mirage::type::FPType *)(smem_buffer + input_smem_offset);
-          mirage::threadblock::TBRmsNormFingerPrinter fp(input_ptr,
-                                                         output_ptr,
-                                                         div_p_lookup_table,
-                                                         div_q_lookup_table,
-                                                         sqrt_p_lookup_table,
-                                                         sqrt_q_lookup_table,
-                                                         output_num_elements,
-                                                         norm_size,
-                                                         threadIdx.x,
-                                                         blockDim.x);
-          __syncthreads();
-          break;
-        }
-        case mirage::type::TB_CONCAT_0_OP:
-        case mirage::type::TB_CONCAT_1_OP:
-        case mirage::type::TB_CONCAT_2_OP: {
-          int output_num_elements, A_concat_dim_size, B_concat_dim_size,
-              inner_size;
-          int A_smem_offset, B_smem_offset, output_smem_offset;
-          mirage::threadblock::deserialize_concat_op_parameters(
-              new_params.parameters,
-              param_idx,
-              output_num_elements,
-              A_concat_dim_size,
-              B_concat_dim_size,
-              inner_size,
-              A_smem_offset,
-              B_smem_offset,
-              output_smem_offset);
-          mirage::type::FPType *A_ptr =
-              (mirage::type::FPType *)(smem_buffer + A_smem_offset);
-          mirage::type::FPType *B_ptr =
-              (mirage::type::FPType *)(smem_buffer + B_smem_offset);
-          mirage::type::FPType *output_ptr =
-              (mirage::type::FPType *)(smem_buffer + output_smem_offset);
-          // Skip the current operator's fingerprint calculation
-          // since it is after forloop accum and we are not at the
-          // last iteration yet
-          if (skip_operator_after_forloop_accum) {
-            continue;
-          }
-          mirage::threadblock::TBConcatFingerprinter fp(A_ptr,
-                                                        B_ptr,
-                                                        output_ptr,
-                                                        output_num_elements,
-                                                        A_concat_dim_size,
-                                                        B_concat_dim_size,
-                                                        inner_size,
-                                                        threadIdx.x,
-                                                        blockDim.x);
-          __syncthreads();
-          break;
-        }
+        //   mirage::threadblock::TBMatmulFingerprinter fp(
+        //       A_ptr, B_ptr, C_ptr, m, n, k, threadIdx.x, blockDim.x);
+        //   __syncthreads();
+        //   break;
+        // }
+        // case mirage::type::TB_EXP_OP:
+        // case mirage::type::TB_SQUARE_OP:
+        // case mirage::type::TB_SQRT_OP:
+        // case mirage::type::TB_SILU_OP:
+        // case mirage::type::TB_GELU_OP:
+        // case mirage::type::TB_RELU_OP:
+        // case mirage::type::TB_CLAMP_OP: {
+        //   int smem_offset, num_elements;
+        //   mirage::threadblock::deserialize_elementunary_op_parameters(
+        //       new_params.parameters, param_idx, smem_offset, num_elements);
+        //   mirage::type::FPType *base_ptr =
+        //       (mirage::type::FPType *)(smem_buffer + smem_offset);
+        //   // Skip the current operator's fingerprint calculation
+        //   // since it is after forloop accum and we are not at the
+        //   // last iteration yet
+        //   if (skip_operator_after_forloop_accum) {
+        //     continue;
+        //   }
+        //   mirage::threadblock::TBElementUnaryFingerPrinter fp(
+        //       new_params.operator_types[op],
+        //       exp_lookup_table /*lookup_table*/,
+        //       sqrt_p_lookup_table,
+        //       sqrt_q_lookup_table,
+        //       base_ptr,
+        //       num_elements,
+        //       threadIdx.x,
+        //       blockDim.x);
+        //   __syncthreads();
+        //   break;
+        // }
+        // case mirage::type::TB_ADD_OP:
+        // case mirage::type::TB_MUL_OP:
+        // case mirage::type::TB_DIV_OP:
+        // case mirage::type::TB_POW_OP: {
+        //   int3 input1_shape, input2_shape;
+        //   int input1_smem_offset, input2_smem_offset, output_smem_offset;
+        //   mirage::threadblock::deserialize_elementbinary_op_parameters(
+        //       new_params.parameters,
+        //       param_idx,
+        //       input1_shape,
+        //       input2_shape,
+        //       input1_smem_offset,
+        //       input2_smem_offset,
+        //       output_smem_offset);
+        //   mirage::type::FPType *input1_ptr =
+        //       (mirage::type::FPType *)(smem_buffer + input1_smem_offset);
+        //   mirage::type::FPType *input2_ptr =
+        //       (mirage::type::FPType *)(smem_buffer + input2_smem_offset);
+        //   mirage::type::FPType *output_ptr =
+        //       (mirage::type::FPType *)(smem_buffer + output_smem_offset);
+        //   // Skip the current operator's fingerprint calculation
+        //   // since it is after forloop accum and we are not at the
+        //   // last iteration yet
+        //   if (skip_operator_after_forloop_accum) {
+        //     continue;
+        //   }
+        //   mirage::threadblock::TBElementBinaryFingerPrinter fp(
+        //       new_params.operator_types[op],
+        //       div_p_lookup_table /*div_p_lookup*/,
+        //       div_q_lookup_table /*div_q_lookup*/,
+        //       input1_ptr,
+        //       input2_ptr,
+        //       output_ptr,
+        //       input1_shape,
+        //       input2_shape,
+        //       threadIdx.x,
+        //       blockDim.x);
+        //   __syncthreads();
+        //   break;
+        // }
+        // case mirage::type::TB_REDUCTION_0_OP:
+        // case mirage::type::TB_REDUCTION_1_OP:
+        // case mirage::type::TB_REDUCTION_2_OP:
+        // case mirage::type::TB_REDUCTION_0_TO_DIMX_OP:
+        // case mirage::type::TB_REDUCTION_1_TO_DIMX_OP:
+        // case mirage::type::TB_REDUCTION_2_TO_DIMX_OP: {
+        //   int output_num_elements, reduction_degree, inner_range;
+        //   int input_smem_offset, output_smem_offset;
+        //   mirage::threadblock::deserialize_reduction_op_parameters(
+        //       new_params.parameters,
+        //       param_idx,
+        //       output_num_elements,
+        //       reduction_degree,
+        //       inner_range,
+        //       input_smem_offset,
+        //       output_smem_offset);
+        //   mirage::type::FPType *output_ptr =
+        //       (mirage::type::FPType *)(smem_buffer + output_smem_offset);
+        //   mirage::type::FPType *input_ptr =
+        //       (mirage::type::FPType *)(smem_buffer + input_smem_offset);
+        //   // Skip the current operator's fingerprint calculation
+        //   // since it is after forloop accum and we are not at the
+        //   // last iteration yet
+        //   if (skip_operator_after_forloop_accum) {
+        //     continue;
+        //   }
+        //   mirage::threadblock::TBReductionFingerprinter fp(
+        //       new_params.operator_types[op],
+        //       input_ptr,
+        //       output_ptr,
+        //       output_num_elements,
+        //       reduction_degree,
+        //       inner_range,
+        //       threadIdx.x,
+        //       blockDim.x);
+        //   __syncthreads();
+        //   break;
+        // }
+        // case mirage::type::TB_RMS_NORM_OP: {
+        //   int output_num_elements, norm_size;
+        //   int input_smem_offset, output_smem_offset;
+        //   mirage::threadblock::deserialize_rms_norm_op_parameters(
+        //       new_params.parameters,
+        //       param_idx,
+        //       output_num_elements,
+        //       norm_size,
+        //       input_smem_offset,
+        //       output_smem_offset);
+        //   mirage::type::FPType *output_ptr =
+        //       (mirage::type::FPType *)(smem_buffer + output_smem_offset);
+        //   mirage::type::FPType *input_ptr =
+        //       (mirage::type::FPType *)(smem_buffer + input_smem_offset);
+        //   mirage::threadblock::TBRmsNormFingerPrinter fp(input_ptr,
+        //                                                  output_ptr,
+        //                                                  div_p_lookup_table,
+        //                                                  div_q_lookup_table,
+        //                                                  sqrt_p_lookup_table,
+        //                                                  sqrt_q_lookup_table,
+        //                                                  output_num_elements,
+        //                                                  norm_size,
+        //                                                  threadIdx.x,
+        //                                                  blockDim.x);
+        //   __syncthreads();
+        //   break;
+        // }
+        // case mirage::type::TB_CONCAT_0_OP:
+        // case mirage::type::TB_CONCAT_1_OP:
+        // case mirage::type::TB_CONCAT_2_OP: {
+        //   int output_num_elements, A_concat_dim_size, B_concat_dim_size,
+        //       inner_size;
+        //   int A_smem_offset, B_smem_offset, output_smem_offset;
+        //   mirage::threadblock::deserialize_concat_op_parameters(
+        //       new_params.parameters,
+        //       param_idx,
+        //       output_num_elements,
+        //       A_concat_dim_size,
+        //       B_concat_dim_size,
+        //       inner_size,
+        //       A_smem_offset,
+        //       B_smem_offset,
+        //       output_smem_offset);
+        //   mirage::type::FPType *A_ptr =
+        //       (mirage::type::FPType *)(smem_buffer + A_smem_offset);
+        //   mirage::type::FPType *B_ptr =
+        //       (mirage::type::FPType *)(smem_buffer + B_smem_offset);
+        //   mirage::type::FPType *output_ptr =
+        //       (mirage::type::FPType *)(smem_buffer + output_smem_offset);
+        //   // Skip the current operator's fingerprint calculation
+        //   // since it is after forloop accum and we are not at the
+        //   // last iteration yet
+        //   if (skip_operator_after_forloop_accum) {
+        //     continue;
+        //   }
+        //   mirage::threadblock::TBConcatFingerprinter fp(A_ptr,
+        //                                                 B_ptr,
+        //                                                 output_ptr,
+        //                                                 output_num_elements,
+        //                                                 A_concat_dim_size,
+        //                                                 B_concat_dim_size,
+        //                                                 inner_size,
+        //                                                 threadIdx.x,
+        //                                                 blockDim.x);
+        //   __syncthreads();
+        //   break;
+        // }
         default: {
           assert(false && "Unsupported threadblock operator");
         }

@@ -35,7 +35,7 @@ public:
                              mirage::layout::SmemLayout stensor_layout,
                              int thread_id,
                              int num_threads,
-                             MatrixCoord matrix_offset,
+                             cutlass::MatrixCoord matrix_offset,
                              int global_offset) {
     mirage::type::FPType *smem_ptr = stensor_ptr;
     mirage::type::FPType *dmem_ptr = dtensor_ptr + global_offset;
