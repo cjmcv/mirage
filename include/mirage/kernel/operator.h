@@ -41,7 +41,7 @@ public:
   int get_output_dtensors(DTensor **inputs);
 
   virtual ~KNOperator();
-  virtual bool fingerprint(void) = 0;
+  // virtual bool fingerprint(void) = 0;
   virtual operator json() const = 0;
 
   // hash related functions

@@ -20,7 +20,7 @@
 // #include "mirage/threadblock/serializer/forloop_accum_serializer.h"
 #include "mirage/threadblock/serializer/input_loader_serializer.h"
 // #include "mirage/threadblock/serializer/matmul_serializer.h"
-#include "mirage/threadblock/serializer/output_saver_serializer.h"
+// #include "mirage/threadblock/serializer/output_saver_serializer.h"
 // #include "mirage/threadblock/serializer/reduction_serializer.h"
 // #include "mirage/threadblock/serializer/rms_norm_serializer.h"
 #include "mirage/utils/hash_utils.h"
@@ -122,258 +122,258 @@ size_t Graph::calculate_shared_memory_usage(TBOperator *new_op) {
 }
 
 #ifdef MIRAGE_BACKEND_USE_CUDA
-NewKernelParams Graph::get_new_kernel_params(bool fingerprint) const {
-  NewKernelParams params;
-  params.num_operators = operators.size();
-  params.num_parameters = 0;
-  params.num_dmem_inputs = 0;
-  params.num_dmem_outputs = 0;
+// NewKernelParams Graph::get_new_kernel_params(bool fingerprint) const {
+//   NewKernelParams params;
+//   params.num_operators = operators.size();
+//   params.num_parameters = 0;
+//   params.num_dmem_inputs = 0;
+//   params.num_dmem_outputs = 0;
 
-  assert(params.num_operators <= NewKernelParams::MAX_NUM_OPERATORS);
-  // Our serializer assumes that input loaders are the first operators
-  // and that output savers are the last operators
-  for (size_t i = 0; i < operators.size(); i++) {
-    params.operator_types[i] = operators[i]->op_type;
-    if (operators[i]->op_type == mirage::type::TB_INPUT_OP) {
-      // We set input saver's operator_after_accum to be false
-      params.operator_after_accum[i] = false;
-    } else {
-      // We set operator_after_accum based on the operator's input
-      // stensors
-      assert(operators[i]->input_tensors.size() > 0);
-      params.operator_after_accum[i] =
-          operators[i]->input_tensors[0].after_accum;
-      // assert consistency between operator's input stensors
-      for (auto const &t : operators[i]->input_tensors) {
-        assert(params.operator_after_accum[i] == t.after_accum);
-      }
-    }
-    switch (operators[i]->op_type) {
-      case mirage::type::TB_INPUT_OP: {
-        TBInputOp *input_op = static_cast<TBInputOp *>(operators[i]);
-        mirage::kernel::DTensor dtensor = input_op->dtensor;
-        int3 input_map = input_op->input_map;
-        int forloop_dim = input_op->forloop_dim;
-        if (fingerprint) {
-          params.dmem_input_offsets[params.num_dmem_inputs++] =
-              input_op->dtensor.fp_offset;
-        } else {
-          params.dmem_input_offsets[params.num_dmem_inputs++] =
-              input_op->dtensor.data_offset;
-        }
-        // Serialize parameters for input loader
-        mirage::threadblock::STensor stensor = operators[i]->output_tensors[0];
-        // Assert that stensor and dtensor have the same num of dims
-        int num_dims = stensor.num_dims;
-        assert(num_dims == dtensor.num_dims);
-        int2 dtensor_matrix_shape, stensor_matrix_shape;
-        dtensor_matrix_shape = {dtensor.dim[num_dims - 2],
-                                dtensor.dim[num_dims - 1]};
-        stensor_matrix_shape = {stensor.dim[num_dims - 2],
-                                stensor.dim[num_dims - 1]};
-        int input_smem_offset = stensor.smem_offset;
-        mirage::layout::DmemLayout dtensor_layout = dtensor.layout;
-        mirage::layout::SmemLayout stensor_layout = stensor.layout;
-        int3 input_matrix_row_offset_block_stride = {
-            (input_map.x == num_dims - 2 ? stensor.dim[num_dims - 2] : 0) *
-                (forloop_dim == num_dims - 2 ? this->forloop_range : 1),
-            (input_map.y == num_dims - 2 ? stensor.dim[num_dims - 2] : 0) *
-                (forloop_dim == num_dims - 2 ? this->forloop_range : 1),
-            (input_map.z == num_dims - 2 ? stensor.dim[num_dims - 2] : 0) *
-                (forloop_dim == num_dims - 2 ? this->forloop_range : 1)};
-        int3 input_matrix_column_offset_block_stride = {
-            (input_map.x == num_dims - 1 ? stensor.dim[num_dims - 1] : 0) *
-                (forloop_dim == num_dims - 1 ? this->forloop_range : 1),
-            (input_map.y == num_dims - 1 ? stensor.dim[num_dims - 1] : 0) *
-                (forloop_dim == num_dims - 1 ? this->forloop_range : 1),
-            (input_map.z == num_dims - 1 ? stensor.dim[num_dims - 1] : 0) *
-                (forloop_dim == num_dims - 1 ? this->forloop_range : 1)};
-        // int tb_offset_row = blockIdx.x * row_stride.x + blockIdx.y *
-        // row_stride.y +
-        //                     blockIdx.z * row_stride.z;
-        // int tb_offset_column = blockIdx.x * column_stride.x +
-        //                        blockIdx.y * column_stride.y +
-        //                        blockIdx.z * column_stride.z;
-        //  FIXME: use cutlass prologue for loading data into shared memory
-        //  examples/13_two_tensor_op_fusion/threadblock/
-        //  b2b_mma_pipelined_smem_accumulator.h prologue iterators
-        //  input_matrix_offset_base = {tb_offset_row, tb_offset_column};
-        int input_matrix_row_offset_forloop_stride = 0;
-        int input_matrix_column_offset_forloop_stride = 0;
-        if (forloop_dim == num_dims - 2) {
-          input_matrix_row_offset_forloop_stride = stensor.dim[num_dims - 2];
-        }
-        if (forloop_dim == num_dims - 1) {
-          input_matrix_column_offset_forloop_stride = stensor.dim[num_dims - 1];
-        }
-        // calculate global offset beyond the last two dimensions
-        // global_offset captures offsets caused by partitioning other
-        // dimensions such as batch matmul global_offset is directly added to
-        // dtensor.data_ptr by the input loader
-        int3 global_offset_block_stride = {0, 0, 0};
-        int global_offset_forloop_stride = 0;
-        if (num_dims > 2) {
-          int strides[MAX_TENSOR_DIMS];
-          strides[num_dims - 1] = 0;
-          strides[num_dims - 2] = 0;
-          strides[num_dims - 3] =
-              dtensor.dim[num_dims - 2] * dtensor.dim[num_dims - 1];
-          for (int j = num_dims - 4; j >= 0; j--) {
-            strides[j] = strides[j + 1] * dtensor.dim[j + 1];
-          }
-          if (input_map.x < num_dims - 2 && input_map.x >= 0) {
-            global_offset_block_stride.x = strides[input_map.x];
-          }
-          if (input_map.y < num_dims - 2 && input_map.y >= 0) {
-            global_offset_block_stride.y = strides[input_map.y];
-          }
-          if (input_map.z < num_dims - 2 && input_map.z >= 0) {
-            global_offset_block_stride.z = strides[input_map.z];
-          }
-          if (forloop_dim < num_dims - 2 && forloop_dim >= 0) {
-            global_offset_forloop_stride =
-                stensor.dim[forloop_dim] * strides[forloop_dim];
-          }
-        } // if (num_dims > 2)
-        mirage::threadblock::serialize_input_loader_parameters(
-            params.parameters,
-            params.num_parameters,
-            input_matrix_row_offset_block_stride,
-            input_matrix_column_offset_block_stride,
-            input_matrix_row_offset_forloop_stride,
-            input_matrix_column_offset_forloop_stride,
-            global_offset_block_stride,
-            global_offset_forloop_stride,
-            dtensor_matrix_shape,
-            stensor_matrix_shape,
-            dtensor_layout,
-            stensor_layout,
-            input_smem_offset);
-        break;
-      }
-      case mirage::type::TB_OUTPUT_OP: {
-        TBOutputOp *output_op = static_cast<TBOutputOp *>(operators[i]);
-        mirage::kernel::DTensor dtensor = output_op->dtensor;
-        int3 output_map = output_op->output_map;
-        int forloop_dim = output_op->forloop_dim;
-        if (fingerprint) {
-          params.dmem_output_offsets[params.num_dmem_outputs++] =
-              output_op->dtensor.fp_offset;
-        } else {
-          params.dmem_output_offsets[params.num_dmem_outputs++] =
-              output_op->dtensor.data_offset;
-        }
-        // Serialize parameters for input loader
-        assert(operators[i]->input_tensors.size() == 1);
-        assert(operators[i]->output_tensors.size() == 0);
-        mirage::threadblock::STensor input_stensor =
-            operators[i]->input_tensors[0];
-        // mirage::threadblock::STensor accum_stensor =
-        //     operators[i]->output_tensors[0];
-        //  Assert that stensor and dtensor have the same num of dims
-        int num_dims = input_stensor.num_dims;
-        // assert(num_dims == accum_stensor.num_dims);
-        assert(num_dims == dtensor.num_dims);
-        int2 dtensor_matrix_shape, stensor_matrix_shape;
-        dtensor_matrix_shape = {dtensor.dim[num_dims - 2],
-                                dtensor.dim[num_dims - 1]};
-        stensor_matrix_shape = {input_stensor.dim[num_dims - 2],
-                                input_stensor.dim[num_dims - 1]};
-        int input_smem_offset = input_stensor.smem_offset;
-        // int accum_smem_offset = accum_stensor.smem_offset;
-        mirage::layout::DmemLayout dtensor_layout = dtensor.layout;
-        mirage::layout::SmemLayout stensor_layout = input_stensor.layout;
-        int3 output_matrix_row_offset_block_stride = {
-            (output_map.x == num_dims - 2 ? input_stensor.dim[num_dims - 2]
-                                          : 0) *
-                (forloop_dim == num_dims - 2 ? this->forloop_range : 1),
-            (output_map.y == num_dims - 2 ? input_stensor.dim[num_dims - 2]
-                                          : 0) *
-                (forloop_dim == num_dims - 2 ? this->forloop_range : 1),
-            (output_map.z == num_dims - 2 ? input_stensor.dim[num_dims - 2]
-                                          : 0) *
-                (forloop_dim == num_dims - 2 ? this->forloop_range : 1)};
-        int3 output_matrix_column_offset_block_stride = {
-            (output_map.x == num_dims - 1 ? input_stensor.dim[num_dims - 1]
-                                          : 0) *
-                (forloop_dim == num_dims - 1 ? this->forloop_range : 1),
-            (output_map.y == num_dims - 1 ? input_stensor.dim[num_dims - 1]
-                                          : 0) *
-                (forloop_dim == num_dims - 1 ? this->forloop_range : 1),
-            (output_map.z == num_dims - 1 ? input_stensor.dim[num_dims - 1]
-                                          : 0) *
-                (forloop_dim == num_dims - 1 ? this->forloop_range : 1)};
-        int output_matrix_row_offset_forloop_stride = 0;
-        int output_matrix_column_offset_forloop_stride = 0;
-        if (forloop_dim == num_dims - 2) {
-          output_matrix_row_offset_forloop_stride =
-              input_stensor.dim[num_dims - 2];
-        }
-        if (forloop_dim == num_dims - 1) {
-          output_matrix_column_offset_forloop_stride =
-              input_stensor.dim[num_dims - 1];
-        }
-        // calculate global offset beyond the last two dimensions
-        // global_offset captures offsets caused by partitioning other
-        // dimensions such as batch matmul global_offset is directly added to
-        // dtensor.data_ptr by the output saver
-        int3 global_offset_block_stride = {0, 0, 0};
-        int global_offset_forloop_stride = 0;
-        if (num_dims > 2) {
-          int strides[MAX_TENSOR_DIMS];
-          strides[num_dims - 3] =
-              dtensor.dim[num_dims - 2] * dtensor.dim[num_dims - 1];
-          for (int j = num_dims - 4; j >= 0; j--) {
-            strides[j] = strides[j + 1] * dtensor.dim[j + 1];
-          }
-          if (output_map.x < num_dims - 2 && output_map.x >= 0) {
-            global_offset_block_stride.x = strides[output_map.x];
-          }
-          if (output_map.y < num_dims - 2 && output_map.y >= 0) {
-            global_offset_block_stride.y = strides[output_map.y];
-          }
-          if (output_map.z < num_dims - 2 && output_map.z >= 0) {
-            global_offset_block_stride.z = strides[output_map.z];
-          }
-          if (forloop_dim < num_dims - 2 && forloop_dim >= 0) {
-            global_offset_forloop_stride =
-                input_stensor.dim[forloop_dim] * strides[forloop_dim];
-          }
-        }
-        mirage::threadblock::serialize_output_saver_parameters(
-            params.parameters,
-            params.num_parameters,
-            output_matrix_row_offset_block_stride,
-            output_matrix_column_offset_block_stride,
-            output_matrix_row_offset_forloop_stride,
-            output_matrix_column_offset_forloop_stride,
-            global_offset_block_stride,
-            global_offset_forloop_stride,
-            dtensor_matrix_shape,
-            stensor_matrix_shape,
-            dtensor_layout,
-            stensor_layout,
-            input_smem_offset,
-            output_op->epilogue);
-        break;
-      }
-      default: {
-        assert(false && "Unsupported TB operator");
-      }
-    } // switch
-  }   // for-loop
-  // Our serializer assumes that input loaders are the first operators
-  // and that output savers are the last operators
-  for (int i = 0; i < params.num_dmem_inputs; i++) {
-    assert(params.operator_types[i] == mirage::type::TB_INPUT_OP);
-  }
-  for (int i = params.num_operators - params.num_dmem_outputs;
-       i < params.num_operators;
-       i++) {
-    assert(params.operator_types[i] == mirage::type::TB_OUTPUT_OP);
-  }
-  return params;
-}
+//   assert(params.num_operators <= NewKernelParams::MAX_NUM_OPERATORS);
+//   // Our serializer assumes that input loaders are the first operators
+//   // and that output savers are the last operators
+//   for (size_t i = 0; i < operators.size(); i++) {
+//     params.operator_types[i] = operators[i]->op_type;
+//     if (operators[i]->op_type == mirage::type::TB_INPUT_OP) {
+//       // We set input saver's operator_after_accum to be false
+//       params.operator_after_accum[i] = false;
+//     } else {
+//       // We set operator_after_accum based on the operator's input
+//       // stensors
+//       assert(operators[i]->input_tensors.size() > 0);
+//       params.operator_after_accum[i] =
+//           operators[i]->input_tensors[0].after_accum;
+//       // assert consistency between operator's input stensors
+//       for (auto const &t : operators[i]->input_tensors) {
+//         assert(params.operator_after_accum[i] == t.after_accum);
+//       }
+//     }
+//     switch (operators[i]->op_type) {
+//       case mirage::type::TB_INPUT_OP: {
+//         TBInputOp *input_op = static_cast<TBInputOp *>(operators[i]);
+//         mirage::kernel::DTensor dtensor = input_op->dtensor;
+//         int3 input_map = input_op->input_map;
+//         int forloop_dim = input_op->forloop_dim;
+//         if (fingerprint) {
+//           params.dmem_input_offsets[params.num_dmem_inputs++] =
+//               input_op->dtensor.fp_offset;
+//         } else {
+//           params.dmem_input_offsets[params.num_dmem_inputs++] =
+//               input_op->dtensor.data_offset;
+//         }
+//         // Serialize parameters for input loader
+//         mirage::threadblock::STensor stensor = operators[i]->output_tensors[0];
+//         // Assert that stensor and dtensor have the same num of dims
+//         int num_dims = stensor.num_dims;
+//         assert(num_dims == dtensor.num_dims);
+//         int2 dtensor_matrix_shape, stensor_matrix_shape;
+//         dtensor_matrix_shape = {dtensor.dim[num_dims - 2],
+//                                 dtensor.dim[num_dims - 1]};
+//         stensor_matrix_shape = {stensor.dim[num_dims - 2],
+//                                 stensor.dim[num_dims - 1]};
+//         int input_smem_offset = stensor.smem_offset;
+//         mirage::layout::DmemLayout dtensor_layout = dtensor.layout;
+//         mirage::layout::SmemLayout stensor_layout = stensor.layout;
+//         int3 input_matrix_row_offset_block_stride = {
+//             (input_map.x == num_dims - 2 ? stensor.dim[num_dims - 2] : 0) *
+//                 (forloop_dim == num_dims - 2 ? this->forloop_range : 1),
+//             (input_map.y == num_dims - 2 ? stensor.dim[num_dims - 2] : 0) *
+//                 (forloop_dim == num_dims - 2 ? this->forloop_range : 1),
+//             (input_map.z == num_dims - 2 ? stensor.dim[num_dims - 2] : 0) *
+//                 (forloop_dim == num_dims - 2 ? this->forloop_range : 1)};
+//         int3 input_matrix_column_offset_block_stride = {
+//             (input_map.x == num_dims - 1 ? stensor.dim[num_dims - 1] : 0) *
+//                 (forloop_dim == num_dims - 1 ? this->forloop_range : 1),
+//             (input_map.y == num_dims - 1 ? stensor.dim[num_dims - 1] : 0) *
+//                 (forloop_dim == num_dims - 1 ? this->forloop_range : 1),
+//             (input_map.z == num_dims - 1 ? stensor.dim[num_dims - 1] : 0) *
+//                 (forloop_dim == num_dims - 1 ? this->forloop_range : 1)};
+//         // int tb_offset_row = blockIdx.x * row_stride.x + blockIdx.y *
+//         // row_stride.y +
+//         //                     blockIdx.z * row_stride.z;
+//         // int tb_offset_column = blockIdx.x * column_stride.x +
+//         //                        blockIdx.y * column_stride.y +
+//         //                        blockIdx.z * column_stride.z;
+//         //  FIXME: use cutlass prologue for loading data into shared memory
+//         //  examples/13_two_tensor_op_fusion/threadblock/
+//         //  b2b_mma_pipelined_smem_accumulator.h prologue iterators
+//         //  input_matrix_offset_base = {tb_offset_row, tb_offset_column};
+//         int input_matrix_row_offset_forloop_stride = 0;
+//         int input_matrix_column_offset_forloop_stride = 0;
+//         if (forloop_dim == num_dims - 2) {
+//           input_matrix_row_offset_forloop_stride = stensor.dim[num_dims - 2];
+//         }
+//         if (forloop_dim == num_dims - 1) {
+//           input_matrix_column_offset_forloop_stride = stensor.dim[num_dims - 1];
+//         }
+//         // calculate global offset beyond the last two dimensions
+//         // global_offset captures offsets caused by partitioning other
+//         // dimensions such as batch matmul global_offset is directly added to
+//         // dtensor.data_ptr by the input loader
+//         int3 global_offset_block_stride = {0, 0, 0};
+//         int global_offset_forloop_stride = 0;
+//         if (num_dims > 2) {
+//           int strides[MAX_TENSOR_DIMS];
+//           strides[num_dims - 1] = 0;
+//           strides[num_dims - 2] = 0;
+//           strides[num_dims - 3] =
+//               dtensor.dim[num_dims - 2] * dtensor.dim[num_dims - 1];
+//           for (int j = num_dims - 4; j >= 0; j--) {
+//             strides[j] = strides[j + 1] * dtensor.dim[j + 1];
+//           }
+//           if (input_map.x < num_dims - 2 && input_map.x >= 0) {
+//             global_offset_block_stride.x = strides[input_map.x];
+//           }
+//           if (input_map.y < num_dims - 2 && input_map.y >= 0) {
+//             global_offset_block_stride.y = strides[input_map.y];
+//           }
+//           if (input_map.z < num_dims - 2 && input_map.z >= 0) {
+//             global_offset_block_stride.z = strides[input_map.z];
+//           }
+//           if (forloop_dim < num_dims - 2 && forloop_dim >= 0) {
+//             global_offset_forloop_stride =
+//                 stensor.dim[forloop_dim] * strides[forloop_dim];
+//           }
+//         } // if (num_dims > 2)
+//         mirage::threadblock::serialize_input_loader_parameters(
+//             params.parameters,
+//             params.num_parameters,
+//             input_matrix_row_offset_block_stride,
+//             input_matrix_column_offset_block_stride,
+//             input_matrix_row_offset_forloop_stride,
+//             input_matrix_column_offset_forloop_stride,
+//             global_offset_block_stride,
+//             global_offset_forloop_stride,
+//             dtensor_matrix_shape,
+//             stensor_matrix_shape,
+//             dtensor_layout,
+//             stensor_layout,
+//             input_smem_offset);
+//         break;
+//       }
+//       case mirage::type::TB_OUTPUT_OP: {
+//         TBOutputOp *output_op = static_cast<TBOutputOp *>(operators[i]);
+//         mirage::kernel::DTensor dtensor = output_op->dtensor;
+//         int3 output_map = output_op->output_map;
+//         int forloop_dim = output_op->forloop_dim;
+//         if (fingerprint) {
+//           params.dmem_output_offsets[params.num_dmem_outputs++] =
+//               output_op->dtensor.fp_offset;
+//         } else {
+//           params.dmem_output_offsets[params.num_dmem_outputs++] =
+//               output_op->dtensor.data_offset;
+//         }
+//         // Serialize parameters for input loader
+//         assert(operators[i]->input_tensors.size() == 1);
+//         assert(operators[i]->output_tensors.size() == 0);
+//         mirage::threadblock::STensor input_stensor =
+//             operators[i]->input_tensors[0];
+//         // mirage::threadblock::STensor accum_stensor =
+//         //     operators[i]->output_tensors[0];
+//         //  Assert that stensor and dtensor have the same num of dims
+//         int num_dims = input_stensor.num_dims;
+//         // assert(num_dims == accum_stensor.num_dims);
+//         assert(num_dims == dtensor.num_dims);
+//         int2 dtensor_matrix_shape, stensor_matrix_shape;
+//         dtensor_matrix_shape = {dtensor.dim[num_dims - 2],
+//                                 dtensor.dim[num_dims - 1]};
+//         stensor_matrix_shape = {input_stensor.dim[num_dims - 2],
+//                                 input_stensor.dim[num_dims - 1]};
+//         int input_smem_offset = input_stensor.smem_offset;
+//         // int accum_smem_offset = accum_stensor.smem_offset;
+//         mirage::layout::DmemLayout dtensor_layout = dtensor.layout;
+//         mirage::layout::SmemLayout stensor_layout = input_stensor.layout;
+//         int3 output_matrix_row_offset_block_stride = {
+//             (output_map.x == num_dims - 2 ? input_stensor.dim[num_dims - 2]
+//                                           : 0) *
+//                 (forloop_dim == num_dims - 2 ? this->forloop_range : 1),
+//             (output_map.y == num_dims - 2 ? input_stensor.dim[num_dims - 2]
+//                                           : 0) *
+//                 (forloop_dim == num_dims - 2 ? this->forloop_range : 1),
+//             (output_map.z == num_dims - 2 ? input_stensor.dim[num_dims - 2]
+//                                           : 0) *
+//                 (forloop_dim == num_dims - 2 ? this->forloop_range : 1)};
+//         int3 output_matrix_column_offset_block_stride = {
+//             (output_map.x == num_dims - 1 ? input_stensor.dim[num_dims - 1]
+//                                           : 0) *
+//                 (forloop_dim == num_dims - 1 ? this->forloop_range : 1),
+//             (output_map.y == num_dims - 1 ? input_stensor.dim[num_dims - 1]
+//                                           : 0) *
+//                 (forloop_dim == num_dims - 1 ? this->forloop_range : 1),
+//             (output_map.z == num_dims - 1 ? input_stensor.dim[num_dims - 1]
+//                                           : 0) *
+//                 (forloop_dim == num_dims - 1 ? this->forloop_range : 1)};
+//         int output_matrix_row_offset_forloop_stride = 0;
+//         int output_matrix_column_offset_forloop_stride = 0;
+//         if (forloop_dim == num_dims - 2) {
+//           output_matrix_row_offset_forloop_stride =
+//               input_stensor.dim[num_dims - 2];
+//         }
+//         if (forloop_dim == num_dims - 1) {
+//           output_matrix_column_offset_forloop_stride =
+//               input_stensor.dim[num_dims - 1];
+//         }
+//         // calculate global offset beyond the last two dimensions
+//         // global_offset captures offsets caused by partitioning other
+//         // dimensions such as batch matmul global_offset is directly added to
+//         // dtensor.data_ptr by the output saver
+//         int3 global_offset_block_stride = {0, 0, 0};
+//         int global_offset_forloop_stride = 0;
+//         if (num_dims > 2) {
+//           int strides[MAX_TENSOR_DIMS];
+//           strides[num_dims - 3] =
+//               dtensor.dim[num_dims - 2] * dtensor.dim[num_dims - 1];
+//           for (int j = num_dims - 4; j >= 0; j--) {
+//             strides[j] = strides[j + 1] * dtensor.dim[j + 1];
+//           }
+//           if (output_map.x < num_dims - 2 && output_map.x >= 0) {
+//             global_offset_block_stride.x = strides[output_map.x];
+//           }
+//           if (output_map.y < num_dims - 2 && output_map.y >= 0) {
+//             global_offset_block_stride.y = strides[output_map.y];
+//           }
+//           if (output_map.z < num_dims - 2 && output_map.z >= 0) {
+//             global_offset_block_stride.z = strides[output_map.z];
+//           }
+//           if (forloop_dim < num_dims - 2 && forloop_dim >= 0) {
+//             global_offset_forloop_stride =
+//                 input_stensor.dim[forloop_dim] * strides[forloop_dim];
+//           }
+//         }
+//         mirage::threadblock::serialize_output_saver_parameters(
+//             params.parameters,
+//             params.num_parameters,
+//             output_matrix_row_offset_block_stride,
+//             output_matrix_column_offset_block_stride,
+//             output_matrix_row_offset_forloop_stride,
+//             output_matrix_column_offset_forloop_stride,
+//             global_offset_block_stride,
+//             global_offset_forloop_stride,
+//             dtensor_matrix_shape,
+//             stensor_matrix_shape,
+//             dtensor_layout,
+//             stensor_layout,
+//             input_smem_offset,
+//             output_op->epilogue);
+//         break;
+//       }
+//       default: {
+//         assert(false && "Unsupported TB operator");
+//       }
+//     } // switch
+//   }   // for-loop
+//   // Our serializer assumes that input loaders are the first operators
+//   // and that output savers are the last operators
+//   for (int i = 0; i < params.num_dmem_inputs; i++) {
+//     assert(params.operator_types[i] == mirage::type::TB_INPUT_OP);
+//   }
+//   for (int i = params.num_operators - params.num_dmem_outputs;
+//        i < params.num_operators;
+//        i++) {
+//     assert(params.operator_types[i] == mirage::type::TB_OUTPUT_OP);
+//   }
+//   return params;
+// }
 
 KernelParams Graph::get_kernel_params() {
   KernelParams params;

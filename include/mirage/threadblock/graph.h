@@ -189,7 +189,7 @@ public:
 
 #ifdef MIRAGE_BACKEND_USE_CUDA
   KernelParams get_kernel_params();
-  NewKernelParams get_new_kernel_params(bool fingerprint) const;
+  // NewKernelParams get_new_kernel_params(bool fingerprint) const;
 #endif
 
   int get_smem_size_with_pipeline() const;

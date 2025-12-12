@@ -83,7 +83,7 @@ if __name__ == "__main__":
         use_cutlass_kernel=False,
     )
     
-    splitk = 4 # 8
+    splitk = 1 # 8
     batch_size = 1
     hidden_size = 2560
     intermediate_size = 9728
