@@ -83,7 +83,7 @@ public:
 
   int get_smem_size_with_pipeline() const;
 
-  operator json() const;
+  // operator json() const;
 
 public:
   dim3 grid_dim, block_dim, cluster_dim{4, 4, 1};
@@ -98,7 +98,7 @@ public:
   using TensorType = STensor;
 };
 
-void from_json(json const &j, Graph &g);
+// void from_json(json const &j, Graph &g);
 
 } // namespace threadblock
 } // namespace mirage

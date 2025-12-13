@@ -42,7 +42,7 @@ public:
 
   virtual ~KNOperator();
   // virtual bool fingerprint(void) = 0;
-  virtual operator json() const = 0;
+  // virtual operator json() const = 0;
 
   // hash related functions
   // virtual size_t get_owner_independent_hash() const;
@@ -65,7 +65,7 @@ public:
   ~KNInputOp();
   // bool fingerprint(void);
 
-  operator json() const override;
+  // operator json() const override;
 
 public:
   std::vector<size_t> input_strides;

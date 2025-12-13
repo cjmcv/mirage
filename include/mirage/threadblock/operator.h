@@ -41,7 +41,7 @@ public:
 
   virtual ~TBOperator();
 
-  virtual operator json() const = 0;
+  // virtual operator json() const = 0;
 
 public:
   Graph *bgraph;
@@ -60,7 +60,7 @@ public:
             bool store_in_dmem);
   ~TBInputOp();
 
-  operator json() const override;
+  // operator json() const override;
   size_t get_dtensor_guid();
 
 public:
@@ -78,7 +78,7 @@ public:
              mirage::type::TBEpilogueType allreduce);
   ~TBOutputOp();
 
-  operator json() const override;
+  // operator json() const override;
   size_t get_dtensor_guid();
 
 public:

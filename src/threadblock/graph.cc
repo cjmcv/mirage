@@ -106,66 +106,66 @@ int Graph::get_smem_size_with_pipeline() const {
   return ret;
 }
 
-Graph::operator json() const {
-  json j = {{"graph_level", "thread_block_graph"},
-            {"grid_dim", grid_dim},
-            {"block_dim", block_dim},
-            {"forloop_range", forloop_range},
-            {"reduction_dimx", reduction_dimx},
-            {"operators", {}},
-            {"smem_offset", smem_offset}};
-  for (TBOperator *const op : operators) {
-    j["operators"].push_back(json(*op));
-  }
-  return j;
-}
+// Graph::operator json() const {
+//   json j = {{"graph_level", "thread_block_graph"},
+//             {"grid_dim", grid_dim},
+//             {"block_dim", block_dim},
+//             {"forloop_range", forloop_range},
+//             {"reduction_dimx", reduction_dimx},
+//             {"operators", {}},
+//             {"smem_offset", smem_offset}};
+//   for (TBOperator *const op : operators) {
+//     j["operators"].push_back(json(*op));
+//   }
+//   return j;
+// }
 
-void from_json(json const &j, Graph &graph) {
-  graph.grid_dim = j.at("grid_dim").get<dim3>();
-  graph.block_dim = j.at("block_dim").get<dim3>();
-  graph.forloop_range = j.at("forloop_range").get<int>();
-  graph.reduction_dimx = j.at("reduction_dimx").get<int>();
-  graph.operators.clear();
-  graph.smem_offset = 0;
+// void from_json(json const &j, Graph &graph) {
+//   graph.grid_dim = j.at("grid_dim").get<dim3>();
+//   graph.block_dim = j.at("block_dim").get<dim3>();
+//   graph.forloop_range = j.at("forloop_range").get<int>();
+//   graph.reduction_dimx = j.at("reduction_dimx").get<int>();
+//   graph.operators.clear();
+//   graph.smem_offset = 0;
 
-  std::unordered_map<int, int> guid_mapping;
-  auto get_tensor_from_guid = [&](int guid) {
-    for (auto const &op : graph.operators) {
-      for (auto const &tensor : op->output_tensors) {
-        if (guid_mapping.at(tensor.guid) == guid) {
-          return tensor;
-        }
-      }
-    }
-    assert(false);
-  };
+//   std::unordered_map<int, int> guid_mapping;
+//   auto get_tensor_from_guid = [&](int guid) {
+//     for (auto const &op : graph.operators) {
+//       for (auto const &tensor : op->output_tensors) {
+//         if (guid_mapping.at(tensor.guid) == guid) {
+//           return tensor;
+//         }
+//       }
+//     }
+//     assert(false);
+//   };
 
-  for (json const &op : j["operators"]) {
-    type::TBOperatorType op_type = op.at("op_type").get<type::TBOperatorType>();
-    switch (op_type) {
-      case type::TBOperatorType::TB_INPUT_OP: {
-        STensor const &output =
-            graph.new_input(op.at("dtensor").get<kernel::DTensor>(),
-                            op.at("input_map").get<int3>(),
-                            op.at("forloop_dim").get<int>(),
-                            layout::SmemRowMajor);
-        guid_mapping[output.guid] =
-            op.at("output_tensors")[0].at("guid").get<int>();
-        break;
-      }
-      case type::TBOperatorType::TB_OUTPUT_OP: {
-        graph.mark_output(get_tensor_from_guid(
-                              op.at("input_tensors")[0].at("guid").get<int>()),
-                          op.at("output_map").get<int3>(),
-                          -1,
-                          type::TBEpilogueType::TB_EPILOGUE_NONE);
-        break;
-      }
-      default:
-        assert(false && "Unsupported operator");
-    }
-  }
-}
+//   for (json const &op : j["operators"]) {
+//     type::TBOperatorType op_type = op.at("op_type").get<type::TBOperatorType>();
+//     switch (op_type) {
+//       case type::TBOperatorType::TB_INPUT_OP: {
+//         STensor const &output =
+//             graph.new_input(op.at("dtensor").get<kernel::DTensor>(),
+//                             op.at("input_map").get<int3>(),
+//                             op.at("forloop_dim").get<int>(),
+//                             layout::SmemRowMajor);
+//         guid_mapping[output.guid] =
+//             op.at("output_tensors")[0].at("guid").get<int>();
+//         break;
+//       }
+//       case type::TBOperatorType::TB_OUTPUT_OP: {
+//         graph.mark_output(get_tensor_from_guid(
+//                               op.at("input_tensors")[0].at("guid").get<int>()),
+//                           op.at("output_map").get<int3>(),
+//                           -1,
+//                           type::TBEpilogueType::TB_EPILOGUE_NONE);
+//         break;
+//       }
+//       default:
+//         assert(false && "Unsupported operator");
+//     }
+//   }
+// }
 
 } // namespace threadblock
 } // namespace mirage

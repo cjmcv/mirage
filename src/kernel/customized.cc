@@ -169,12 +169,12 @@ KNCustomizedOp::~KNCustomizedOp() {
   }
 }
 
-KNCustomizedOp::operator json() const {
-  return json{{"op_type", op_type},
-              {"input_tensors", input_tensors},
-              {"output_tensors", output_tensors},
-              {"bgraph", bgraph}};
-}
+// KNCustomizedOp::operator json() const {
+//   return json{{"op_type", op_type},
+//               {"input_tensors", input_tensors},
+//               {"output_tensors", output_tensors},
+//               {"bgraph", bgraph}};
+// }
 
 // size_t KNCustomizedOp::get_owner_independent_hash() const {
 //   assert(false && "To be implemented");

@@ -126,8 +126,8 @@ public:
   using TensorType = DTensor;
 };
 
-void to_json(json &j, Graph const &g);
-void from_json(json const &j, Graph &g);
+// void to_json(json &j, Graph const &g);
+// void from_json(json const &j, Graph &g);
 
 } // namespace kernel
 } // namespace mirage

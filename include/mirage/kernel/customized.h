@@ -34,7 +34,7 @@ public:
   // bool fingerprint(void);
   // size_t get_owner_independent_hash() const override;
 
-  operator json() const override;
+  // operator json() const override;
 
 public:
   mirage::threadblock::Graph bgraph;

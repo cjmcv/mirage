@@ -324,11 +324,11 @@ class KNGraph:
         self.visualizer = visualizer(file_name)
         self.visualizer.draw_graphs(operators)
 
-    def to_json(self, filename):
-        cy_to_json(self.cygraph, filename)
+    # def to_json(self, filename):
+    #     cy_to_json(self.cygraph, filename)
 
-    def from_json(self, filename):
-        self.cygraph = cy_from_json(filename)
+    # def from_json(self, filename):
+    #     self.cygraph = cy_from_json(filename)
 
     # Persistent Kernel functions
     def attach_torch_tensor(self, t: DTensor, torch_tensor: torch.Tensor, name: str):

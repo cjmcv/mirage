@@ -181,86 +181,86 @@ void Graph::free(DTensor &tensor) {
   tensor.data_offset = -1;
 }
 
-void to_json(json &j, Graph const &g) {
-  for (KNOperator *const op : g.operators) {
-    j.push_back(json(*op));
-  }
-}
+// void to_json(json &j, Graph const &g) {
+//   for (KNOperator *const op : g.operators) {
+//     j.push_back(json(*op));
+//   }
+// }
 
-void from_json(json const &j, Graph &g) {
-  std::unordered_map<size_t, size_t>
-      guid_mapping; // from deseralized guid to json guid
+// void from_json(json const &j, Graph &g) {
+//   std::unordered_map<size_t, size_t>
+//       guid_mapping; // from deseralized guid to json guid
 
-  auto get_tensor_from_guid = [&](size_t guid) {
-    for (auto const &op : g.operators) {
-      for (DTensor const &dtensor : op->output_tensors) {
-        if (guid_mapping.at(dtensor.guid) == guid) {
-          return dtensor;
-        }
-      }
-    }
-    assert(false);
-  };
+//   auto get_tensor_from_guid = [&](size_t guid) {
+//     for (auto const &op : g.operators) {
+//       for (DTensor const &dtensor : op->output_tensors) {
+//         if (guid_mapping.at(dtensor.guid) == guid) {
+//           return dtensor;
+//         }
+//       }
+//     }
+//     assert(false);
+//   };
 
-  for (json const &jop : j) {
-    type::KNOperatorType op_type;
-    jop.at("op_type").get_to(op_type);
-    switch (op_type) {
-      case type::KNOperatorType::KN_INPUT_OP: {
-        int num_dim, dim[mirage::config::MAX_TENSOR_DIMS];
-        type::DataType data_type;
-        layout::DmemLayout layout;
-        std::vector<size_t> input_strides;
-        size_t guidO;
-        jop.at("output_tensors")[0].at("num_dims").get_to(num_dim);
-        jop.at("output_tensors")[0].at("dim").get_to(dim);
-        jop.at("input_strides").get_to(input_strides);
-        jop.at("output_tensors")[0].at("data_type").get_to(data_type);
-        jop.at("output_tensors")[0].at("layout").get_to(layout);
-        jop.at("output_tensors")[0].at("guid").get_to(guidO);
-        std::vector<int> dims = to_vector(num_dim, dim);
-        DTensor const &output =
-            g.new_input(dims, input_strides, data_type, layout);
-        guid_mapping[output.guid] = guidO;
-        break;
-      }
-      // case type::KNOperatorType::KN_OUTPUT_OP: {
-      //   size_t guid;
-      //   jop.at("input_tensors")[0].at("guid").get_to(guid);
-      //   std::vector<size_t> output_strides;
-      //   jop.at("output_strides").get_to(output_strides);
-      //   g.mark_output(get_tensor_from_guid(guid), output_strides);
-      //   break;
-      // }
-      case type::KNOperatorType::KN_CUSTOMIZED_OP: {
-        std::vector<DTensor> inputs;
-        for (auto const &jinput : jop.at("input_tensors")) {
-          size_t guid;
-          jinput.at("guid").get_to(guid);
-          inputs.push_back(get_tensor_from_guid(guid));
-        }
-        threadblock::Graph bgraph;
-        from_json(jop.at("bgraph"), bgraph);
-        for (size_t i = 0; i < bgraph.operators.size(); ++i) {
-          if (bgraph.operators[i]->op_type == type::TB_INPUT_OP) {
-            static_cast<threadblock::TBInputOp *>(bgraph.operators[i])
-                ->dtensor = inputs[i];
-          }
-        }
-        std::vector<DTensor> outputs = g.customized(inputs, bgraph);
-        for (size_t i = 0; i < outputs.size(); ++i) {
-          size_t guidO;
-          jop.at("output_tensors")[i].at("guid").get_to(guidO);
-          guid_mapping[outputs[i].guid] = guidO;
-        }
+//   for (json const &jop : j) {
+//     type::KNOperatorType op_type;
+//     jop.at("op_type").get_to(op_type);
+//     switch (op_type) {
+//       case type::KNOperatorType::KN_INPUT_OP: {
+//         int num_dim, dim[mirage::config::MAX_TENSOR_DIMS];
+//         type::DataType data_type;
+//         layout::DmemLayout layout;
+//         std::vector<size_t> input_strides;
+//         size_t guidO;
+//         jop.at("output_tensors")[0].at("num_dims").get_to(num_dim);
+//         jop.at("output_tensors")[0].at("dim").get_to(dim);
+//         jop.at("input_strides").get_to(input_strides);
+//         jop.at("output_tensors")[0].at("data_type").get_to(data_type);
+//         jop.at("output_tensors")[0].at("layout").get_to(layout);
+//         jop.at("output_tensors")[0].at("guid").get_to(guidO);
+//         std::vector<int> dims = to_vector(num_dim, dim);
+//         DTensor const &output =
+//             g.new_input(dims, input_strides, data_type, layout);
+//         guid_mapping[output.guid] = guidO;
+//         break;
+//       }
+//       // case type::KNOperatorType::KN_OUTPUT_OP: {
+//       //   size_t guid;
+//       //   jop.at("input_tensors")[0].at("guid").get_to(guid);
+//       //   std::vector<size_t> output_strides;
+//       //   jop.at("output_strides").get_to(output_strides);
+//       //   g.mark_output(get_tensor_from_guid(guid), output_strides);
+//       //   break;
+//       // }
+//       case type::KNOperatorType::KN_CUSTOMIZED_OP: {
+//         std::vector<DTensor> inputs;
+//         for (auto const &jinput : jop.at("input_tensors")) {
+//           size_t guid;
+//           jinput.at("guid").get_to(guid);
+//           inputs.push_back(get_tensor_from_guid(guid));
+//         }
+//         threadblock::Graph bgraph;
+//         from_json(jop.at("bgraph"), bgraph);
+//         for (size_t i = 0; i < bgraph.operators.size(); ++i) {
+//           if (bgraph.operators[i]->op_type == type::TB_INPUT_OP) {
+//             static_cast<threadblock::TBInputOp *>(bgraph.operators[i])
+//                 ->dtensor = inputs[i];
+//           }
+//         }
+//         std::vector<DTensor> outputs = g.customized(inputs, bgraph);
+//         for (size_t i = 0; i < outputs.size(); ++i) {
+//           size_t guidO;
+//           jop.at("output_tensors")[i].at("guid").get_to(guidO);
+//           guid_mapping[outputs[i].guid] = guidO;
+//         }
 
-        break;
-      }
-      default:
-        assert(false && "Cannot deserialize this operator");
-    }
-  }
-}
+//         break;
+//       }
+//       default:
+//         assert(false && "Cannot deserialize this operator");
+//     }
+//   }
+// }
 
 // size_t Graph::get_owner_independent_hash() const {
 //   size_t ret = 0;
