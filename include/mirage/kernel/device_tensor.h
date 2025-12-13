@@ -109,7 +109,7 @@ struct alignas(16) DTensor {
   static const DTensor EMPTY_TENSOR;
 
   // hash related functions
-  size_t get_owner_independent_hash() const;
+  // size_t get_owner_independent_hash() const;
 
   // bool has_same_fingerprint(mirage::cpu::CTensor const &ref) const;
   // mirage::cpu::CTensor copy_fingerprint_to_ctensor() const;

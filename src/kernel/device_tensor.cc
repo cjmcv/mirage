@@ -16,7 +16,7 @@
 #include "mirage/kernel/device_tensor.h"
 // #include "mirage/kernel/device_memory_manager.h"
 #include "mirage/kernel/graph.h"
-#include "mirage/utils/hash_utils.h"
+// #include "mirage/utils/hash_utils.h"
 #include <functional>
 
 namespace mirage {
@@ -38,15 +38,15 @@ DTensor::DTensor() {
   fp_offset = -1000;
 }
 
-size_t DTensor::get_owner_independent_hash() const {
-  size_t ret = std::hash<int>()((data_type));
-  hash_combine(ret, layout);
-  hash_combine(ret, num_dims);
-  for (int i = 0; i < num_dims; i++) {
-    hash_combine(ret, dim[i]);
-  }
-  return ret;
-}
+// size_t DTensor::get_owner_independent_hash() const {
+//   size_t ret = std::hash<int>()((data_type));
+//   hash_combine(ret, layout);
+//   hash_combine(ret, num_dims);
+//   for (int i = 0; i < num_dims; i++) {
+//     hash_combine(ret, dim[i]);
+//   }
+//   return ret;
+// }
 
 std::atomic<int64_t> DTensor::next_guid = 10000000;
 
@@ -55,19 +55,19 @@ std::atomic<int64_t> DTensor::next_guid = 10000000;
 
 namespace std {
 
-size_t hash<mirage::kernel::DTensor>::operator()(
-    mirage::kernel::DTensor const &tensor) const {
-  size_t ret = hash<int>()((tensor.data_type));
-  hash_combine(ret, tensor.layout);
-  hash_combine(ret, tensor.num_dims);
-  for (int i = 0; i < tensor.num_dims; i++) {
-    hash_combine(ret, tensor.dim[i]);
-    // hash_combine(ret, tensor.stride[i]);
-  }
-  hash_combine(ret, tensor.owner_op);
-  hash_combine(ret, tensor.owner_ts_idx);
-  hash_combine(ret, tensor.data_offset);
-  return ret;
-}
+// size_t hash<mirage::kernel::DTensor>::operator()(
+//     mirage::kernel::DTensor const &tensor) const {
+//   size_t ret = hash<int>()((tensor.data_type));
+//   hash_combine(ret, tensor.layout);
+//   hash_combine(ret, tensor.num_dims);
+//   for (int i = 0; i < tensor.num_dims; i++) {
+//     hash_combine(ret, tensor.dim[i]);
+//     // hash_combine(ret, tensor.stride[i]);
+//   }
+//   hash_combine(ret, tensor.owner_op);
+//   hash_combine(ret, tensor.owner_ts_idx);
+//   hash_combine(ret, tensor.data_offset);
+//   return ret;
+// }
 
 } // namespace std

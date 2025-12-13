@@ -22,7 +22,7 @@
 // #include "mirage/threadblock/reduction.h"
 #include "mirage/threadblock/smem_tensor.h"
 // #include "mirage/utils/fingerprint_functions.h"
-#include "mirage/utils/hash_utils.h"
+// #include "mirage/utils/hash_utils.h"
 #include "omp.h"
 #include <cassert>
 
@@ -176,9 +176,9 @@ KNCustomizedOp::operator json() const {
               {"bgraph", bgraph}};
 }
 
-size_t KNCustomizedOp::get_owner_independent_hash() const {
-  assert(false && "To be implemented");
-}
+// size_t KNCustomizedOp::get_owner_independent_hash() const {
+//   assert(false && "To be implemented");
+// }
 
 
 } // namespace kernel

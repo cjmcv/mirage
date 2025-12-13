@@ -45,7 +45,7 @@ public:
   virtual operator json() const = 0;
 
   // hash related functions
-  virtual size_t get_owner_independent_hash() const;
+  // virtual size_t get_owner_independent_hash() const;
 
 public:
   Graph *kgraph;

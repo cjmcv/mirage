@@ -96,7 +96,7 @@ public:
   void free(DTensor &tensor);
 
   // hash related functions
-  size_t get_owner_independent_hash() const;
+  // size_t get_owner_independent_hash() const;
 
 public:
   std::vector<mirage::kernel::KNOperator *> operators;

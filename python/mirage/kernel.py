@@ -12,10 +12,6 @@ from .core import *
 from .threadblock import *
 from .visualizer import *
 from .utils import *
-# from .global_config import global_config
-# from .graph_dataset import graph_dataset
-
-from collections import deque
 
 MAX_THREADS = os.cpu_count()
 
@@ -73,7 +69,7 @@ static PyObject *launch(PyObject *self, PyObject *args) {
 
 static PyMethodDef ModuleMethods[] = {
   {"launch", launch, METH_VARARGS, "Entry point for all kernels with this signature"},
-  {NULL, NULL, 0, NULL} // sentinel
+  {NULL, NULL, 0, NULL} # sentinel
 };
 
 static struct PyModuleDef ModuleDef = {
@@ -82,10 +78,10 @@ static struct PyModuleDef ModuleDef = {
   NULL, //documentation
   -1, //size
   ModuleMethods,
-  nullptr,                  // m_slots     
-  nullptr,                  // m_traverse  
-  nullptr,                  // m_clear     
-  nullptr,                  // m_free      
+  nullptr,                  # m_slots     
+  nullptr,                  # m_traverse  
+  nullptr,                  # m_clear     
+  nullptr,                  # m_free      
 };
 
 PyMODINIT_FUNC PyInit___mirage_launcher(void) {
@@ -237,53 +233,11 @@ class KNGraph:
     def mark_output(self, A: DTensor, strides: tuple = None):
         return self.cygraph.mark_output(A, strides)
 
-    def matmul(self, A: DTensor, B: DTensor) -> DTensor:
-        return self.cygraph.matmul(A, B)
-
-    def reduction(self, A: DTensor, dim: int):
-        return self.cygraph.reduction(A, dim)
-
-    def exp(self, A: DTensor):
-        return self.cygraph.exp(A)
-
-    def silu(self, A: DTensor):
-        return self.cygraph.silu(A)
-
-    def gelu(self, A: DTensor):
-        return self.cygraph.gelu(A)
-
-    def relu(self, A: DTensor):
-        return self.cygraph.relu(A)
-
-    def clamp(self, A: DTensor, min_val: float, max_val: float):
-        return self.cygraph.clamp(A, min_val, max_val)
-
-    def sqrt(self, A: DTensor):
-        return self.cygraph.sqrt(A)
-
-    def square(self, A: DTensor):
-        return self.cygraph.square(A)
-
-    def add(self, A: DTensor, B: DTensor):
-        return self.cygraph.add(A, B)
-
-    def mul(self, A: DTensor, B: DTensor):
-        return self.cygraph.mul(A, B)
-
-    def div(self, A: DTensor, B: DTensor):
-        return self.cygraph.div(A, B)
-
-    def pow(self, A: DTensor, B: DTensor):
-        return self.cygraph.pow(A, B)
-
-    def rms_norm(self, A: DTensor, normalized_shape: tuple):
-        return self.cygraph.rms_norm(A, normalized_shape)
-
     def customized(self, inputs: list[DTensor], bgraph: TBGraph) -> list[DTensor]:
         return self.cygraph.customized(inputs, bgraph.cygraph)
 
-    def get_owner_independent_hash(self):
-        return self.cygraph.get_owner_independent_hash()
+    # def get_owner_independent_hash(self):
+    #     return self.cygraph.get_owner_independent_hash()
 
     def valid_kernels(self):
         assert self._is_compiled, "Should check kernel validness after compilation"

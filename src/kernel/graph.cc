@@ -18,7 +18,7 @@
 #include "mirage/kernel/customized.h"
 // #include "mirage/kernel/device_memory_manager.h"
 #include "mirage/kernel/task_register.h"
-#include "mirage/utils/hash_utils.h"
+// #include "mirage/utils/hash_utils.h"
 
 #include <algorithm>
 #include <iostream>
@@ -39,12 +39,12 @@ Graph::~Graph() {
   }
 }
 
-size_t Graph::pair_hash::operator()(std::pair<int, int> const &p) const {
-  size_t h1 = std::hash<int>{}(p.first);
-  size_t h2 = std::hash<int>{}(p.second);
-  hash_combine(h1, h2);
-  return h1;
-}
+// size_t Graph::pair_hash::operator()(std::pair<int, int> const &p) const {
+//   size_t h1 = std::hash<int>{}(p.first);
+//   size_t h2 = std::hash<int>{}(p.second);
+//   hash_combine(h1, h2);
+//   return h1;
+// }
 
 int Graph::get_input_dtensors(DTensor **inputs) const {
   int num_inputs = 0;
@@ -262,15 +262,15 @@ void from_json(json const &j, Graph &g) {
   }
 }
 
-size_t Graph::get_owner_independent_hash() const {
-  size_t ret = 0;
-  hash_combine(ret, gpu_dim);
-  for (auto const &op : operators) {
-    size_t h = op->get_owner_independent_hash();
-    hash_combine(ret, h);
-  }
-  return ret;
-}
+// size_t Graph::get_owner_independent_hash() const {
+//   size_t ret = 0;
+//   hash_combine(ret, gpu_dim);
+//   for (auto const &op : operators) {
+//     size_t h = op->get_owner_independent_hash();
+//     hash_combine(ret, h);
+//   }
+//   return ret;
+// }
 
 // Persistent kernel functions
 using namespace mirage::runtime;

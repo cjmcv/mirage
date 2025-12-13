@@ -23,7 +23,7 @@
 // #include "mirage/threadblock/serializer/output_saver_serializer.h"
 // #include "mirage/threadblock/serializer/reduction_serializer.h"
 // #include "mirage/threadblock/serializer/rms_norm_serializer.h"
-#include "mirage/utils/hash_utils.h"
+// #include "mirage/utils/hash_utils.h"
 
 namespace mirage {
 namespace threadblock {
@@ -53,12 +53,12 @@ Graph::~Graph() {
   }
 }
 
-size_t Graph::pair_hash::operator()(std::pair<int, int> const &p) const {
-  size_t h1 = std::hash<int>{}(p.first);
-  size_t h2 = std::hash<int>{}(p.second);
-  hash_combine(h1, h2);
-  return h1;
-}
+// size_t Graph::pair_hash::operator()(std::pair<int, int> const &p) const {
+//   size_t h1 = std::hash<int>{}(p.first);
+//   size_t h2 = std::hash<int>{}(p.second);
+//   hash_combine(h1, h2);
+//   return h1;
+// }
 
 size_t Graph::calculate_shared_memory_usage(TBOperator *new_op) {
   size_t usage = 0;
