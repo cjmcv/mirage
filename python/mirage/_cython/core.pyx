@@ -491,14 +491,14 @@ cdef class CyTBOutputOp(CyTBOperator):
 cdef class CyKNGraph:
     cdef CppKNGraph *p_kgraph #Hold a CppKNGraph instance
 
-    def __cinit__(self, graph = None, bool disable_fingerprint = False):
+    def __cinit__(self, graph = None):
         cdef unsigned long long ptr
         cdef dim3 c_gpu_dim
         if graph is None:
             c_gpu_dim.x = 1
             c_gpu_dim.y = 1
             c_gpu_dim.z = 1
-            self.p_kgraph = new CppKNGraph(c_gpu_dim, disable_fingerprint)
+            self.p_kgraph = new CppKNGraph(c_gpu_dim)
         else:
             ptr = ctypes.cast(graph, ctypes.c_void_p).value
             self.p_kgraph = <CppKNGraph*>(ptr)

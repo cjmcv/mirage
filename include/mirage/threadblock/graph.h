@@ -71,9 +71,9 @@ public:
   
 
   // fingerprint related memory management
-  off_t allocate_fingerprint(STensor const &tensor);
-  void free_fingerprint(STensor const &tensor);
-  void free_fingerprint(std::vector<STensor> const &tensors);
+  // off_t allocate_fingerprint(STensor const &tensor);
+  // void free_fingerprint(STensor const &tensor);
+  // void free_fingerprint(std::vector<STensor> const &tensors);
   size_t calculate_shared_memory_usage(TBOperator *new_op);
 
 // #ifdef MIRAGE_BACKEND_USE_CUDA

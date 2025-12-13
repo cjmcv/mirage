@@ -26,8 +26,8 @@
 namespace mirage {
 namespace kernel {
 
-Graph::Graph(dim3 _gpu_dim, bool _disable_fingerprint)
-    : gpu_dim(_gpu_dim), disable_fingerprint(_disable_fingerprint) {
+Graph::Graph(dim3 _gpu_dim)
+    : gpu_dim(_gpu_dim) {
   dmem_data_offset = 0;
   dmem_fp_offset = 0;
 }
@@ -97,45 +97,44 @@ int Graph::get_input_dtensor_shape_and_stride(DTensor const *input,
   return 0;
 }
 
-bool Graph::can_allocate(DTensor const &tensor,
-                         bool allocate_fingerprint) const {
+bool Graph::can_allocate(DTensor const &tensor) const {
   // We don't need to actually allocate device memory
   // when fingerprint is disabled (e.g., for very large muGraphs)
-  if (disable_fingerprint) {
+  // if (disable_fingerprint) {
     return true;
-  }
+  // }
 
-  size_t data_size = ((tensor.data_size() + 15) & ~15);
-  if (dmem_data_offset + data_size > mirage::config::MAX_DMEM_SIZE) {
-    return false;
-  }
-  if (allocate_fingerprint) {
-    size_t fp_size = ((tensor.fingerprint_size() + 15) & ~15);
-    if (dmem_fp_offset + fp_size > mirage::config::MAX_DMEM_FP_SIZE) {
-      return false;
-    }
-  }
-  return true;
+  // size_t data_size = ((tensor.data_size() + 15) & ~15);
+  // if (dmem_data_offset + data_size > mirage::config::MAX_DMEM_SIZE) {
+  //   return false;
+  // }
+  // if (allocate_fingerprint) {
+  //   size_t fp_size = ((tensor.fingerprint_size() + 15) & ~15);
+  //   if (dmem_fp_offset + fp_size > mirage::config::MAX_DMEM_FP_SIZE) {
+  //     return false;
+  //   }
+  // }
+  // return true;
 }
 
 bool Graph::can_allocate(size_t data_size_in_bytes,
                          size_t fp_size_in_bytes) const {
   // We don't need to actually allocate device memory
   // when fingerprint is disabled (e.g., for very large muGraphs)
-  if (disable_fingerprint) {
+  // if (disable_fingerprint) {
     return true;
-  }
+  // }
 
-  if (dmem_data_offset + data_size_in_bytes > mirage::config::MAX_DMEM_SIZE) {
-    return false;
-  }
-  if (dmem_fp_offset + fp_size_in_bytes > mirage::config::MAX_DMEM_FP_SIZE) {
-    return false;
-  }
-  return true;
+  // if (dmem_data_offset + data_size_in_bytes > mirage::config::MAX_DMEM_SIZE) {
+  //   return false;
+  // }
+  // if (dmem_fp_offset + fp_size_in_bytes > mirage::config::MAX_DMEM_FP_SIZE) {
+  //   return false;
+  // }
+  // return true;
 }
 
-bool Graph::allocate(DTensor &tensor, bool allocate_fingerprint) {
+bool Graph::allocate(DTensor &tensor) {
   // assert that the start of the tensor is 16 bytes aligned
   assert(dmem_data_offset % 16 == 0);
   off_t ret = dmem_data_offset;
@@ -146,14 +145,14 @@ bool Graph::allocate(DTensor &tensor, bool allocate_fingerprint) {
   allocated_data_tensors.push_back(std::make_pair(ret, aligns_size));
   tensor.data_offset = ret;
 
-  if (allocate_fingerprint) {
-    assert(dmem_fp_offset % 16 == 0);
-    ret = dmem_fp_offset;
-    aligns_size = ((tensor.fingerprint_size() + 15) & ~15);
-    dmem_fp_offset += aligns_size;
-    tensor.fp_offset = ret;
-    allocated_fp_tensors.push_back(std::make_pair(ret, aligns_size));
-  }
+  // if (allocate_fingerprint) {
+  //   assert(dmem_fp_offset % 16 == 0);
+  //   ret = dmem_fp_offset;
+  //   aligns_size = ((tensor.fingerprint_size() + 15) & ~15);
+  //   dmem_fp_offset += aligns_size;
+  //   tensor.fp_offset = ret;
+  //   allocated_fp_tensors.push_back(std::make_pair(ret, aligns_size));
+  // }
 
   return true;
 }

@@ -48,7 +48,13 @@ namespace mirage {
 namespace utils {
 using namespace mirage::type;
 
-size_t get_max_shared_mem();
+inline size_t get_max_shared_mem() {
+  int device;
+  cudaGetDevice(&device);
+  cudaDeviceProp deviceProps;
+  cudaGetDeviceProperties(&deviceProps, device);
+  return deviceProps.sharedMemPerBlock;
+}
 
 } // namespace utils
 } // namespace mirage

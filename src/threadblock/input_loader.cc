@@ -114,12 +114,12 @@ TBInputOp::TBInputOp(Graph *_graph,
   tensor.guid = STensor::next_guid++;
   tensor.after_accum = false;
   tensor.store_in_dmem = store_in_dmem;
-  tensor.smem_offset = bgraph->allocate_fingerprint(tensor);
+  tensor.smem_offset = bgraph->smem_offset; // bgraph->allocate_fingerprint(tensor);
   output_tensors.push_back(tensor);
 }
 
 TBInputOp::~TBInputOp() {
-  bgraph->free_fingerprint(output_tensors[0]);
+  // bgraph->free_fingerprint(output_tensors[0]);
 }
 
 TBInputOp::operator json() const {

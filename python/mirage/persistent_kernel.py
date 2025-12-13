@@ -241,7 +241,7 @@ class PersistentKernel:
         self.num_remote_schedulers = num_remote_schedulers
         self.max_num_batched_requests = max_num_batched_requests
         self.max_num_batched_tokens = max_num_batched_tokens
-        self.kn_graph = KNGraph(CyKNGraph(disable_fingerprint=True))
+        self.kn_graph = KNGraph(CyKNGraph())
         self.meta_tensors = meta_tensors
         self.profiler_tensor = profiler_tensor
         self.trace_name = trace_name

@@ -32,7 +32,7 @@ private:
   };
 
 public:
-  Graph(dim3 gpu_dim = {1, 1, 1}, bool disable_fingerprint = false);
+  Graph(dim3 gpu_dim = {1, 1, 1});
   ~Graph();
   Graph(Graph const &) = delete;
   Graph &operator=(Graph const &) = delete;
@@ -90,10 +90,9 @@ public:
                                          int *dims) const;
   // void generate_triton_program(char const *filepath);
 
-  bool can_allocate(DTensor const &tensor,
-                    bool allocate_fingerprint = true) const;
+  bool can_allocate(DTensor const &tensor) const;
   bool can_allocate(size_t data_size_in_bytes, size_t fp_size_in_bytes) const;
-  bool allocate(DTensor &tensor, bool allocate_fingerprint = true);
+  bool allocate(DTensor &tensor);
   void free(DTensor &tensor);
 
   // hash related functions
@@ -111,7 +110,7 @@ public:
   // for this kernel_graph and therefore bypass all kernel-level
   // memory check. This flag is mainly useful for the Mirage runtime
   // to handle extremely large muGraphs
-  bool disable_fingerprint;
+  // bool disable_fingerprint;
   // std::unordered_map<std::pair<int, int>, DTensor, pair_hash> tensors;
   // std::unordered_map<std::pair<int, int>, std::pair<int, int>, pair_hash>
   // edges; std::vector<std::vector<SrcEdge>> edges;
