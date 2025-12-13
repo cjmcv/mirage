@@ -20,14 +20,6 @@
 namespace mirage {
 namespace config {
 
-uint16_t const FP_P = 167;
-uint16_t const FP_Q = 83;
-uint32_t const FP_EXP_BASE = 3;
-uint16_t const FP_PQ = 13861;
-// FP_P_MUL_Q_MOD_1 is a multiplier of P and is 1 module Q
-uint16_t const FP_P_MUL_Q_MOD_1 = 167;
-// FP_Q_MUL_P_MOD_1 is a multiplier of Q and is 1 module P
-uint16_t const FP_Q_MUL_P_MOD_1 = 13695;
 size_t const MAX_NUM_THREADBLOCKS_PER_KERNEL = 4096;
 int const MAX_NUM_DEVICES = 16;
 constexpr int MAX_TENSOR_DIMS = 4;
@@ -43,16 +35,6 @@ size_t const MAX_DMEM_SIZE = (size_t)2 * 1024 * 1024 * 1024;    // 2 GB
 size_t const MAX_SMEM_SIZE = 96 * 1024;                         // 96 KB
 #else
 #error "Please define MIRAGE_BACKEND_USE_CUDA."
-#endif
-
-// Note that we actually save stensors' fingerprints on GPU device memory
-// so MAX_SMEM_FP_SIZE can be larger than MAX_SMEM_SIZE
-#if defined(MIRAGE_FINGERPRINT_USE_CUDA)
-size_t const MAX_DMEM_FP_SIZE = (size_t)2 * 1024 * 1024 * 1024; // 2 GB
-size_t const MAX_SMEM_FP_SIZE = (size_t)1024 * 1024;            // 1 MB
-#else
-size_t const MAX_DMEM_FP_SIZE = (size_t)64 * 1024 * 1024 * 1024; // 64 GB
-size_t const MAX_SMEM_FP_SIZE = (size_t)64 * 1024 * 1024;        // 64 MB
 #endif
 
 } // namespace config

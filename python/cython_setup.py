@@ -60,14 +60,6 @@ def config_cython():
 
 setup_args = {}
 
-#if not os.getenv('CONDA_BUILD'):
-#    curr_path = os.path.dirname(os.path.abspath(os.path.expanduser(__file__)))
-#    for i, path in enumerate(LIB_LIST):
-#    LIB_LIST[i] = os.path.relpath(path, curr_path)
-#    setup_args = {
-#        "include_package_data": True,
-#        "data_files": [('mirage', LIB_LIST)]
-#    }
 
 setup(name='mirage',
       version="0.2.4",

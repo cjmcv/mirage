@@ -52,7 +52,6 @@ with open(version_file, "r") as f:
 def get_backend_macros():
     macros = []
     macros.append(("MIRAGE_BACKEND_USE_CUDA", None))
-    macros.append(("MIRAGE_FINGERPRINT_USE_CUDA", None))
     return macros
 
 def config_cython():

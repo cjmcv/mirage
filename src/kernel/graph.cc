@@ -16,7 +16,7 @@
 #include "mirage/kernel/graph.h"
 #include "mirage/config.h"
 #include "mirage/kernel/customized.h"
-#include "mirage/kernel/device_memory_manager.h"
+// #include "mirage/kernel/device_memory_manager.h"
 #include "mirage/kernel/task_register.h"
 #include "mirage/utils/hash_utils.h"
 

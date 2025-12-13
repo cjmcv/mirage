@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "mirage/kernel/device_memory_manager.h"
+// #include "mirage/kernel/device_memory_manager.h"
 #include "mirage/kernel/graph.h"
 #include "mirage/kernel/operator.h"
 

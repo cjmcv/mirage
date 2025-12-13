@@ -176,7 +176,6 @@ target_compile_features(mirage_runtime PUBLIC cxx_std_17)
 
 if (NOT "${USE_CUDA}" STREQUAL "OFF")
   target_compile_definitions(mirage_runtime PUBLIC MIRAGE_BACKEND_USE_CUDA)
-  target_compile_definitions(mirage_runtime PUBLIC MIRAGE_FINGERPRINT_USE_CUDA)
 endif()
 
 # if (NOT "${USE_NKI}" STREQUAL "OFF")

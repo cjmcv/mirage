@@ -60,33 +60,6 @@ size_t Graph::pair_hash::operator()(std::pair<int, int> const &p) const {
   return h1;
 }
 
-// off_t Graph::allocate_fingerprint(STensor const &tensor) {
-//   off_t ret = smem_offset;
-
-//   off_t aligns_size = ((tensor.size() + 15) & ~15);
-//   smem_offset += aligns_size;
-
-//   // We no longer need to check fingerprints' smem usage since
-//   // we allocate a buffer in device memory for saving fingerprints
-//   // assert(smem_offset <= (off_t)mirage::config::MAX_SMEM_SIZE);
-//   allocated_tensors.push_back(std::make_pair(ret, aligns_size));
-//   return ret;
-// }
-
-// void Graph::free_fingerprint(STensor const &tensor) {
-//   assert(allocated_tensors.size() > 0);
-//   assert(allocated_tensors.back().first == tensor.smem_offset);
-//   assert(allocated_tensors.back().second == ((tensor.size() + 15) & ~15));
-//   smem_offset -= allocated_tensors.back().second;
-//   allocated_tensors.pop_back();
-// }
-
-// void Graph::free_fingerprint(std::vector<STensor> const &tensors) {
-//   for (int i = tensors.size() - 1; i >= 0; i--) {
-//     free_fingerprint(tensors[i]);
-//   }
-// }
-
 size_t Graph::calculate_shared_memory_usage(TBOperator *new_op) {
   size_t usage = 0;
   if (new_op != nullptr) {

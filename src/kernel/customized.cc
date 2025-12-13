@@ -14,7 +14,7 @@
  */
 
 #include "mirage/kernel/customized.h"
-#include "mirage/kernel/device_memory_manager.h"
+// #include "mirage/kernel/device_memory_manager.h"
 #include "mirage/kernel/graph.h"
 // #include "mirage/threadblock/element_unary.h"
 #include "mirage/threadblock/graph.h"
