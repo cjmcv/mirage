@@ -14,7 +14,10 @@
  */
 
 #pragma once
-#include "mirage/utils/json_utils.h"
+// #include "mirage/utils/json_utils.h"
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 namespace mirage {
 namespace layout {

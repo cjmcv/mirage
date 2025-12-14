@@ -54,8 +54,8 @@ public:
   // void mark_output(DTensor const *A);
   // void mark_output(DTensor const &A, std::vector<size_t> const &strides);
   // void mark_output(DTensor const *A, std::vector<size_t> const &strides);
-  KNOperator *create_output_op(DTensor const &A,
-                               std::vector<size_t> const &strides);
+  // KNOperator *create_output_op(DTensor const &A,
+  //                              std::vector<size_t> const &strides);
   // customized operator
   std::vector<DTensor> customized(std::vector<DTensor> const &inputs,
                                   mirage::threadblock::Graph const &_graph);

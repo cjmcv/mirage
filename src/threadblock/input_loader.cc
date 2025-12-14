@@ -118,18 +118,7 @@ TBInputOp::TBInputOp(Graph *_graph,
   output_tensors.push_back(tensor);
 }
 
-TBInputOp::~TBInputOp() {
-  // bgraph->free_fingerprint(output_tensors[0]);
-}
-
-// TBInputOp::operator json() const {
-//   return json{{"op_type", op_type},
-//               {"input_tensors", input_tensors},
-//               {"output_tensors", output_tensors},
-//               {"dtensor", dtensor},
-//               {"input_map", input_map},
-//               {"forloop_dim", forloop_dim}};
-// }
+TBInputOp::~TBInputOp() {}
 
 size_t TBInputOp::get_dtensor_guid() {
   return dtensor.guid;

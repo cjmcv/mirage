@@ -15,12 +15,15 @@
 
 #pragma once
 
-#include "mirage/utils/json_utils.h"
+// #include "mirage/utils/json_utils.h"
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 namespace mirage {
 namespace type {

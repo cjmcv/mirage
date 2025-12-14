@@ -16,7 +16,7 @@
 #pragma once
 
 #include "mirage/kernel/device_tensor.h"
-#include "mirage/utils/json_utils.h"
+#include "mirage/utils/containers.h"
 #include <vector>
 
 namespace mirage {

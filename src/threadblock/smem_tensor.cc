@@ -14,7 +14,6 @@
  */
 
 #include "mirage/threadblock/smem_tensor.h"
-// #include "mirage/utils/hash_utils.h"
 #include <functional>
 
 namespace mirage {
@@ -24,20 +23,5 @@ std::atomic<int64_t> STensor::next_guid = 20000000;
 } // namespace mirage
 
 namespace std {
-
-// size_t hash<mirage::threadblock::STensor>::operator()(
-//     mirage::threadblock::STensor const &tensor) const {
-//   size_t ret = hash<int>()((tensor.data_type));
-//   hash_combine(ret, tensor.layout);
-//   hash_combine(ret, tensor.num_dims);
-//   for (int i = 0; i < tensor.num_dims; i++) {
-//     hash_combine(ret, tensor.dim[i]);
-//     // hash_combine(ret, tensor.stride[i]);
-//   }
-//   hash_combine(ret, tensor.owner_op);
-//   hash_combine(ret, tensor.owner_ts_idx);
-//   hash_combine(ret, tensor.smem_offset);
-//   return ret;
-// }
 
 } // namespace std

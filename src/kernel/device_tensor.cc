@@ -14,9 +14,7 @@
  */
 
 #include "mirage/kernel/device_tensor.h"
-// #include "mirage/kernel/device_memory_manager.h"
 #include "mirage/kernel/graph.h"
-// #include "mirage/utils/hash_utils.h"
 #include <functional>
 
 namespace mirage {
@@ -37,16 +35,6 @@ DTensor::DTensor() {
   data_offset = -1000;
   fp_offset = -1000;
 }
-
-// size_t DTensor::get_owner_independent_hash() const {
-//   size_t ret = std::hash<int>()((data_type));
-//   hash_combine(ret, layout);
-//   hash_combine(ret, num_dims);
-//   for (int i = 0; i < num_dims; i++) {
-//     hash_combine(ret, dim[i]);
-//   }
-//   return ret;
-// }
 
 std::atomic<int64_t> DTensor::next_guid = 10000000;
 

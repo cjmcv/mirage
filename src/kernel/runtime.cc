@@ -16,8 +16,12 @@
 #include "mirage/kernel/graph.h"
 #include "mirage/kernel/task_register.h"
 #include "mirage/utils/code_keeper.h"
-#include "mirage/utils/json_utils.h"
+
 #include <queue>
+#include <unordered_set>
+
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
 
 namespace mirage {
 namespace kernel {

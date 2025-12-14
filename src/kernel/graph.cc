@@ -16,9 +16,7 @@
 #include "mirage/kernel/graph.h"
 #include "mirage/config.h"
 #include "mirage/kernel/customized.h"
-// #include "mirage/kernel/device_memory_manager.h"
 #include "mirage/kernel/task_register.h"
-// #include "mirage/utils/hash_utils.h"
 
 #include <algorithm>
 #include <iostream>
@@ -38,13 +36,6 @@ Graph::~Graph() {
     operators.pop_back();
   }
 }
-
-// size_t Graph::pair_hash::operator()(std::pair<int, int> const &p) const {
-//   size_t h1 = std::hash<int>{}(p.first);
-//   size_t h2 = std::hash<int>{}(p.second);
-//   hash_combine(h1, h2);
-//   return h1;
-// }
 
 int Graph::get_input_dtensors(DTensor **inputs) const {
   int num_inputs = 0;
@@ -66,16 +57,6 @@ int Graph::get_num_input_dtensors() const {
   }
   return num_inputs;
 }
-
-// int Graph::get_num_output_dtensors() const {
-//   int num_outputs = 0;
-//   for (auto const &op : this->operators) {
-//     if (op->op_type == mirage::type::KN_OUTPUT_OP) {
-//       num_outputs++;
-//     }
-//   }
-//   return num_outputs;
-// }
 
 int Graph::get_input_dtensor_shape_and_stride(DTensor const *input,
                                               int *strides,
@@ -100,38 +81,14 @@ int Graph::get_input_dtensor_shape_and_stride(DTensor const *input,
 bool Graph::can_allocate(DTensor const &tensor) const {
   // We don't need to actually allocate device memory
   // when fingerprint is disabled (e.g., for very large muGraphs)
-  // if (disable_fingerprint) {
-    return true;
-  // }
-
-  // size_t data_size = ((tensor.data_size() + 15) & ~15);
-  // if (dmem_data_offset + data_size > mirage::config::MAX_DMEM_SIZE) {
-  //   return false;
-  // }
-  // if (allocate_fingerprint) {
-  //   size_t fp_size = ((tensor.fingerprint_size() + 15) & ~15);
-  //   if (dmem_fp_offset + fp_size > mirage::config::MAX_DMEM_FP_SIZE) {
-  //     return false;
-  //   }
-  // }
-  // return true;
+  return true;
 }
 
 bool Graph::can_allocate(size_t data_size_in_bytes,
                          size_t fp_size_in_bytes) const {
   // We don't need to actually allocate device memory
   // when fingerprint is disabled (e.g., for very large muGraphs)
-  // if (disable_fingerprint) {
-    return true;
-  // }
-
-  // if (dmem_data_offset + data_size_in_bytes > mirage::config::MAX_DMEM_SIZE) {
-  //   return false;
-  // }
-  // if (dmem_fp_offset + fp_size_in_bytes > mirage::config::MAX_DMEM_FP_SIZE) {
-  //   return false;
-  // }
-  // return true;
+  return true;
 }
 
 bool Graph::allocate(DTensor &tensor) {
@@ -180,97 +137,6 @@ void Graph::free(DTensor &tensor) {
   allocated_data_tensors.pop_back();
   tensor.data_offset = -1;
 }
-
-// void to_json(json &j, Graph const &g) {
-//   for (KNOperator *const op : g.operators) {
-//     j.push_back(json(*op));
-//   }
-// }
-
-// void from_json(json const &j, Graph &g) {
-//   std::unordered_map<size_t, size_t>
-//       guid_mapping; // from deseralized guid to json guid
-
-//   auto get_tensor_from_guid = [&](size_t guid) {
-//     for (auto const &op : g.operators) {
-//       for (DTensor const &dtensor : op->output_tensors) {
-//         if (guid_mapping.at(dtensor.guid) == guid) {
-//           return dtensor;
-//         }
-//       }
-//     }
-//     assert(false);
-//   };
-
-//   for (json const &jop : j) {
-//     type::KNOperatorType op_type;
-//     jop.at("op_type").get_to(op_type);
-//     switch (op_type) {
-//       case type::KNOperatorType::KN_INPUT_OP: {
-//         int num_dim, dim[mirage::config::MAX_TENSOR_DIMS];
-//         type::DataType data_type;
-//         layout::DmemLayout layout;
-//         std::vector<size_t> input_strides;
-//         size_t guidO;
-//         jop.at("output_tensors")[0].at("num_dims").get_to(num_dim);
-//         jop.at("output_tensors")[0].at("dim").get_to(dim);
-//         jop.at("input_strides").get_to(input_strides);
-//         jop.at("output_tensors")[0].at("data_type").get_to(data_type);
-//         jop.at("output_tensors")[0].at("layout").get_to(layout);
-//         jop.at("output_tensors")[0].at("guid").get_to(guidO);
-//         std::vector<int> dims = to_vector(num_dim, dim);
-//         DTensor const &output =
-//             g.new_input(dims, input_strides, data_type, layout);
-//         guid_mapping[output.guid] = guidO;
-//         break;
-//       }
-//       // case type::KNOperatorType::KN_OUTPUT_OP: {
-//       //   size_t guid;
-//       //   jop.at("input_tensors")[0].at("guid").get_to(guid);
-//       //   std::vector<size_t> output_strides;
-//       //   jop.at("output_strides").get_to(output_strides);
-//       //   g.mark_output(get_tensor_from_guid(guid), output_strides);
-//       //   break;
-//       // }
-//       case type::KNOperatorType::KN_CUSTOMIZED_OP: {
-//         std::vector<DTensor> inputs;
-//         for (auto const &jinput : jop.at("input_tensors")) {
-//           size_t guid;
-//           jinput.at("guid").get_to(guid);
-//           inputs.push_back(get_tensor_from_guid(guid));
-//         }
-//         threadblock::Graph bgraph;
-//         from_json(jop.at("bgraph"), bgraph);
-//         for (size_t i = 0; i < bgraph.operators.size(); ++i) {
-//           if (bgraph.operators[i]->op_type == type::TB_INPUT_OP) {
-//             static_cast<threadblock::TBInputOp *>(bgraph.operators[i])
-//                 ->dtensor = inputs[i];
-//           }
-//         }
-//         std::vector<DTensor> outputs = g.customized(inputs, bgraph);
-//         for (size_t i = 0; i < outputs.size(); ++i) {
-//           size_t guidO;
-//           jop.at("output_tensors")[i].at("guid").get_to(guidO);
-//           guid_mapping[outputs[i].guid] = guidO;
-//         }
-
-//         break;
-//       }
-//       default:
-//         assert(false && "Cannot deserialize this operator");
-//     }
-//   }
-// }
-
-// size_t Graph::get_owner_independent_hash() const {
-//   size_t ret = 0;
-//   hash_combine(ret, gpu_dim);
-//   for (auto const &op : operators) {
-//     size_t h = op->get_owner_independent_hash();
-//     hash_combine(ret, h);
-//   }
-//   return ret;
-// }
 
 // Persistent kernel functions
 using namespace mirage::runtime;
