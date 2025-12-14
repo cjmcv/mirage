@@ -40,22 +40,3 @@ std::atomic<int64_t> DTensor::next_guid = 10000000;
 
 } // namespace kernel
 } // namespace mirage
-
-namespace std {
-
-// size_t hash<mirage::kernel::DTensor>::operator()(
-//     mirage::kernel::DTensor const &tensor) const {
-//   size_t ret = hash<int>()((tensor.data_type));
-//   hash_combine(ret, tensor.layout);
-//   hash_combine(ret, tensor.num_dims);
-//   for (int i = 0; i < tensor.num_dims; i++) {
-//     hash_combine(ret, tensor.dim[i]);
-//     // hash_combine(ret, tensor.stride[i]);
-//   }
-//   hash_combine(ret, tensor.owner_op);
-//   hash_combine(ret, tensor.owner_ts_idx);
-//   hash_combine(ret, tensor.data_offset);
-//   return ret;
-// }
-
-} // namespace std
