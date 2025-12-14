@@ -28,7 +28,6 @@ using json = nlohmann::json;
 namespace mirage {
 namespace type {
 
-typedef uint16_t FPType;
 typedef int64_t GuidType;
 
 // only to be used in create_op in search.cc

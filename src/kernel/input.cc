@@ -51,9 +51,6 @@ KNOperator *Graph::create_input_op(std::vector<int> const &dims,
   }
   tensor.data_type = data_type;
 
-  if (!can_allocate(tensor)) {
-    return nullptr;
-  }
   KNInputOp *op = new KNInputOp(this, dims, strides, data_type, layout);
   return op;
 }

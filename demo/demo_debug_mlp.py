@@ -220,7 +220,7 @@ if __name__ == "__main__":
     # git clone --recursive https://www.github.com/mirage-project/mirage
     # pip install -e . -v
     # export MIRAGE_HOME=$(pwd)
-    # python demo/qwen3/demo_debug_mlp.py --use-mirage
+    # python demo/demo_debug_mlp.py --use-mirage
     # --profiling https://ui.perfetto.dev/
     
     # nsys profile --trace=cuda,nvtx --output=my_nsys

@@ -27,7 +27,6 @@ namespace kernel {
 Graph::Graph(dim3 _gpu_dim)
     : gpu_dim(_gpu_dim) {
   dmem_data_offset = 0;
-  dmem_fp_offset = 0;
 }
 
 Graph::~Graph() {
@@ -78,19 +77,6 @@ int Graph::get_input_dtensor_shape_and_stride(DTensor const *input,
   return 0;
 }
 
-bool Graph::can_allocate(DTensor const &tensor) const {
-  // We don't need to actually allocate device memory
-  // when fingerprint is disabled (e.g., for very large muGraphs)
-  return true;
-}
-
-bool Graph::can_allocate(size_t data_size_in_bytes,
-                         size_t fp_size_in_bytes) const {
-  // We don't need to actually allocate device memory
-  // when fingerprint is disabled (e.g., for very large muGraphs)
-  return true;
-}
-
 bool Graph::allocate(DTensor &tensor) {
   // assert that the start of the tensor is 16 bytes aligned
   assert(dmem_data_offset % 16 == 0);
@@ -102,33 +88,10 @@ bool Graph::allocate(DTensor &tensor) {
   allocated_data_tensors.push_back(std::make_pair(ret, aligns_size));
   tensor.data_offset = ret;
 
-  // if (allocate_fingerprint) {
-  //   assert(dmem_fp_offset % 16 == 0);
-  //   ret = dmem_fp_offset;
-  //   aligns_size = ((tensor.fingerprint_size() + 15) & ~15);
-  //   dmem_fp_offset += aligns_size;
-  //   tensor.fp_offset = ret;
-  //   allocated_fp_tensors.push_back(std::make_pair(ret, aligns_size));
-  // }
-
   return true;
 }
 
 void Graph::free(DTensor &tensor) {
-  // Currently assume that tensors are freed in the reverse order
-  // so ptr must be the last tensor we have created
-  // Note that a non-negative fp_offset means that we have
-  // allocated memory for its fingerprint
-
-  if (tensor.fp_offset >= 0) {
-    assert(allocated_fp_tensors.size() > 0);
-    assert(allocated_fp_tensors.back().first == tensor.fp_offset);
-    assert(allocated_fp_tensors.back().second ==
-           ((tensor.fingerprint_size() + 15) & ~15));
-    dmem_fp_offset -= allocated_fp_tensors.back().second;
-    allocated_fp_tensors.pop_back();
-    tensor.fp_offset = -1;
-  }
   assert(allocated_data_tensors.size() > 0);
   assert(allocated_data_tensors.back().first == tensor.data_offset);
   assert(allocated_data_tensors.back().second ==

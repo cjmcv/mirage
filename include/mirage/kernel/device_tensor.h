@@ -100,12 +100,6 @@ struct alignas(16) DTensor {
     return num_elements() * data_type_size;
   }
 
-  inline size_t fingerprint_size() const {
-    using namespace mirage::type;
-    size_t data_type_size = sizeof(FPType);
-    return num_elements() * data_type_size;
-  }
-
   static const DTensor EMPTY_TENSOR;
 
   // hash related functions
@@ -128,10 +122,6 @@ public:
   // void *data_ptr;
   // offset in device memory
   int64_t data_offset;
-  // pointer to fingerprint
-  // mirage::type::FPType *fp_ptr;
-  // offset in device memory in bytes
-  int64_t fp_offset;
 
   static std::atomic<int64_t> next_guid;
 };

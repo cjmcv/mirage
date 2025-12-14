@@ -26,10 +26,6 @@ namespace mirage {
 namespace kernel {
 
 class Graph {
-private:
-  struct pair_hash {
-    size_t operator()(std::pair<int, int> const &p) const;
-  };
 
 public:
   Graph(dim3 gpu_dim = {1, 1, 1});
@@ -49,13 +45,6 @@ public:
                               std::vector<size_t> const &strides,
                               mirage::type::DataType data_type,
                               mirage::layout::DmemLayout layout);
-  // // output operator
-  // void mark_output(DTensor const &A);
-  // void mark_output(DTensor const *A);
-  // void mark_output(DTensor const &A, std::vector<size_t> const &strides);
-  // void mark_output(DTensor const *A, std::vector<size_t> const &strides);
-  // KNOperator *create_output_op(DTensor const &A,
-  //                              std::vector<size_t> const &strides);
   // customized operator
   std::vector<DTensor> customized(std::vector<DTensor> const &inputs,
                                   mirage::threadblock::Graph const &_graph);
@@ -88,10 +77,7 @@ public:
   int get_input_dtensor_shape_and_stride(DTensor const *input,
                                          int *strides,
                                          int *dims) const;
-  // void generate_triton_program(char const *filepath);
 
-  bool can_allocate(DTensor const &tensor) const;
-  bool can_allocate(size_t data_size_in_bytes, size_t fp_size_in_bytes) const;
   bool allocate(DTensor &tensor);
   void free(DTensor &tensor);
 
@@ -103,18 +89,8 @@ public:
   dim3 gpu_dim;
   // memory allocator
   // device memory offset manager
-  off_t dmem_data_offset, dmem_fp_offset;
-  std::vector<std::pair<off_t, size_t>> allocated_data_tensors,
-      allocated_fp_tensors;
-  // This flag indicates that Mirage will not compute fingerprint
-  // for this kernel_graph and therefore bypass all kernel-level
-  // memory check. This flag is mainly useful for the Mirage runtime
-  // to handle extremely large muGraphs
-  // bool disable_fingerprint;
-  // std::unordered_map<std::pair<int, int>, DTensor, pair_hash> tensors;
-  // std::unordered_map<std::pair<int, int>, std::pair<int, int>, pair_hash>
-  // edges; std::vector<std::vector<SrcEdge>> edges;
-  // mirage::kernel::OperatorFactory *operator_factory;
+  off_t dmem_data_offset;
+  std::vector<std::pair<off_t, size_t>> allocated_data_tensors;
 
   // Fields for persistent kernels
   std::map<mirage::type::GuidType, mirage::runtime::IODesc> io_config;
@@ -125,9 +101,6 @@ public:
   using OpType = KNOperator;
   using TensorType = DTensor;
 };
-
-// void to_json(json &j, Graph const &g);
-// void from_json(json const &j, Graph &g);
 
 } // namespace kernel
 } // namespace mirage

@@ -71,18 +71,12 @@ KNOperator *Graph::create_customized_op(std::vector<DTensor> const &inputs,
     assert(num_inputs == (int)inputs.size());
   }
   // Calculate fingerprint sizes
-  size_t output_data_size = 0, output_fp_size = 0;
+  size_t output_data_size = 0;
   for (threadblock::TBOperator *op : _graph.operators) {
     if (op->op_type == type::TBOperatorType::TB_OUTPUT_OP) {
       output_data_size +=
           static_cast<threadblock::TBOutputOp *>(op)->dtensor.data_size();
-      output_fp_size += static_cast<threadblock::TBOutputOp *>(op)
-                            ->dtensor.fingerprint_size();
     }
-  }
-
-  if (!can_allocate(output_data_size, output_fp_size)) {
-    return nullptr;
   }
 
   KNCustomizedOp *op = new KNCustomizedOp(this, inputs, _graph);

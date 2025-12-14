@@ -27,10 +27,6 @@ namespace mirage {
 namespace threadblock {
 
 class Graph {
-private:
-  struct pair_hash {
-    size_t operator()(std::pair<int, int> const &p) const;
-  };
 
 public:
   Graph();
