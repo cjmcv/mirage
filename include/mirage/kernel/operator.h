@@ -16,7 +16,7 @@
 #pragma once
 
 #include "mirage/kernel/device_tensor.h"
-#include "mirage/utils/containers.h"
+#include "mirage/vector_types.h"
 #include <vector>
 
 namespace mirage {
@@ -41,11 +41,6 @@ public:
   int get_output_dtensors(DTensor **inputs);
 
   virtual ~KNOperator();
-  // virtual bool fingerprint(void) = 0;
-  // virtual operator json() const = 0;
-
-  // hash related functions
-  // virtual size_t get_owner_independent_hash() const;
 
 public:
   Graph *kgraph;
@@ -71,22 +66,6 @@ public:
   std::vector<size_t> input_strides;
   int3 input_map;
 };
-
-// class KNOutputOp : public KNOperator {
-// public:
-//   KNOutputOp(Graph *_graph,
-//              DTensor const &A,
-//              std::vector<size_t> const &strides,
-//              int3 output_map = {-1, -1, -1});
-//   ~KNOutputOp();
-//   // bool fingerprint(void);
-
-//   operator json() const override;
-
-// public:
-//   std::vector<size_t> output_strides;
-//   int3 output_map;
-// };
 
 } // namespace kernel
 } // namespace mirage

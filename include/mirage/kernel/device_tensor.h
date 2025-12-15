@@ -102,12 +102,6 @@ struct alignas(16) DTensor {
 
   static const DTensor EMPTY_TENSOR;
 
-  // hash related functions
-  // size_t get_owner_independent_hash() const;
-
-  // bool has_same_fingerprint(mirage::cpu::CTensor const &ref) const;
-  // mirage::cpu::CTensor copy_fingerprint_to_ctensor() const;
-
 public:
   mirage::type::DataType data_type;
   mirage::layout::DmemLayout layout;
@@ -131,10 +125,3 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
 
 } // namespace kernel
 } // namespace mirage
-
-namespace std {
-template <>
-struct hash<mirage::kernel::DTensor> {
-  size_t operator()(mirage::kernel::DTensor const &) const;
-};
-}; // namespace std

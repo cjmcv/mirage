@@ -434,7 +434,7 @@ void Graph::register_task(char const *task_type, std::vector<int> params) {
     task_config[op] = std::make_tuple(
         2, 1, TASK_PAGED_ATTENTION_SPLIT_KV_MERGE_SM100, variant_id);
   } else {
-    printf("Unsupported task name: %s\n", name);
+    printf("Unsupported task name: %s\n", name.c_str());
     assert(false && "Unsupported task type");
   }
 }

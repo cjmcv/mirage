@@ -281,8 +281,13 @@ void register_mugraph(
         }
       }
       assert(num_shared_tensors == 1);
-      assert(input_map == output_map);
-      assert(bgraph.grid_dim == pre_op->bgraph.grid_dim);
+      assert(input_map.x == output_map.x && 
+             input_map.y == output_map.y && 
+             input_map.z == output_map.z);
+      assert(bgraph.grid_dim.x == pre_op->bgraph.grid_dim.x && 
+             bgraph.grid_dim.y == pre_op->bgraph.grid_dim.y && 
+             bgraph.grid_dim.z == pre_op->bgraph.grid_dim.z);
+
       dim3 bid;
       std::map<dim3, std::map<int, TaskId>, Dim3Comparator> ag_pre_task_map;
       for (bid.x = 0; bid.x < bgraph.grid_dim.x; bid.x++) {
@@ -514,7 +519,7 @@ void register_mugraph(
             output_map = output->input_map;
             num_shared_tensors++;
           }
-          printf("task_type: %d: guid: %d, %d.\n", task_type, input->dtensor.guid, output->dtensor.guid);
+          printf("task_type: %d: guid: %ld, %ld.\n", task_type, input->dtensor.guid, output->dtensor.guid);
         }
       }
       // assert that their is at least a single tensor shared between ops
@@ -1154,7 +1159,7 @@ TaskGraphResult print_task_graph(
       tgbody.e("FullTaskDesc task_desc(static_cast<TaskType>($));",
                task_desc.task_type);
       size_t gpu_id = ((task_desc.trigger_event >> 32) & 0xffff);
-      size_t event_pos = (task_desc.trigger_event & 0xffffffff);
+      // size_t event_pos = (task_desc.trigger_event & 0xffffffff);
       bool is_nvshmem_event =
           ((task_desc.trigger_event & EVENT_NVSHMEM_TAG) > 0);
       assert(gpu_id == my_gpu_id);

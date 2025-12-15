@@ -81,9 +81,6 @@ public:
   bool allocate(DTensor &tensor);
   void free(DTensor &tensor);
 
-  // hash related functions
-  // size_t get_owner_independent_hash() const;
-
 public:
   std::vector<mirage::kernel::KNOperator *> operators;
   dim3 gpu_dim;
@@ -95,8 +92,7 @@ public:
   // Fields for persistent kernels
   std::map<mirage::type::GuidType, mirage::runtime::IODesc> io_config;
   std::unordered_map<mirage::kernel::KNOperator const *,
-                     std::tuple<int, int, runtime::TaskType, int>>
-      task_config;
+                     std::tuple<int, int, runtime::TaskType, int>> task_config;
 
   using OpType = KNOperator;
   using TensorType = DTensor;
