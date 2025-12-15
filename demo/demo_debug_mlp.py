@@ -214,7 +214,6 @@ if __name__ == "__main__":
     from torch.profiler import profile, ProfilerActivity
     if 1:
         with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
-            # mpk.reinitialize()
             mpk()
             # test_torch_mlp2(x_torch2, w_gatedup_torch2, w_down_proj_torch2)
         print(prof.key_averages().table(sort_by="cuda_time_total"))

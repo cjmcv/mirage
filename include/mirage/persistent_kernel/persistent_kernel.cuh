@@ -1115,7 +1115,7 @@ extern "C" void init_persistent_kernel(std::vector<void *> meta_tensors,
   global_runtime_config.num_gpus = npes;
   global_runtime_config.my_gpu_id = mype;
   global_runtime_config.num_graphs = 1;
-  global_runtime_config.split_worker_scheduler = true;
+  global_runtime_config.split_worker_scheduler = false;
 
   all_fulltasks.clear();
   all_events.clear();
@@ -1287,7 +1287,7 @@ extern "C" void launch_persistent_kernel() {
     prepare_kernel<<<dim3(global_runtime_config.num_workers, 1, 1),
                      dim3(128, 1, 1)>>>(global_runtime_config,
                                         end_of_task_graph_event_pos);
-    cudaDeviceSynchronize();
+    // cudaDeviceSynchronize();
 #ifdef USE_NVSHMEM
     nvshmem_barrier_all();
 #endif
@@ -1312,14 +1312,8 @@ extern "C" void launch_persistent_kernel() {
                        0 /*smem*/,
                        global_runtime_config.scheduler_stream>>>(
         global_runtime_config);
-
-    cudaError_t err = cudaDeviceSynchronize();
-    if (err != cudaSuccess) {
-      printf("CUDA kernel launch error: %s\n", cudaGetErrorString(err));
-    }
-    // printf("Finished Launch Persistent Kernel\n");
   } else {
-    printf("a single persistent kernel\n");
+    // printf("a single persistent kernel\n");
     int num_sms_to_use = global_runtime_config.num_workers + num_schedulers / 4;
 #ifdef USE_NVSHMEM
     void *args[] = {&global_runtime_config};
@@ -1335,12 +1329,12 @@ extern "C" void launch_persistent_kernel() {
                         MAX_DYNAMIC_SHARED_MEMORY_SIZE /*smem*/>>>(
         global_runtime_config);
 #endif
-    cudaError_t err = cudaDeviceSynchronize();
-    if (err != cudaSuccess) {
-      printf("CUDA kernel launch error: %s\n", cudaGetErrorString(err));
-    }
-    printf("Finished Launch Persistent Kernel\n");
   }
+  cudaError_t err = cudaDeviceSynchronize();
+  if (err != cudaSuccess) {
+    printf("CUDA kernel launch error: %s\n", cudaGetErrorString(err));
+  }
+  // printf("Finished Launch Persistent Kernel\n");
 }
 
 extern "C" void finalize_persistent_kernel() {

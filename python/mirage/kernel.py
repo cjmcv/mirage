@@ -145,14 +145,8 @@ class KNGraph:
             # )
         return self.cygraph.new_input(dims, tuple(strides), dtype)
 
-    # def mark_output(self, A: DTensor, strides: tuple = None):
-    #     return self.cygraph.mark_output(A, strides)
-
     def customized(self, inputs: list[DTensor], bgraph: TBGraph) -> list[DTensor]:
         return self.cygraph.customized(inputs, bgraph.cygraph)
-
-    # def get_owner_independent_hash(self):
-    #     return self.cygraph.get_owner_independent_hash()
 
     def valid_kernels(self):
         assert self._is_compiled, "Should check kernel validness after compilation"

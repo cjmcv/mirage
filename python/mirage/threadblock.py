@@ -12,6 +12,3 @@ class TBGraph:
         store_in_dmem: bool = False,
     ):
         return self.cygraph.new_input(dtensor, input_map, forloop_dim, store_in_dmem)
-
-    # def new_output(self, stensor: STensor, output_map: tuple, forloop_dim: int = -1):
-    #     return self.cygraph.new_output(stensor, output_map, forloop_dim)
