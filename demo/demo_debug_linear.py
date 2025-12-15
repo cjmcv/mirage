@@ -33,6 +33,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--profiling", action="store_true", help="Use Profiler to generate trace"
     )
+    parser.add_argument("--nc", action="store_true", help="no-compile: Use the specified compiled library instead of recompiling it")
     # lookahead or promptlookup
     parser.add_argument(
         "--spec-decode",
@@ -73,10 +74,10 @@ if __name__ == "__main__":
     torch.set_default_dtype(torch.bfloat16)
 
     torch.cuda.set_device(rank)
-    # with torch.device("cuda"):
-    #     model_name = "/home/cjmcv/project/llm_models/Qwen/Qwen3-0.6B"
-    #     model = Qwen3ForCausalLM.from_pretrained(model_name, world_size=1, max_num_pages=args.max_num_pages, page_size=args.page_size).to("cuda")
-    #     tokenizer = AutoTokenizer.from_pretrained(model_name)
+    with torch.device("cuda"):
+        model_name = "/home/cjmcv/project/llm_models/Qwen/Qwen3-0.6B"
+        model = Qwen3ForCausalLM.from_pretrained(model_name, world_size=1, max_num_pages=args.max_num_pages, page_size=args.page_size).to("cuda")
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     total_num_requests = 1
 
@@ -99,7 +100,7 @@ if __name__ == "__main__":
     else:
         profiler_tensor = None
         
-    num_workers, num_schedulers = 16, 25 # mi.get_configurations_from_gpu(rank)
+    num_workers, num_schedulers = mi.get_configurations_from_gpu(rank)
     print("num_workers: ", num_workers)
     print("num_schedulers: ", num_schedulers)
     qo_indptr_buffer = torch.empty(
@@ -126,7 +127,7 @@ if __name__ == "__main__":
     # mpk_out_torch = torch.zeros((1, 19456), dtype=torch.bfloat16, device="cuda")
 
 
-    splitk = 4
+    splitk = 1
     x_torch = torch.randn((1, 9728), dtype=torch.bfloat16, device="cuda")
     w_qkv_torch = torch.randn((2560, 9728), dtype=torch.bfloat16, device="cuda")
     mpk_out_torch = torch.zeros((splitk, 2560), dtype=torch.bfloat16, device="cuda")
@@ -161,8 +162,13 @@ if __name__ == "__main__":
     with open(f"kernel_{rank}.cu", "w") as f:
         f.write(results["cuda_code"])
 
-    mpk.compile(output_dir=args.output_dir)
-        
+    if args.nc is True:
+        module_path = args.output_dir + "/test.cpython-38-x86_64-linux-gnu.so"
+        mpk.load_module(module_path)
+    else:
+        module_path = mpk.compile(output_dir=args.output_dir)
+        print("module_path: ", module_path)
+        mpk.load_module(module_path)
     ###############################################################
     
     ###    

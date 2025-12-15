@@ -133,7 +133,7 @@ if __name__ == "__main__":
             input=silu_mul_out,
             weight=w_down_proj,
             output=mlp_out,
-            grid_dim=(splitk, 4, 1), # (64, 1, 1)
+            grid_dim=(splitk, 8, 1), # (64, 1, 1)
             block_dim=(128, 1, 1),
         )
     
@@ -150,21 +150,26 @@ if __name__ == "__main__":
         module_path = mpk.compile(output_dir=args.output_dir)
         print("module_path: ", module_path)
         mpk.load_module(module_path)
-        
+    
+    with torch.device("cuda"):
+        model_name = "/home/cjmcv/project/llm_models/Qwen/Qwen3-0.6B"
+        model = Qwen3ForCausalLM.from_pretrained(model_name, world_size=1, max_num_pages=args.max_num_pages, page_size=args.page_size).to("cuda")
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+
     ###
     warnup_iter = 100
-    test_iter = 100
+    test_iter = 200
     
     x_torch2 = x_torch.clone()
     w_gatedup_torch2 = w_gatedup_torch.clone()
     w_down_proj_torch2 = w_down_proj_torch.clone()
     for _ in range(warnup_iter):
-        test_torch_mlp2(x_torch2, w_gatedup_torch2, w_down_proj_torch2)
+        test_torch_mlp2(x_torch, w_gatedup_torch, w_down_proj_torch)
     ###
     
     # ###############################################################
     mpk()
-    torch_out = test_torch_mlp2(x_torch2, w_gatedup_torch2, w_down_proj_torch2)
+    torch_out = test_torch_mlp2(x_torch, w_gatedup_torch, w_down_proj_torch)
     
     print("torch_out: ", torch_out[0])
     
@@ -205,7 +210,7 @@ if __name__ == "__main__":
     
     starter.record()
     for _ in range(test_iter):
-        test_torch_mlp2(x_torch2, w_gatedup_torch2, w_down_proj_torch2)
+        test_torch_mlp2(x_torch, w_gatedup_torch, w_down_proj_torch)
     ender.record()
     torch.cuda.synchronize()
     run_time = starter.elapsed_time(ender)
@@ -215,7 +220,7 @@ if __name__ == "__main__":
     if 1:
         with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
             mpk()
-            # test_torch_mlp2(x_torch2, w_gatedup_torch2, w_down_proj_torch2)
+            # test_torch_mlp2(x_torch, w_gatedup_torch, w_down_proj_torch)
         print(prof.key_averages().table(sort_by="cuda_time_total"))
         prof.export_chrome_trace("trace.json") # chrome://tracing/
     #########################################################
@@ -229,6 +234,6 @@ if __name__ == "__main__":
     # --profiling https://ui.perfetto.dev/
     
     # nsys profile --trace=cuda,nvtx --output=my_nsys
-    # ncu --set full --section "SpeedOfLight_RooflineChart" -o my_profile
-    
+    # ncu --set full --section "SpeedOfLight_RooflineChart" -k "persistent_kernel" -o my_profile python...
+    # "kernel"
     # python scripts/display_task_graph.py ./gen/task_graph.json
