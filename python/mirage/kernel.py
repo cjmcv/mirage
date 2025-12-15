@@ -145,8 +145,8 @@ class KNGraph:
             # )
         return self.cygraph.new_input(dims, tuple(strides), dtype)
 
-    def mark_output(self, A: DTensor, strides: tuple = None):
-        return self.cygraph.mark_output(A, strides)
+    # def mark_output(self, A: DTensor, strides: tuple = None):
+    #     return self.cygraph.mark_output(A, strides)
 
     def customized(self, inputs: list[DTensor], bgraph: TBGraph) -> list[DTensor]:
         return self.cygraph.customized(inputs, bgraph.cygraph)

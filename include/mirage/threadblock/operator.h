@@ -69,27 +69,27 @@ public:
   int forloop_dim;
 };
 
-class TBOutputOp : public TBOperator {
-public:
-  TBOutputOp(Graph *_graph,
-             STensor const &stensor,
-             int3 output_map,
-             int forloop_dim,
-             mirage::type::TBEpilogueType allreduce);
-  ~TBOutputOp();
+// class TBOutputOp : public TBOperator {
+// public:
+//   TBOutputOp(Graph *_graph,
+//              STensor const &stensor,
+//              int3 output_map,
+//              int forloop_dim,
+//              mirage::type::TBEpilogueType allreduce);
+//   ~TBOutputOp();
 
-  // operator json() const override;
-  size_t get_dtensor_guid();
+//   // operator json() const override;
+//   size_t get_dtensor_guid();
 
-public:
-  mirage::kernel::DTensor dtensor;
-  int3 output_map;
-  // Note: forloop_dim is reserved for overlapping
-  // communication and computation in multi-GPU runs
-  // and should always be -1 for now
-  int forloop_dim;
-  mirage::type::TBEpilogueType epilogue;
-};
+// public:
+//   mirage::kernel::DTensor dtensor;
+//   int3 output_map;
+//   // Note: forloop_dim is reserved for overlapping
+//   // communication and computation in multi-GPU runs
+//   // and should always be -1 for now
+//   int forloop_dim;
+//   mirage::type::TBEpilogueType epilogue;
+// };
 
 } // namespace threadblock
 } // namespace mirage

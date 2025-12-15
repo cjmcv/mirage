@@ -50,19 +50,19 @@ public:
                               int forloop_dim,
                               mirage::layout::SmemLayout layout,
                               bool store_in_dmem = false);
-  // output operator
-  mirage::kernel::DTensor mark_output(STensor const &stensor,
-                                      int3 output_map,
-                                      int forloop_dim,
-                                      mirage::type::TBEpilogueType epilogue);
-  mirage::kernel::DTensor *new_output(STensor const *stensor,
-                                      int3 output_map,
-                                      int forloop_dim,
-                                      mirage::type::TBEpilogueType epilogue);
-  TBOperator *create_output_op(STensor const &stensor,
-                               int3 output_map,
-                               int forloop_dim,
-                               mirage::type::TBEpilogueType epilogue);
+  // // output operator
+  // mirage::kernel::DTensor mark_output(STensor const &stensor,
+  //                                     int3 output_map,
+  //                                     int forloop_dim,
+  //                                     mirage::type::TBEpilogueType epilogue);
+  // mirage::kernel::DTensor *new_output(STensor const *stensor,
+  //                                     int3 output_map,
+  //                                     int forloop_dim,
+  //                                     mirage::type::TBEpilogueType epilogue);
+  // TBOperator *create_output_op(STensor const &stensor,
+  //                              int3 output_map,
+  //                              int forloop_dim,
+  //                              mirage::type::TBEpilogueType epilogue);
   
 
   // fingerprint related memory management

@@ -168,10 +168,10 @@ cdef extern from "mirage/threadblock/graph.h" namespace "mirage::threadblock":
         int3 input_map
         size_t get_dtensor_guid()
 
-    cdef cppclass CppTBOutputOp "mirage::threadblock::TBOutputOp"(CppTBOperator):
-        int forloop_dim
-        int3 output_map
-        size_t get_dtensor_guid()
+    # cdef cppclass CppTBOutputOp "mirage::threadblock::TBOutputOp"(CppTBOperator):
+    #     int forloop_dim
+    #     int3 output_map
+    #     size_t get_dtensor_guid()
 
     cdef cppclass CppTBGraph "mirage::threadblock::Graph":
         CppTBGraph(dim3 grid_dim,
@@ -184,10 +184,10 @@ cdef extern from "mirage/threadblock/graph.h" namespace "mirage::threadblock":
                              int forloop_dim,
                              SmemLayout layout,
                              bool store_in_dmem)
-        CppDTensor* new_output(const CppSTensor* stensor,
-                            int3 output_map,
-                            int forloop_dim,
-                            TBEpilogueType epilogue)
+        # CppDTensor* new_output(const CppSTensor* stensor,
+        #                     int3 output_map,
+        #                     int forloop_dim,
+        #                     TBEpilogueType epilogue)
         dim3 grid_dim
         dim3 block_dim
         int forloop_range

@@ -70,14 +70,14 @@ KNOperator *Graph::create_customized_op(std::vector<DTensor> const &inputs,
     }
     assert(num_inputs == (int)inputs.size());
   }
-  // Calculate fingerprint sizes
-  size_t output_data_size = 0;
-  for (threadblock::TBOperator *op : _graph.operators) {
-    if (op->op_type == type::TBOperatorType::TB_OUTPUT_OP) {
-      output_data_size +=
-          static_cast<threadblock::TBOutputOp *>(op)->dtensor.data_size();
-    }
-  }
+  // // Calculate fingerprint sizes
+  // size_t output_data_size = 0;
+  // for (threadblock::TBOperator *op : _graph.operators) {
+  //   if (op->op_type == type::TBOperatorType::TB_OUTPUT_OP) {
+  //     output_data_size +=
+  //         static_cast<threadblock::TBOutputOp *>(op)->dtensor.data_size();
+  //   }
+  // }
 
   KNCustomizedOp *op = new KNCustomizedOp(this, inputs, _graph);
   return op;
@@ -120,32 +120,32 @@ KNCustomizedOp::KNCustomizedOp(mirage::kernel::Graph *_kgraph,
                          input_op->output_tensors[0].store_in_dmem);
         break;
       }
-      case mirage::type::TB_OUTPUT_OP: {
-        assert(my_inputs.size() == 1);
-        mirage::threadblock::TBOutputOp *output_op =
-            static_cast<mirage::threadblock::TBOutputOp *>(op);
-        DTensor dtensor = bgraph.mark_output(my_inputs[0],
-                                             output_op->output_map,
-                                             output_op->forloop_dim,
-                                             output_op->epilogue);
-        dtensor.owner_op = this;
-        dtensor.owner_ts_idx = static_cast<int>(output_tensors.size());
-        dtensor.guid = DTensor::next_guid++;
-        // DeviceMemoryManager *dmm = DeviceMemoryManager::get_instance();
-        // dmm->allocate(dtensor);
-        kgraph->allocate(dtensor);
-        // Update dtensor saved by the output operator
-        {
-          assert(bgraph.operators.back()->op_type ==
-                 mirage::type::TB_OUTPUT_OP);
-          mirage::threadblock::TBOutputOp *output =
-              static_cast<mirage::threadblock::TBOutputOp *>(
-                  bgraph.operators.back());
-          output->dtensor = dtensor;
-        }
-        output_tensors.push_back(dtensor);
-        break;
-      }
+      // case mirage::type::TB_OUTPUT_OP: {
+      //   assert(my_inputs.size() == 1);
+      //   mirage::threadblock::TBOutputOp *output_op =
+      //       static_cast<mirage::threadblock::TBOutputOp *>(op);
+      //   DTensor dtensor = bgraph.mark_output(my_inputs[0],
+      //                                        output_op->output_map,
+      //                                        output_op->forloop_dim,
+      //                                        output_op->epilogue);
+      //   dtensor.owner_op = this;
+      //   dtensor.owner_ts_idx = static_cast<int>(output_tensors.size());
+      //   dtensor.guid = DTensor::next_guid++;
+      //   // DeviceMemoryManager *dmm = DeviceMemoryManager::get_instance();
+      //   // dmm->allocate(dtensor);
+      //   kgraph->allocate(dtensor);
+      //   // Update dtensor saved by the output operator
+      //   {
+      //     assert(bgraph.operators.back()->op_type ==
+      //            mirage::type::TB_OUTPUT_OP);
+      //     mirage::threadblock::TBOutputOp *output =
+      //         static_cast<mirage::threadblock::TBOutputOp *>(
+      //             bgraph.operators.back());
+      //     output->dtensor = dtensor;
+      //   }
+      //   output_tensors.push_back(dtensor);
+      //   break;
+      // }
       default: {
         assert(false && "Unsupported threadblock operator");
       }

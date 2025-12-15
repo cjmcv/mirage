@@ -452,41 +452,41 @@ cdef class CyTBInputOp(CyTBOperator):
             else:
                 return self.c_input_ptr.get_dtensor_guid()
 
-cdef class CyTBOutputOp(CyTBOperator):
-    cdef CppTBOutputOp* c_output_ptr
+# cdef class CyTBOutputOp(CyTBOperator):
+#     cdef CppTBOutputOp* c_output_ptr
 
-    def __cinit__(self, op):
-        cdef unsigned long long ptr
-        if op is None:
-            self.c_output_ptr = <CppTBOutputOp*>(NULL)
-        else:
-            ptr = ctypes.cast(op, ctypes.c_void_p).value
-            self.c_output_ptr = <CppTBOutputOp*>(ptr)
+#     def __cinit__(self, op):
+#         cdef unsigned long long ptr
+#         if op is None:
+#             self.c_output_ptr = <CppTBOutputOp*>(NULL)
+#         else:
+#             ptr = ctypes.cast(op, ctypes.c_void_p).value
+#             self.c_output_ptr = <CppTBOutputOp*>(ptr)
 
-    property output_map:
-        def __get__(self):
-            if self.c_output_ptr == NULL:
-                return None
-            else:
-                return {
-                    "x": self.c_output_ptr.output_map.x,
-                    "y": self.c_output_ptr.output_map.y,
-                    "z": self.c_output_ptr.output_map.z
-                }
+#     property output_map:
+#         def __get__(self):
+#             if self.c_output_ptr == NULL:
+#                 return None
+#             else:
+#                 return {
+#                     "x": self.c_output_ptr.output_map.x,
+#                     "y": self.c_output_ptr.output_map.y,
+#                     "z": self.c_output_ptr.output_map.z
+#                 }
 
-    property forloop_dim:
-        def __get__(self):
-            if self.c_output_ptr == NULL:
-                return None
-            else:
-                return self.c_output_ptr.forloop_dim
+#     property forloop_dim:
+#         def __get__(self):
+#             if self.c_output_ptr == NULL:
+#                 return None
+#             else:
+#                 return self.c_output_ptr.forloop_dim
 
-    property dtensor_guid:
-        def __get__(self):
-            if self.c_output_ptr == NULL:
-                return None
-            else:
-                return self.c_output_ptr.get_dtensor_guid()
+#     property dtensor_guid:
+#         def __get__(self):
+#             if self.c_output_ptr == NULL:
+#                 return None
+#             else:
+#                 return self.c_output_ptr.get_dtensor_guid()
 
 cdef class CyKNGraph:
     cdef CppKNGraph *p_kgraph #Hold a CppKNGraph instance
@@ -588,13 +588,13 @@ cdef class CyKNGraph:
             ans["dtensor"] = {
                 "guid": input_op.dtensor_guid
             }
-        elif "output" in op.op_type:
-            output_op = CyTBOutputOp(ctypes.cast(<unsigned long long>(op.c_ptr), ctypes.c_void_p))
-            ans["output_map"] = output_op.output_map
-            ans["forloop_dim"] = output_op.forloop_dim
-            ans["dtensor"] = {
-                "guid": output_op.dtensor_guid
-            }
+        # elif "output" in op.op_type:
+        #     output_op = CyTBOutputOp(ctypes.cast(<unsigned long long>(op.c_ptr), ctypes.c_void_p))
+        #     ans["output_map"] = output_op.output_map
+        #     ans["forloop_dim"] = output_op.forloop_dim
+        #     ans["dtensor"] = {
+        #         "guid": output_op.dtensor_guid
+        #     }
         return ans
 
     def _get_bgraph_info(self, CyKNOperator op):
@@ -765,14 +765,14 @@ cdef class CyTBGraph:
         t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
         return STensor(t)
 
-    def new_output(self, STensor stensor, tuple output_map, int forloop_dim, str epilogue = None):
-        assert len(output_map) == 3, "output_map must be of length 3"
-        cdef int3 c_output_map
-        c_output_map.x = output_map[0]
-        c_output_map.y = output_map[1]
-        c_output_map.z = output_map[2]
-        epilogue_type = string_to_tbepilogue(epilogue)
-        self.p_bgraph.new_output(stensor.c_ptr, c_output_map, forloop_dim, epilogue_type)  
+    # def new_output(self, STensor stensor, tuple output_map, int forloop_dim, str epilogue = None):
+    #     assert len(output_map) == 3, "output_map must be of length 3"
+    #     cdef int3 c_output_map
+    #     c_output_map.x = output_map[0]
+    #     c_output_map.y = output_map[1]
+    #     c_output_map.z = output_map[2]
+    #     epilogue_type = string_to_tbepilogue(epilogue)
+    #     self.p_bgraph.new_output(stensor.c_ptr, c_output_map, forloop_dim, epilogue_type)  
 
     property grid_dim:
         def __get__(self):
