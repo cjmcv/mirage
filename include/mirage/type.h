@@ -89,7 +89,6 @@ inline size_t get_datatype_size(DataType type) {
 enum KNOperatorType {
   KN_UNKOWN = 1000,
   KN_INPUT_OP = 1001,
-  KN_OUTPUT_OP = 1002,
   KN_CUSTOMIZED_OP = 1999,
 };
 
@@ -97,14 +96,12 @@ NLOHMANN_JSON_SERIALIZE_ENUM(KNOperatorType,
                              {
                                  {KN_UNKOWN, "kn_unkown"},
                                  {KN_INPUT_OP, "kn_input_op"},
-                                 {KN_OUTPUT_OP, "kn_output_op"},
                                  {KN_CUSTOMIZED_OP, "kn_customized_op"},
                              })
 
 enum TBOperatorType {
   TB_UNKOWN = 2000,
   TB_INPUT_OP = 2001,
-  TB_OUTPUT_OP = 2002,
   TB_CUSTOMIZED_OP = 2999
 };
 
@@ -113,7 +110,6 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
     {
         {TB_UNKOWN, "tb_unkown"},
         {TB_INPUT_OP, "tb_input_op"},
-        {TB_OUTPUT_OP, "tb_output_op"},
         {TB_CUSTOMIZED_OP, "tb_customized_op"},
     })
 
@@ -127,22 +123,6 @@ enum ActivationType {
   ACT_SILU = 3004,
   ACT_NONE = 3099,
 };
-
-enum TBEpilogueType {
-  TB_EPILOGUE_NONE = 3100,
-  TB_EPILOGUE_ALLREDUCE = 3101,
-  TB_EPILOGUE_ALLTOALL = 3102,
-  TB_EPILOGUE_INVALID = 3199,
-};
-
-NLOHMANN_JSON_SERIALIZE_ENUM(TBEpilogueType,
-                             {
-                                 {TB_EPILOGUE_NONE, "tb_epilogue_none"},
-                                 {TB_EPILOGUE_ALLREDUCE,
-                                  "tb_epilogue_allreduce"},
-                                 {TB_EPILOGUE_ALLTOALL, "tb_epilogue_alltoall"},
-                                 {TB_EPILOGUE_INVALID, "tb_epilogue_invalid"},
-                             })
 
 } // namespace type
 } // namespace mirage

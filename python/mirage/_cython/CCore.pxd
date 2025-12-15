@@ -50,20 +50,13 @@ cdef extern from "mirage/type.h" namespace "mirage::type":
         DT_INT64 = 965,
         DT_UINT64 = 966,
         DT_UNKNOWN = 999,
-    cdef enum TBEpilogueType:
-        TB_EPILOGUE_NONE = 3100,
-        TB_EPILOGUE_ALLREDUCE = 3101,
-        TB_EPILOGUE_ALLTOALL = 3102,
-        TB_EPILOGUE_INVALID = 3199,
     cdef enum KNOperatorType:
         KN_UNKOWN = 1000,
         KN_INPUT_OP = 1001,
-        KN_OUTPUT_OP = 1002,
         KN_CUSTOMIZED_OP = 1999,
     cdef enum TBOperatorType:
         TB_UNKOWN = 2000,
         TB_INPUT_OP = 2001,
-        TB_OUTPUT_OP = 2002,
         TB_CUSTOMIZED_OP = 2999
 
 cdef extern from "mirage/layout.h" namespace "mirage::layout":
@@ -168,11 +161,6 @@ cdef extern from "mirage/threadblock/graph.h" namespace "mirage::threadblock":
         int3 input_map
         size_t get_dtensor_guid()
 
-    # cdef cppclass CppTBOutputOp "mirage::threadblock::TBOutputOp"(CppTBOperator):
-    #     int forloop_dim
-    #     int3 output_map
-    #     size_t get_dtensor_guid()
-
     cdef cppclass CppTBGraph "mirage::threadblock::Graph":
         CppTBGraph(dim3 grid_dim,
                    dim3 block_dim,
@@ -184,10 +172,7 @@ cdef extern from "mirage/threadblock/graph.h" namespace "mirage::threadblock":
                              int forloop_dim,
                              SmemLayout layout,
                              bool store_in_dmem)
-        # CppDTensor* new_output(const CppSTensor* stensor,
-        #                     int3 output_map,
-        #                     int forloop_dim,
-        #                     TBEpilogueType epilogue)
+
         dim3 grid_dim
         dim3 block_dim
         int forloop_range

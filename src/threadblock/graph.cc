@@ -54,8 +54,7 @@ size_t Graph::calculate_shared_memory_usage(TBOperator *new_op) {
   for (auto const &op : operators) {
     // printf("op->op_type: %d.\n", op->op_type);
     switch (op->op_type) {
-      case mirage::type::TB_INPUT_OP:
-      case mirage::type::TB_OUTPUT_OP: {
+      case mirage::type::TB_INPUT_OP: {
         for (size_t i = 0; i < op->output_tensors.size(); i++) {
           // Do not store in smem when store_in_demm is set
           if (op->output_tensors[i].store_in_dmem) {

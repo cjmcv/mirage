@@ -107,8 +107,6 @@ def get_kn_operator_type_string(int op_type):
         return "kn_unknown"
     elif op_type == KN_INPUT_OP:
         return "kn_input_op"
-    elif op_type == KN_OUTPUT_OP:
-        return "kn_output_op"
     elif op_type == KN_CUSTOMIZED_OP:
         return "kn_customized_op"
     else:
@@ -120,8 +118,6 @@ def get_tb_operator_type_string(int op_type):
         return "tb_unknown"
     elif op_type == TB_INPUT_OP:
         return "tb_input_op"
-    elif op_type == TB_OUTPUT_OP:
-        return "tb_output_op"
     elif op_type == TB_CUSTOMIZED_OP:
         return "tb_customized_op"
     else:
@@ -206,15 +202,6 @@ def convert_torch_type_to_dtype(type):
     else:
         raise RuntimeError(f"Unsupported dtype: {type}")
 
-
-def string_to_tbepilogue(epilogue):
-    if epilogue is None:
-        return TB_EPILOGUE_NONE
-    elif epilogue == "allreduce":
-        return TB_EPILOGUE_ALLREDUCE
-    else:
-        assert False, "Unsupported threadblock epilogue"
-        return None
 
 cdef class DTensor:
     cdef CppDTensor* c_ptr # Hold a Tensor instance
@@ -764,15 +751,6 @@ cdef class CyTBGraph:
         cdef CppSTensor* ptr = self.p_bgraph.new_input(dtensor_cptr, c_input_map, forloop_dim, SmemRowMajor, store_in_dmem)
         t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
         return STensor(t)
-
-    # def new_output(self, STensor stensor, tuple output_map, int forloop_dim, str epilogue = None):
-    #     assert len(output_map) == 3, "output_map must be of length 3"
-    #     cdef int3 c_output_map
-    #     c_output_map.x = output_map[0]
-    #     c_output_map.y = output_map[1]
-    #     c_output_map.z = output_map[2]
-    #     epilogue_type = string_to_tbepilogue(epilogue)
-    #     self.p_bgraph.new_output(stensor.c_ptr, c_output_map, forloop_dim, epilogue_type)  
 
     property grid_dim:
         def __get__(self):
