@@ -13,6 +13,8 @@ from .speculative import (
     PromptLookupConfig,
 )
 
+from .visualizer.task_graph_visualizer import display_task_graph
+
 HARD_CODE = """
 #include <Python.h>
 #include <cuda_runtime.h>
@@ -246,14 +248,8 @@ class PersistentKernel:
         self.profiler_tensor = profiler_tensor
         self.trace_name = trace_name
         self.use_nvshmem = True if world_size > 1 else False
-        # self.spec_decode_config = spec_decode_config
         self.use_cutlass_kernel = use_cutlass_kernel
-        # self._spec_decode_handlers = {
-        #     "promptlookup": self.prompt_lookup_spec_handler,
-        # }
-        # self._spec_verify_handlers = {
-        #     "promptlookup": self.prompt_lookup_verify_handler,
-        # }
+
         self.target_cc = torch.cuda.get_device_properties(0).major * 10 + torch.cuda.get_device_properties(0).minor
         # Check tensor shapes
         qo_indptr_buffer = self.meta_tensors["qo_indptr_buffer"]
@@ -1300,25 +1296,26 @@ class PersistentKernel:
 
         MIRAGE_ROOT, INCLUDE_PATH, DEPS_PATH = get_key_paths()
         # tempdir_obj = tempfile.TemporaryDirectory()
-        tempdir = "./gen/" # tempdir_obj.name
+        # tempdir = "./gen/" # tempdir_obj.name
         results = self.kn_graph.generate_task_graph(num_gpus=self.world_size, my_gpu_id=self.mpi_rank)
 
-        cuda_code_path = os.path.join(tempdir, "test.cu")
-        so_path = os.path.join(tempdir, "test.cpython-38-x86_64-linux-gnu.so")
+        cuda_code_path = os.path.join(output_dir, "test.cu")
+        so_path = os.path.join(output_dir, "test.cpython-38-x86_64-linux-gnu.so")
+        self.kn_graph.visualize(os.path.join(output_dir, "kn_graph"))
         
-        GENERATE_NEW_CUDA_CODE = True
-        if GENERATE_NEW_CUDA_CODE:
-            # check json file
-            json_file_path = os.path.join(tempdir, "task_graph.json")
-            with open(json_file_path, "w") as f:
-                f.write(results["json_file"])
-            with open(cuda_code_path, "w") as f:
-                f.write(results["cuda_code"] + HARD_CODE)
-                
-            if output_dir is not None:
-                os.makedirs(output_dir, exist_ok=True)
-                shutil.copy(cuda_code_path, os.path.join(output_dir, f"test_rank{self.mpi_rank}.cu"))
-                shutil.copy(json_file_path, os.path.join(output_dir, f"task_graph_rank{self.mpi_rank}.json"))
+        # check json file
+        json_file_path = os.path.join(output_dir, "task_graph.json")
+        with open(json_file_path, "w") as f:
+            f.write(results["json_file"])
+        with open(cuda_code_path, "w") as f:
+            f.write(results["cuda_code"] + HARD_CODE)
+        
+        display_task_graph(json_file_path, False)
+        
+        # if output_dir is not None:
+        #     os.makedirs(output_dir, exist_ok=True)
+        #     shutil.copy(cuda_code_path, os.path.join(output_dir, f"test_rank{self.mpi_rank}.cu"))
+        #     shutil.copy(json_file_path, os.path.join(output_dir, f"task_graph_rank{self.mpi_rank}.json"))
 
         cc = shutil.which("nvcc")
         if cc is None:
@@ -1434,16 +1431,18 @@ class PersistentKernel:
         print("Compiling megakernel using the following command line:")
         print(cc_cmd)
         subprocess.check_call(cc_cmd)
+        print("Finished megakernel compilation...")
+        return so_path
 
+    def load_module(self, so_path):
         import importlib.util
-
         spec = importlib.util.spec_from_file_location("__mirage_launcher", so_path)
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         self.init_func = getattr(mod, "init_func")
         self.launch_func = getattr(mod, "launch_func")
         self.finalize_func = getattr(mod, "finalize_func")
-        print("Finished megakernel compilation...")
+        print("Finished megakernel Loading...")
 
         meta_tensors = list()
         meta_tensors.append(self.meta_tensors["qo_indptr_buffer"])

@@ -14,7 +14,7 @@
  */
 #include "mirage/kernel/task_register.h"
 #include "mirage/kernel/operator.h"
-#include "mirage/utils/code_keeper.h"
+#include "mirage/code_keeper.h"
 
 namespace mirage {
 namespace runtime {

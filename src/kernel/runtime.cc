@@ -15,7 +15,7 @@
 
 #include "mirage/kernel/graph.h"
 #include "mirage/kernel/task_register.h"
-#include "mirage/utils/code_keeper.h"
+#include "mirage/code_keeper.h"
 
 #include <queue>
 #include <unordered_set>

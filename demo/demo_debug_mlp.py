@@ -31,7 +31,7 @@ if __name__ == "__main__":
     parser.add_argument("--output-dir", default="./gen", help="Output files directory")
     parser.add_argument("--trace-name", default="qwen3", help="Perfetto trace output name")
     parser.add_argument("--profiling", action="store_true", help="Use Profiler to generate trace")
-    
+    parser.add_argument("--nc", action="store_true", help="no-compile: Use the specified compiled library instead of recompiling it")
 
     args = parser.parse_args()
     world_size = 1
@@ -143,8 +143,14 @@ if __name__ == "__main__":
     # with open(f"./gen/t/kernel.cu", "w") as f:
     #     f.write(results["cuda_code"])
         
-    mpk.compile(output_dir=args.output_dir)
-  
+    if args.nc is True:
+        module_path = args.output_dir + "/test.cpython-38-x86_64-linux-gnu.so"
+        mpk.load_module(module_path)
+    else:
+        module_path = mpk.compile(output_dir=args.output_dir)
+        print("module_path: ", module_path)
+        mpk.load_module(module_path)
+        
     ###
     warnup_iter = 100
     test_iter = 100

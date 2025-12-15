@@ -16,10 +16,8 @@
 #pragma once
 
 #include "mirage/config.h"
-// #include "mirage/cpu/cmem_tensor.h"
 #include "mirage/layout.h"
 #include "mirage/type.h"
-// #include "mirage/utils/json_utils.h"
 #include <atomic>
 #include <cstddef>
 #include <functional>
