@@ -19,7 +19,7 @@
 #include "mirage/kernel/operator.h"
 #include "mirage/threadblock/graph.h"
 #include "mirage/threadblock/operator.h"
-#include "mirage/vector_types.h"
+// #include "mirage/vector_types.h"
 #include <tuple>
 
 namespace mirage {

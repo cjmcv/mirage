@@ -25,6 +25,21 @@
 
 using json = nlohmann::json;
 
+#ifdef MIRAGE_BACKEND_USE_CUDA
+#include <vector_types.h>
+#else
+struct dim3 {
+  unsigned int x, y, z;
+
+  constexpr dim3(unsigned int _x = 1, unsigned int _y = 1, unsigned int _z = 1)
+      : x(_x), y(_y), z(_z) {}
+};
+struct int3 {
+  int x, y, z;
+
+  constexpr int3(int _x = 1, int _y = 1, int _z = 1) : x(_x), y(_y), z(_z) {}
+};
+#endif
 namespace mirage {
 namespace type {
 
@@ -113,16 +128,6 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
         {TB_CUSTOMIZED_OP, "tb_customized_op"},
     })
 
-// bool is_threadblock_element_unary(TBOperatorType op_type);
-
-enum ActivationType {
-  ACT_UNKOWN = 3000,
-  ACT_EXP = 3001,
-  ACT_RELU = 3002,
-  ACT_GELU = 3003,
-  ACT_SILU = 3004,
-  ACT_NONE = 3099,
-};
-
 } // namespace type
 } // namespace mirage
+

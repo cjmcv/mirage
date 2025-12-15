@@ -19,7 +19,7 @@
 #include "mirage/kernel/device_tensor.h"
 #include "mirage/threadblock/operator.h"
 #include "mirage/threadblock/smem_tensor.h"
-#include "mirage/vector_types.h"
+// #include "mirage/vector_types.h"
 #include <vector>
 
 namespace mirage {
@@ -50,21 +50,9 @@ public:
                               int forloop_dim,
                               mirage::layout::SmemLayout layout,
                               bool store_in_dmem = false);
-                              
-  // fingerprint related memory management
-  // off_t allocate_fingerprint(STensor const &tensor);
-  // void free_fingerprint(STensor const &tensor);
-  // void free_fingerprint(std::vector<STensor> const &tensors);
+
   size_t calculate_shared_memory_usage(TBOperator *new_op);
-
-// #ifdef MIRAGE_BACKEND_USE_CUDA
-//   // KernelParams get_kernel_params();
-//   // NewKernelParams get_new_kernel_params(bool fingerprint) const;
-// #endif
-
   int get_smem_size_with_pipeline() const;
-
-  // operator json() const;
 
 public:
   dim3 grid_dim, block_dim, cluster_dim{4, 4, 1};
@@ -78,8 +66,6 @@ public:
   using OpType = TBOperator;
   using TensorType = STensor;
 };
-
-// void from_json(json const &j, Graph &g);
 
 } // namespace threadblock
 } // namespace mirage

@@ -17,7 +17,7 @@
 #include "mirage/kernel/device_tensor.h"
 #include "mirage/threadblock/smem_tensor.h"
 #include "mirage/type.h"
-#include "mirage/vector_types.h"
+// #include "mirage/vector_types.h"
 #include <vector>
 
 namespace mirage {
