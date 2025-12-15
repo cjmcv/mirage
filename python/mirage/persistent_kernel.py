@@ -8,11 +8,6 @@ import sysconfig
 
 from .core import *
 from .kernel import get_key_paths, KNGraph, TBGraph
-from .speculative import (
-    SpecDecodeConfig,
-    PromptLookupConfig,
-)
-
 from .visualizer.task_graph_visualizer import display_task_graph
 
 HARD_CODE = """
@@ -1187,54 +1182,54 @@ class PersistentKernel:
         self.kn_graph.customized([partial_results, tokens, output], tb_graph)
         self.kn_graph.register_task(tb_graph, "find_ngram_global", [ngram_size, spec_length])
 
-    def prompt_lookup_spec_handler(
-        self, 
-        spec_decode_config: PromptLookupConfig,
-        tokens: DTensor,
-        grid_dim: tuple[int, int, int],
-        block_dim: tuple[int, int, int],
-    ):
-        partial_ngram_output = self.new_tensor(
-            dims=(tokens.dim(0), 96),
-            dtype=int64,
-            name="partial_ngram_output",
-            io_category="cuda_tensor",
-        )
-        self.find_ngram_partial_layer(
-            input=tokens, 
-            output=partial_ngram_output, 
-            grid_dim=grid_dim, 
-            block_dim=block_dim, 
-            ngram_size=spec_decode_config.ngram_size
-        )
-        spec_tokens = self.new_tensor(
-            dims=(tokens.dim(0), spec_decode_config.spec_length + 1),
-            dtype=int64,
-            name="spec_tokens",
-            io_category="cuda_tensor",
-        )   
-        self.find_ngram_global_layer(
-            input=(partial_ngram_output, tokens), 
-            output=spec_tokens, 
-            grid_dim=(1, 1, 1), 
-            block_dim=(128, 1, 1), 
-            ngram_size=spec_decode_config.ngram_size,
-            spec_length=spec_decode_config.spec_length
-        )
-        return spec_tokens
+    # def prompt_lookup_spec_handler(
+    #     self, 
+    #     spec_decode_config: PromptLookupConfig,
+    #     tokens: DTensor,
+    #     grid_dim: tuple[int, int, int],
+    #     block_dim: tuple[int, int, int],
+    # ):
+    #     partial_ngram_output = self.new_tensor(
+    #         dims=(tokens.dim(0), 96),
+    #         dtype=int64,
+    #         name="partial_ngram_output",
+    #         io_category="cuda_tensor",
+    #     )
+    #     self.find_ngram_partial_layer(
+    #         input=tokens, 
+    #         output=partial_ngram_output, 
+    #         grid_dim=grid_dim, 
+    #         block_dim=block_dim, 
+    #         ngram_size=spec_decode_config.ngram_size
+    #     )
+    #     spec_tokens = self.new_tensor(
+    #         dims=(tokens.dim(0), spec_decode_config.spec_length + 1),
+    #         dtype=int64,
+    #         name="spec_tokens",
+    #         io_category="cuda_tensor",
+    #     )   
+    #     self.find_ngram_global_layer(
+    #         input=(partial_ngram_output, tokens), 
+    #         output=spec_tokens, 
+    #         grid_dim=(1, 1, 1), 
+    #         block_dim=(128, 1, 1), 
+    #         ngram_size=spec_decode_config.ngram_size,
+    #         spec_length=spec_decode_config.spec_length
+    #     )
+    #     return spec_tokens
     
-    def draft_forward_layer_dispatcher(
-        self,
-        spec_decode_config: SpecDecodeConfig,
-        tokens: DTensor,
-        grid_dim: tuple[int, int, int],
-        block_dim: tuple[int, int, int],
-    ):
-        method = spec_decode_config.method
-        handler = self._spec_decode_handlers[method]
-        if handler is None:
-            raise ValueError(f"Invalid spec decode method: {method}")
-        return handler(spec_decode_config, tokens, grid_dim, block_dim)
+    # def draft_forward_layer_dispatcher(
+    #     self,
+    #     spec_decode_config: SpecDecodeConfig,
+    #     tokens: DTensor,
+    #     grid_dim: tuple[int, int, int],
+    #     block_dim: tuple[int, int, int],
+    # ):
+    #     method = spec_decode_config.method
+    #     handler = self._spec_decode_handlers[method]
+    #     if handler is None:
+    #         raise ValueError(f"Invalid spec decode method: {method}")
+    #     return handler(spec_decode_config, tokens, grid_dim, block_dim)
     
     def target_verify_greedy_layer(
         self, input: tuple[DTensor, DTensor], output: DTensor, grid_dim: tuple, block_dim: tuple):
@@ -1252,39 +1247,39 @@ class PersistentKernel:
         self.kn_graph.customized([spec_tokens, target_tokens, output], tb_graph)
         self.kn_graph.register_task(tb_graph, "target_verify_greedy")
         
-    def prompt_lookup_verify_handler(
-        self,
-        spec_decode_config: SpecDecodeConfig,
-        spec_tokens: DTensor,
-        target_output: DTensor,
-        grid_dim: tuple[int, int, int],
-        block_dim: tuple[int, int, int],
-    ):
-        # This tensor is not realy used
-        verify_out = self.new_tensor(
-            dims=(1, 1),
-            dtype=int64,
-            name="verify_out",
-            io_category="cuda_tensor",
-        )
-        self.target_verify_greedy_layer(
-            input=(spec_tokens, target_output), output=verify_out, grid_dim=grid_dim, block_dim=block_dim
-        )
-        return verify_out
+    # def prompt_lookup_verify_handler(
+    #     self,
+    #     spec_decode_config: SpecDecodeConfig,
+    #     spec_tokens: DTensor,
+    #     target_output: DTensor,
+    #     grid_dim: tuple[int, int, int],
+    #     block_dim: tuple[int, int, int],
+    # ):
+    #     # This tensor is not realy used
+    #     verify_out = self.new_tensor(
+    #         dims=(1, 1),
+    #         dtype=int64,
+    #         name="verify_out",
+    #         io_category="cuda_tensor",
+    #     )
+    #     self.target_verify_greedy_layer(
+    #         input=(spec_tokens, target_output), output=verify_out, grid_dim=grid_dim, block_dim=block_dim
+    #     )
+    #     return verify_out
     
-    def verify_layer_dispatcher(
-        self,
-        spec_decode_config: SpecDecodeConfig,
-        spec_tokens: DTensor,
-        target_output: DTensor,
-        grid_dim: tuple[int, int, int] = (1, 1, 1),
-        block_dim: tuple[int, int, int] = (128, 1, 1),
-    ):
-        method = spec_decode_config.method
-        handler = self._spec_verify_handlers[method]
-        if handler is None:
-            raise ValueError(f"Invalid spec decode method: {method}")
-        return handler(spec_decode_config, spec_tokens, target_output, grid_dim, block_dim)
+    # def verify_layer_dispatcher(
+    #     self,
+    #     spec_decode_config: SpecDecodeConfig,
+    #     spec_tokens: DTensor,
+    #     target_output: DTensor,
+    #     grid_dim: tuple[int, int, int] = (1, 1, 1),
+    #     block_dim: tuple[int, int, int] = (128, 1, 1),
+    # ):
+    #     method = spec_decode_config.method
+    #     handler = self._spec_verify_handlers[method]
+    #     if handler is None:
+    #         raise ValueError(f"Invalid spec decode method: {method}")
+    #     return handler(spec_decode_config, spec_tokens, target_output, grid_dim, block_dim)
 
     def compile(
         self,

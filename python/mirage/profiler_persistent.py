@@ -1,9 +1,4 @@
-import argparse
-import csv
-import json
-from collections import namedtuple
 from enum import Enum
-from typing import List
 
 import torch
 from tg4perfetto import TraceGenerator

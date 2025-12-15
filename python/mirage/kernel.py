@@ -1,11 +1,6 @@
 import torch
 
 import os
-import tempfile
-import subprocess
-import shutil
-import sys
-import sysconfig
 from typing import *
 
 from .core import *
@@ -14,86 +9,6 @@ from .visualizer.kernel_visualizer import *
 from .utils import *
 
 MAX_THREADS = os.cpu_count()
-
-HARD_CODE = """
-#include <Python.h>
-#include <cuda_runtime.h>
-
-static PyObject *launch(PyObject *self, PyObject *args) {
-  PyObject *input_list, *output_list, *py_buffer, *py_stream, *py_profiler_buffer;
-  void *buffer;
-  std::vector<void const *> input_tensors;
-  std::vector<void*> output_tensors;
-  void *profiler_buffer;
-
-  if (!PyArg_ParseTuple(args, "OOOOO", &input_list, &output_list, &py_buffer, &py_stream, &py_profiler_buffer)) {
-    PyErr_SetString(PyExc_TypeError, "Invalid parameters");
-    return NULL;
-  }
-
-  if(!PyList_Check(input_list) || !PyList_Check(output_list)) {
-    PyErr_SetString(PyExc_TypeError, "Both arg1 and arg2 must be lists.");
-    return NULL;
-  }
-
-  Py_ssize_t input_size = PyList_Size(input_list);
-  Py_ssize_t output_size = PyList_Size(output_list);
-
-  for(Py_ssize_t i = 0; i < input_size; i++) {
-    PyObject *item = PyList_GetItem(input_list, i);
-    void* tensor = PyLong_AsVoidPtr(item);
-    if(!tensor) {
-      PyErr_Format(PyExc_TypeError, "Failed to convert item %d (input) to void pointer", i);
-      return NULL;
-    }
-    input_tensors.push_back(PyLong_AsVoidPtr(item));
-  }
-
-  for(Py_ssize_t i = 0; i < output_size; i++) {
-    PyObject *item = PyList_GetItem(output_list, i);
-    void* tensor = PyLong_AsVoidPtr(item);
-    if(!tensor) {
-      PyErr_Format(PyExc_TypeError, "Failed to convert item %d (output) to void pointer", i);
-      return NULL;
-    }
-    output_tensors.push_back(PyLong_AsVoidPtr(item));
-  }
-
-  buffer = PyLong_AsVoidPtr(py_buffer);
-  profiler_buffer = PyLong_AsVoidPtr(py_profiler_buffer);
-  cudaStream_t stream = (cudaStream_t)PyLong_AsVoidPtr(py_stream);
-  execute_mugraph(input_tensors, output_tensors, buffer, stream, profiler_buffer);
-
-  Py_RETURN_NONE;
-}
-
-static PyMethodDef ModuleMethods[] = {
-  {"launch", launch, METH_VARARGS, "Entry point for all kernels with this signature"},
-  {NULL, NULL, 0, NULL} # sentinel
-};
-
-static struct PyModuleDef ModuleDef = {
-  PyModuleDef_HEAD_INIT,
-  "__mirage_launcher",
-  NULL, //documentation
-  -1, //size
-  ModuleMethods,
-  nullptr,                  # m_slots     
-  nullptr,                  # m_traverse  
-  nullptr,                  # m_clear     
-  nullptr,                  # m_free      
-};
-
-PyMODINIT_FUNC PyInit___mirage_launcher(void) {
-  PyObject *m = PyModule_Create(&ModuleDef);
-  if(m == NULL) {
-    return NULL;
-  }
-  PyModule_AddFunctions(m, ModuleMethods);
-  return m;
-}
-"""
-
 
 # Because pip install -e . and pip install . have different directory structure,
 # we need to check the directory structure to find the correct MIRAGE_ROOT.
@@ -247,77 +162,6 @@ class KNGraph:
         assert self._is_compiled, "Should check error message after compilation"
         return self._error_message
 
-    def __call__(self, **kwargs):
-        if self.backend == "cuda":
-            return self.cuda_call(**kwargs)
-
-    def cuda_call(self, **kwargs):
-        results = self.compile(**kwargs)
-
-        # directly return if the Transpiler cannot generate valid CUDA kernels
-        if not self._valid_cuda_kernels:
-            return None
-
-        assert self.run is not None, "The graph is not compiled yet."
-
-        input_tensors = kwargs.get("inputs", [])
-        stream = kwargs.get("stream", None)
-        if stream is None:
-            stream = torch.cuda.default_stream()
-
-        assert self.cygraph.get_num_inputs() == len(
-            input_tensors
-        ), "Expected {} input tensors, got {}".format(
-            self.cygraph.get_num_inputs(), len(input_tensors)
-        )
-
-        # TODO: dtype and device
-        buffer_tensor = torch.empty(
-            results["buf_size"], dtype=torch.uint8, device=input_tensors[0].device
-        ).contiguous()
-
-        output_tensors = [
-            gen_empty_tensor(
-                meta["alloc_size"],
-                meta["shape"],
-                meta["strides"],
-                device=input_tensors[0].device,
-                dtype=input_tensors[0].dtype,
-            )
-            for meta in results["output_directives"]
-        ]
-
-        prodiler_buffer_tensor = torch.empty(
-            results["profiler_buf_size"],
-            dtype=torch.uint64,
-            device=input_tensors[0].device,
-        ).contiguous()
-
-        buffer_tensor_ptr = buffer_tensor.data_ptr()
-        input_tensors_ptr = [tensor.data_ptr() for tensor in input_tensors]
-        output_tensors_ptr = [tensor.data_ptr() for tensor in output_tensors]
-        prodiler_buffer_tensor_ptr = prodiler_buffer_tensor.data_ptr()
-        self.run(
-            input_tensors_ptr,
-            output_tensors_ptr,
-            buffer_tensor_ptr,
-            stream.cuda_stream,
-            prodiler_buffer_tensor_ptr,
-        )
-
-        if results["profiler_buf_size"] > 0:
-            from .profiler import export_to_perfetto_trace
-
-            profiler_result_dir = "./profiling_results"
-            profiler_result_file = os.path.join(
-                profiler_result_dir, "mirage.perfetto-trace"
-            )
-            os.makedirs(profiler_result_dir, exist_ok=True)
-            export_to_perfetto_trace(prodiler_buffer_tensor, profiler_result_file)
-            print(
-                f"Exported profiling results to {profiler_result_file}, please view it with perfetto: https://ui.perfetto.dev/"
-            )
-        return output_tensors
 
     def visualize(self, file_name):
         operators = self.cygraph.get_graph_structure()

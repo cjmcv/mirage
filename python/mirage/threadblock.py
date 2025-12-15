@@ -1,6 +1,5 @@
 from .core import *
 
-
 class TBGraph:
     def __init__(self, graph):
         self.cygraph = graph

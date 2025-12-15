@@ -58,9 +58,6 @@ public:
             mirage::layout::DmemLayout layout,
             int3 input_map = {-1, -1, -1});
   ~KNInputOp();
-  // bool fingerprint(void);
-
-  // operator json() const override;
 
 public:
   std::vector<size_t> input_strides;

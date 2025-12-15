@@ -156,12 +156,6 @@ if __name__ == "__main__":
     else:
         profiler_tensor = None
         
-    spec_decode_config = mi.speculative.spec_decode_class(
-        args.spec_decode,
-        ngram_size=args.ngram_size,
-        spec_length=args.spec_length,
-    )
-        
     num_workers, num_schedulers = 1, 1 # mi.get_configurations_from_gpu(rank)
     print("num_workers: ", num_workers)
     print("num_schedulers: ", num_schedulers)
@@ -187,7 +181,6 @@ if __name__ == "__main__":
         },
         profiler_tensor=profiler_tensor,
         trace_name=args.trace_name,
-        # spec_decode_config=spec_decode_config,
         use_cutlass_kernel=False,
     )
     
