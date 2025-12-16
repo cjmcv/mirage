@@ -369,6 +369,7 @@ class Qwen3DecoderLayer(nn.Module):
     ]:
 
         residual = hidden_states
+        print("shape0: ", residual.shape)
 
         # hidden_states = self.input_layernorm(hidden_states)
 
@@ -382,7 +383,8 @@ class Qwen3DecoderLayer(nn.Module):
             stream=stream,
         )
         hidden_states = residual + hidden_states
-
+        print("shape1: ", hidden_states.shape, residual.shape)
+        
         # Fully Connected
         residual = hidden_states
         # hidden_states = self.post_attention_layernorm(hidden_states)
@@ -390,7 +392,7 @@ class Qwen3DecoderLayer(nn.Module):
             self.post_attention_layernorm, hidden_states, stream=stream
         )
         hidden_states = residual + hidden_states
-
+        print("shape2: ", hidden_states.shape, residual.shape)
         outputs = (hidden_states,)
 
         return outputs
