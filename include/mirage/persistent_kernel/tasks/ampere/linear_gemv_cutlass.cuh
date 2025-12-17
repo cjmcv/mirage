@@ -41,7 +41,8 @@ template <typename T,
           int OUTPUT_SIZE,
           int REDUCTION_SIZE,
           int O_STRIDE = OUTPUT_SIZE,
-          int PIPE_MAX = 3>
+          int PIPE_MAX = 3,
+          bool FUSE_RES = false>
 __device__ __forceinline__ void linear_kernel(void const *input_ptr,
                                               void const *weight_ptr,
                                               void const *residual_ptr,
@@ -79,6 +80,7 @@ __device__ __forceinline__ void linear_kernel(void const *input_ptr,
     ElementA const *ptr_A = (ElementA const *)input_ptr;
     ElementB const *ptr_B = (ElementB const *)weight_ptr;
     ElementC *ptr_D = (ElementC *)output_ptr;
+    ElementC *ptr_R = (ElementC *)residual_ptr;
 
     // move in the k dimension
     ptr_A += idx_col_k * kElementsPerAccess;
@@ -86,9 +88,10 @@ __device__ __forceinline__ void linear_kernel(void const *input_ptr,
 
     // move in the m dimension
     ptr_B += idx_row_m * REDUCTION_SIZE;
-    // ptr_C += idx_row_m;
     ptr_D += idx_row_m;
-
+    if constexpr (FUSE_RES) {
+      ptr_R += idx_row_m;
+    }
     cutlass::NumericArrayConverter<ElementAccumulator, ElementA, kElementsPerAccess, Round> srcA_converter;
     cutlass::NumericArrayConverter<ElementAccumulator, ElementB, kElementsPerAccess, Round> srcB_converter;
 
@@ -138,6 +141,9 @@ __device__ __forceinline__ void linear_kernel(void const *input_ptr,
     }
 
     if (idx_col_k == 0) {
+      if constexpr (FUSE_RES) {
+        accum += *ptr_R;
+      }
       *ptr_D = (ElementC)accum;
     }
   }

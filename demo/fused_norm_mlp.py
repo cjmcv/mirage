@@ -28,10 +28,11 @@ if __name__ == "__main__":
     # model_name = args.model
     torch.set_default_dtype(torch.bfloat16)
 
+    
     pkt = PersistentKernelTest(world_size, rank, args.max_num_batched_requests, args.max_num_batched_tokens, args.trace_name, args.profiling)
     mpk = pkt.get_mpk()
     
-    # pkt.memory_footprint_simulation(rank)
+    pkt.memory_footprint_simulation(rank)
     
     splitk = 1 # 8
     hidden_size = 2560
@@ -53,7 +54,7 @@ if __name__ == "__main__":
         input=x,
         weight=w_rms,
         output=rmsnorm_out,
-        grid_dim=(1, 1, 1),
+        grid_dim=(batch_size, 1, 1),
         block_dim=(128, 1, 1),
     )
     
@@ -79,9 +80,10 @@ if __name__ == "__main__":
         block_dim=(128, 1, 1),
     )
     if splitk == 1:
-        mpk.linear_layer( # [1, 9728] * [2560, 9728] = [1, 2560]
+        mpk.linear_with_residual_layer( # [1, 9728] * [2560, 9728] = [1, 2560]
             input=silu_mul_out,
             weight=w_down_proj,
+            residual=x,
             output=mlp_out,
             grid_dim=(32, 1, 1), # (64, 1, 1)
             block_dim=(128, 1, 1),
@@ -91,19 +93,22 @@ if __name__ == "__main__":
             input=silu_mul_out,
             weight=w_down_proj,
             output=mlp_out,
-            grid_dim=(splitk, 8, 1), # (64, 1, 1)
+            grid_dim=(splitk, 16, 1), # (64, 1, 1)
             block_dim=(128, 1, 1),
         )
     
     pkt.compile_load(args.nc, args.output_dir)
+    
+    # pkt.memory_footprint_simulation(rank)
     
     ###
     warnup_iter = 100
     test_iter = 200
     
     def ref():
-        return TorchRef.norm_mlp(x_torch, w_rms_torch, w_gatedup_torch, w_down_proj_torch)
-        
+        O = TorchRef.norm_mlp(x_torch, w_rms_torch, w_gatedup_torch, w_down_proj_torch)
+        return O + x_torch
+    
     for _ in range(warnup_iter):
         ref()
     ###

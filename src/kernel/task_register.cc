@@ -530,18 +530,22 @@ int TaskRegister::register_linear_task(threadblock::Graph const &bgraph,
   mirage::transpiler::CodeKeeper code;
   code.inc_indent();
   if (postfix != 0) {
-    code.e("kernel::linear_postfix_kernel<bfloat16, $, $, $, $>(",
+    code.e("kernel::linear_postfix_kernel<bfloat16, $, $, $, $, $, $>(",
           batch_size,
           output_size,
           input_ops[0]->output_tensors[0].dim[1],
-          output_stride);
+          output_stride,
+          3,
+          with_residual);
   }
   else {
-    code.e("kernel::linear_kernel<bfloat16, $, $, $, $>(",
+    code.e("kernel::linear_kernel<bfloat16, $, $, $, $, $, $>(",
           batch_size,
           output_size,
           reduction_size,
-          output_stride);    
+          output_stride,
+          3,
+          with_residual);    
   }
 
   code.e("    task_desc->input_ptrs[0],");

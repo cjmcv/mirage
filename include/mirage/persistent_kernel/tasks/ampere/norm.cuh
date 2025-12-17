@@ -17,14 +17,6 @@
 #include "tasks/common/common_header.cuh"
 #include <cooperative_groups.h>
 
-// def forward(self, hidden_states):
-//     # 1. 计算方差：沿最后一维（hidden_size）求均值，结果维度为 [*, 1]
-//     variance = hidden_states.pow(2).mean(-1, keepdim=True)  
-//     # 2. 归一化：hidden_states / rms，维度保持 [*, hidden_size]（variance 自动广播）
-//     hidden_states = hidden_states * torch.rsqrt(variance)  
-//     # 3. 权重缩放：self.weight ([hidden_size]) 广播至 [*, hidden_size]，逐元素相乘
-//     return self.weight * hidden_states  
-
 namespace kernel {
 template <typename T, typename InputSmem, int NUM_HEAD, int HEAD_DIM>
 __device__ __forceinline__ void rms_norm(InputSmem smem_input,

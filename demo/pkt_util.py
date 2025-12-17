@@ -99,23 +99,43 @@ class PersistentKernelTest:
         prof.export_chrome_trace("trace.json") # chrome://tracing/        
     
     def check_allclose(self, mpk_out, splitk, torch_ref_func):
+        # torch.set_printoptions(threshold=float('inf'))
+        torch.cuda.synchronize()
+        
         torch_out = torch_ref_func()
         for _ in range(5):
             mpk_out.zero_()
             self.mpk()
+            torch.cuda.synchronize()
+            
+            mpk_result = mpk_out
+            torch_result = torch_out
+            
             if splitk != 1:
                 for i in range(1, splitk):
                     mpk_out[0] += mpk_out[i]
                     
-                if (torch.allclose(mpk_out[0], torch_out[0], rtol=1e-2)):
-                    print("allclose: True")
-                else:
-                    print("diff: ", mpk_out[0] - torch_out[0])
+                mpk_result = mpk_out[0]
+                torch_result = torch_out[0]
+                total_num = torch_result.shape[0]
             else:
-                if (torch.allclose(mpk_out, torch_out, rtol=1e-2)):
-                    print("allclose: True")
-                else:
-                    print("diff: ", mpk_out - torch_out)
+                mpk_result = mpk_out
+                torch_result = torch_out
+                total_num = torch_result.shape[0] * torch_result.shape[1]
+                
+            if (torch.allclose(mpk_result, torch_result, rtol=1e-2, atol=0)):
+                print("allclose: True")
+            else:
+                print("mpk_out:", mpk_result)
+                print("torch_out:", torch_result)
+                print("diff: ", mpk_result - torch_result)
+                
+                threshold = 0.05
+                radio_num = (mpk_result - torch_result)/torch_result > threshold
+                count = radio_num.sum().item()
+                print("radio > ", threshold, ": ", count, "-", count/total_num)
+                
+                
                 
     def time_event_record(self, name, func, test_iter):
         starter = torch.cuda.Event(enable_timing=True)
@@ -136,7 +156,7 @@ class PersistentKernelTest:
     # git clone --recursive https://www.github.com/mirage-project/mirage
     # pip install -e . -v
     # export MIRAGE_HOME=$(pwd)
-    # python demo/mlp.py
+    # python demo/fused_norm_mlp.py
     # --profiling https://ui.perfetto.dev/
     
     # nsys profile --trace=cuda,nvtx --output=my_nsys

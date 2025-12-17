@@ -16,11 +16,22 @@
 #include "tasks/common/common_header.cuh"
 namespace kernel {
 
+// def forward(self, hidden_states):
+//     # 1. 计算方差：沿最后一维（hidden_size）求均值，结果维度为 [*, 1]
+//     variance = hidden_states.pow(2).mean(-1, keepdim=True)  
+//     # 2. 归一化：hidden_states / rms，维度保持 [*, hidden_size]（variance 自动广播）
+//     hidden_states = hidden_states * torch.rsqrt(variance)  
+//     # 3. 权重缩放：self.weight ([hidden_size]) 广播至 [*, hidden_size]，逐元素相乘
+//     return self.weight * hidden_states  
+
 template <typename T, int BATCH_SIZE, int HIDDEN_DIM>
 __device__ __forceinline__ void rms_norm_impl(void const *input_ptr,
                                               void const *weight_ptr,
                                               void *output_ptr,
                                               float eps) {
+  // if (threadIdx.x == 0) {
+  //   printf("rms_norm_impl-> in: %lld, w: %lld, o: %lld, eps: %f.\n", input_ptr, weight_ptr, output_ptr, eps);    
+  // }
   static_assert(BATCH_SIZE == 1);
   extern __shared__ char smem[];
   static_assert(HIDDEN_DIM % NUM_THREADS == 0);
@@ -46,19 +57,9 @@ __device__ __forceinline__ void rms_norm_impl(void const *input_ptr,
   T const *__restrict__ d_weight = static_cast<T const *>(weight_ptr);
   T *__restrict__ d_output = static_cast<T *>(output_ptr);
 
-  // using InputDmem =
-  //     dmem_row_const<T, BATCH_SIZE, HIDDEN_DIM, HIDDEN_DIM>;
-  // using OutputDmem =
-  //     dmem_row<T, BATCH_SIZE, HIDDEN_DIM, HIDDEN_DIM>;
-
-  // InputDmem input_dmem(d_input);
-  // OutputDmem output_dmem(d_output);
-
   constexpr size_t SHARED_WEIGHT_BUFFER_OFFSET = sizeof(T) * HIDDEN_DIM;
-  constexpr size_t SHARED_OUTPUT_BUFFER_OFFSET =
-      SHARED_WEIGHT_BUFFER_OFFSET + sizeof(T) * HIDDEN_DIM;
-  constexpr size_t REDUCE_BUFFER_OFFSET =
-      SHARED_OUTPUT_BUFFER_OFFSET + sizeof(T) * HIDDEN_DIM;
+  constexpr size_t SHARED_OUTPUT_BUFFER_OFFSET = SHARED_WEIGHT_BUFFER_OFFSET + sizeof(T) * HIDDEN_DIM;
+  constexpr size_t REDUCE_BUFFER_OFFSET        = SHARED_OUTPUT_BUFFER_OFFSET + sizeof(T) * HIDDEN_DIM;
   T *shared_input_buffer = (T *)(smem);
   T *shared_weight_buffer = (T *)(smem + SHARED_WEIGHT_BUFFER_OFFSET);
   T *shared_output_buffer = (T *)(smem + SHARED_OUTPUT_BUFFER_OFFSET);

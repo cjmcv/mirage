@@ -6,7 +6,7 @@ import mirage as mi
 from pkt_util import TorchRef, PersistentKernelTest
 
 if __name__ == "__main__":
-    batch_size = 1
+    batch_size = 4
     parser = argparse.ArgumentParser()
     parser.add_argument("--max-num-batched-tokens", default=batch_size, type=int, help="Max number of tokens in a batch")
     parser.add_argument("--max-num-batched-requests", default=batch_size, type=int, help="Max number of requests in a batch")
@@ -51,6 +51,8 @@ if __name__ == "__main__":
     )
     
     pkt.compile_load(args.nc, args.output_dir)
+    
+    print("torch -> in: ", x_torch.data_ptr(), ", w: ", w_torch.data_ptr(), ", rmsnorm_out: ", rmsnorm_out_torch.data_ptr())
     mpk()
     
     ##
