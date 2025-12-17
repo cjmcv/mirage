@@ -14,9 +14,78 @@
  */
 #pragma once
 #include "tasks/common/common_header.cuh"
+
+#include "cutlass/cutlass.h"
+#include "cutlass/numeric_conversion.h"
+#include "cutlass/arch/cache_operation.h"
+#include "cutlass/arch/memory.h"
+
 namespace kernel {
 
+// template <typename T,
+//           int BATCH_SIZE,
+//           int OUTPUT_SIZE,
+//           int I_STRIDE,
+//           int O_STRIDE>
+// __device__ __forceinline__ void silu_mul_task_impl(void const *input_ptr,
+//                                                    void *output_ptr,
+//                                                    int num_active_tokens) {
+//   T const *__restrict__ d_input = static_cast<T const *>(input_ptr);
+//   T const *__restrict__ d_mul = static_cast<T const *>(input_ptr) + O_STRIDE;
+//   T *__restrict__ d_output = static_cast<T *>(output_ptr);
+
+//   // if (threadIdx.x == 0) {
+//   //   printf("[%d] silu_mul input_ptr: %lld, output_ptr: %lld: %d.\n", blockIdx.x, input_ptr, output_ptr, OUTPUT_SIZE);
+//   // }
   
+//   static int const kElementsPerAccess = 8;
+//   static int const kThreadsPerRow = 32;
+//   using Fragment = cutlass::Array<T, kElementsPerAccess>;
+//   using ElementCompute = float;
+//   using FragmentCompute = cutlass::Array<ElementCompute, kElementsPerAccess>;
+
+//   static cutlass::FloatRoundStyle const Round = cutlass::FloatRoundStyle::round_to_nearest;
+//   cutlass::NumericArrayConverter<ElementCompute, T, kElementsPerAccess, Round> src_converter;
+
+//   int idx = threadIdx.x * kElementsPerAccess;
+//   int tilex = blockDim.x * kElementsPerAccess;
+// #pragma unroll
+//   for (; idx < num_active_tokens * OUTPUT_SIZE / tilex * tilex; idx += tilex) {
+//     int batch_idx = idx / OUTPUT_SIZE;
+//     int offset = idx % OUTPUT_SIZE;
+    
+//     Fragment fragA;
+//     Fragment fragB;
+//     cutlass::arch::global_load<Fragment,
+//                         sizeof(Fragment),
+//                         cutlass::arch::CacheOperation::LastUse>(fragA, (d_input + batch_idx * I_STRIDE + offset), true);
+//     cutlass::arch::global_load<Fragment,
+//                         sizeof(Fragment),
+//                         cutlass::arch::CacheOperation::LastUse>(fragB, (d_mul + batch_idx * I_STRIDE + offset), true);
+
+    
+//     FragmentCompute fragA_Compute = src_converter(fragA);
+//     FragmentCompute fragB_Compute = src_converter(fragB);
+
+//     CUTLASS_PRAGMA_UNROLL
+//     for (int e = 0; e < kElementsPerAccess; e++) {
+//       ElementCompute a = fragA_Compute.at(e);
+//       ElementCompute b = fragB_Compute.at(e);
+//       d_output[batch_idx * O_STRIDE + offset + e] =  T(a / (1.0f + expf(-a))) * T(b);
+//     }
+//   }
+
+//   for (; idx < num_active_tokens * OUTPUT_SIZE; idx += blockDim.x) {
+//     int batch_idx = idx / OUTPUT_SIZE;
+//     int offset = idx % OUTPUT_SIZE;
+
+//     float input_val = float(d_input[batch_idx * I_STRIDE + offset]);
+//     T mul_val = d_mul[batch_idx * I_STRIDE + offset];
+//     d_output[batch_idx * O_STRIDE + offset] =
+//         T(input_val / (1.0f + expf(-input_val))) * mul_val;
+//   }
+// }
+
 template <typename T,
           int BATCH_SIZE,
           int OUTPUT_SIZE,
@@ -47,35 +116,5 @@ __device__ __forceinline__ void silu_mul_task_impl(void const *input_ptr,
     // }
   }
 }
-
-// template <typename T,
-//           int BATCH_SIZE,
-//           int OUTPUT_SIZE,
-//           int I_STRIDE,
-//           int O_STRIDE>
-// __device__ __forceinline__ void silu_mul_task_impl(void const *input_ptr,
-//                                                    void *output_ptr,
-//                                                    int num_active_tokens) {
-//   T const *__restrict__ d_input = static_cast<T const *>(input_ptr);
-//   T const *__restrict__ d_mul = static_cast<T const *>(input_ptr) + OUTPUT_SIZE;
-//   T *__restrict__ d_output = static_cast<T *>(output_ptr);
-
-  
-// #pragma unroll
-//   for (int i = threadIdx.x; i < num_active_tokens * OUTPUT_SIZE;
-//        i += blockDim.x) {
-//     int batch_idx = i / OUTPUT_SIZE;
-//     int offset = i % OUTPUT_SIZE;
-//     float input_val = float(d_input[batch_idx * I_STRIDE + offset]);
-//     T mul_val = d_mul[batch_idx * I_STRIDE + offset];
-//     d_output[batch_idx * O_STRIDE + offset] =
-//         T(input_val / (1.0f + expf(-input_val))) * mul_val;
-    
-//     if (batch_idx == 0 && i == 0) {
-//       printf("num_active_tokens: %d, %p, %p.\n", num_active_tokens, input_ptr, output_ptr);
-//       // printf("(%d = %f, %f + %f, %d, %d, %d).\n", batch_idx, d_output[batch_idx * O_STRIDE + offset], input_val, mul_val, OUTPUT_SIZE, I_STRIDE, O_STRIDE); cjm
-//     }
-//   }
-// }
 
 } // namespace kernel

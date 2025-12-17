@@ -14,8 +14,6 @@ class TorchRef:
     
     @staticmethod
     def rms_norm(hidden_states, weight):
-        input_dtype = hidden_states.dtype
-        # hidden_states = hidden_states.to(torch.float32)
         variance = hidden_states.pow(2).mean(-1, keepdim=True)
         hidden_states = hidden_states * torch.rsqrt(variance)
         return weight * hidden_states
@@ -108,10 +106,16 @@ class PersistentKernelTest:
             if splitk != 1:
                 for i in range(1, splitk):
                     mpk_out[0] += mpk_out[i]
-            if (torch.allclose(mpk_out[0], torch_out[0], rtol=1e-2)):
-                print("allclose: True")
+                    
+                if (torch.allclose(mpk_out[0], torch_out[0], rtol=1e-2)):
+                    print("allclose: True")
+                else:
+                    print("diff: ", mpk_out[0] - torch_out[0])
             else:
-                print("diff: ", mpk_out[0] - torch_out[0])
+                if (torch.allclose(mpk_out, torch_out, rtol=1e-2)):
+                    print("allclose: True")
+                else:
+                    print("diff: ", mpk_out - torch_out)
                 
     def time_event_record(self, name, func, test_iter):
         starter = torch.cuda.Event(enable_timing=True)

@@ -6,10 +6,10 @@ import mirage as mi
 from pkt_util import TorchRef, PersistentKernelTest
 
 if __name__ == "__main__":
-    
+    batch_size = 8
     parser = argparse.ArgumentParser()
-    parser.add_argument("--max-num-batched-tokens", default=1, type=int, help="Max number of tokens in a batch")
-    parser.add_argument("--max-num-batched-requests", default=1, type=int, help="Max number of requests in a batch")
+    parser.add_argument("--max-num-batched-tokens", default=batch_size, type=int, help="Max number of tokens in a batch")
+    parser.add_argument("--max-num-batched-requests", default=batch_size, type=int, help="Max number of requests in a batch")
     parser.add_argument("--output-dir", default="./gen", help="Output files directory")
     parser.add_argument("--trace-name", default="qwen3", help="Perfetto trace output name")
     parser.add_argument("--profiling", action="store_true", help="Use Profiler to generate trace")
@@ -34,7 +34,6 @@ if __name__ == "__main__":
     # pkt.memory_footprint_simulation(rank)
     
     splitk = 1 # 8
-    batch_size = 1
     hidden_size = 2560
     intermediate_size = 9728
     x_torch = torch.randn((batch_size, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
@@ -50,8 +49,9 @@ if __name__ == "__main__":
     )
     
     pkt.compile_load(args.nc, args.output_dir)
+    mpk()
     
-    ###
+    ##
     warnup_iter = 100
     test_iter = 200
     

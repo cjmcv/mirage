@@ -6,10 +6,10 @@ import mirage as mi
 from pkt_util import TorchRef, PersistentKernelTest
 
 if __name__ == "__main__":
-    
+    batch_size = 1
     parser = argparse.ArgumentParser()
-    parser.add_argument("--max-num-batched-tokens", default=1, type=int, help="Max number of tokens in a batch")
-    parser.add_argument("--max-num-batched-requests", default=1, type=int, help="Max number of requests in a batch")
+    parser.add_argument("--max-num-batched-tokens", default=batch_size, type=int, help="Max number of tokens in a batch")
+    parser.add_argument("--max-num-batched-requests", default=batch_size, type=int, help="Max number of requests in a batch")
     parser.add_argument("--output-dir", default="./gen", help="Output files directory")
     parser.add_argument("--trace-name", default="qwen3", help="Perfetto trace output name")
     parser.add_argument("--profiling", action="store_true", help="Use Profiler to generate trace")
@@ -34,7 +34,6 @@ if __name__ == "__main__":
     # pkt.memory_footprint_simulation(rank)
     
     splitk = 1 # 8
-    batch_size = 1
     hidden_size = 2560
     intermediate_size = 9728
     x_torch = torch.randn((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
@@ -65,9 +64,7 @@ if __name__ == "__main__":
         input=rmsnorm_out,
         weight=w_gatedup,
         output=mlp_mid,
-        # grid_dim=(96, 1, 1),
-        # grid_dim=(128, 1, 1),
-        grid_dim=(32, 1, 1),  # (64, 1, 1)
+        grid_dim=(32, 1, 1),
         block_dim=(128, 1, 1),
     )
     
