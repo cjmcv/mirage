@@ -162,7 +162,7 @@ int TaskRegister::register_rmsnorm_linear_task(threadblock::Graph const &bgraph,
   code.e("    task_desc->input_ptrs[0],");
   code.e("    task_desc->input_ptrs[1],");
   code.e("    task_desc->input_ptrs[2],");
-  code.e("    runtime_config.qo_indptr_buffer[MPK_MAX_NUM_BATCHED_REQUESTS],");
+  code.e("    runtime_config.batch_size,");
   code.e("    1e-6f,");
   code.e("    task_desc->output_ptrs[0]);");
   return register_task_variant(TASK_RMS_NORM_LINEAR, code.to_string());
@@ -399,7 +399,7 @@ int TaskRegister::register_silu_mul_task(threadblock::Graph const &bgraph,
          output_stride);
   code.e("    task_desc->input_ptrs[0],");
   code.e("    task_desc->output_ptrs[0],");
-  code.e("    runtime_config.qo_indptr_buffer[MPK_MAX_NUM_BATCHED_REQUESTS]);");
+  code.e("    runtime_config.batch_size);");
   return register_task_variant(TASK_SILU_MUL, code.to_string());
 }
 
@@ -556,7 +556,7 @@ int TaskRegister::register_linear_task(threadblock::Graph const &bgraph,
     code.e("    nullptr,");
   }
   code.e("    task_desc->output_ptrs[0],");
-  code.e("    runtime_config.qo_indptr_buffer[MPK_MAX_NUM_BATCHED_REQUESTS],");
+  code.e("    runtime_config.batch_size,");
   if (with_residual) {
     code.e("    runtime_config.my_gpu_id == 0);");
   } else {
@@ -607,7 +607,7 @@ int TaskRegister::register_argmax_partial_task(threadblock::Graph const &bgraph,
   code.e("    task_desc->input_ptrs[0],");
   code.e("    task_desc->output_ptrs[0],");
   code.e("    task_desc->output_ptrs[1],");
-  code.e("    runtime_config.qo_indptr_buffer[MPK_MAX_NUM_BATCHED_REQUESTS]);");
+  code.e("    runtime_config.batch_size);");
   return register_task_variant(TASK_ARGMAX_PARTIAL, code.to_string());
 }
 
@@ -642,7 +642,7 @@ int TaskRegister::register_argmax_reduce_task(threadblock::Graph const &bgraph,
   code.e("    task_desc->input_ptrs[0],");
   code.e("    task_desc->input_ptrs[1],");
   code.e("    task_desc->output_ptrs[0],");
-  code.e("    runtime_config.qo_indptr_buffer[MPK_MAX_NUM_BATCHED_REQUESTS]);");
+  code.e("    runtime_config.batch_size);");
   return register_task_variant(TASK_ARGMAX_REDUCE, code.to_string());
 }
 
@@ -1587,7 +1587,7 @@ int TaskRegister::register_silu_mul_hopper_task(
          output_stride);
   code.e("    task_desc->input_ptrs[0],");
   code.e("    task_desc->output_ptrs[0],");
-  code.e("    runtime_config.qo_indptr_buffer[MPK_MAX_NUM_BATCHED_REQUESTS]);");
+  code.e("    runtime_config.batch_size);");
   return register_task_variant(TASK_SILU_MUL_HOPPER, code.to_string());
 }
 
@@ -2035,7 +2035,7 @@ int TaskRegister::register_argmax_partial_sm100_task(
   code.e("    task_desc->input_ptrs[0],");
   code.e("    task_desc->output_ptrs[0],");
   code.e("    task_desc->output_ptrs[1],");
-  code.e("    runtime_config.qo_indptr_buffer[MPK_MAX_NUM_BATCHED_REQUESTS]);");
+  code.e("    runtime_config.batch_size);");
   return register_task_variant(TASK_ARGMAX_PARTIAL_SM100, code.to_string());
 }
 
@@ -2070,7 +2070,7 @@ int TaskRegister::register_argmax_reduce_sm100_task(
   code.e("    task_desc->input_ptrs[0],");
   code.e("    task_desc->input_ptrs[1],");
   code.e("    task_desc->output_ptrs[0],");
-  code.e("    runtime_config.qo_indptr_buffer[MPK_MAX_NUM_BATCHED_REQUESTS]);");
+  code.e("    runtime_config.batch_size);");
   return register_task_variant(TASK_ARGMAX_REDUCE_SM100, code.to_string());
 }
 

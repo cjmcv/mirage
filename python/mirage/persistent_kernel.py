@@ -48,7 +48,12 @@ static PyObject *init_func(PyObject *self, PyObject *args) {
 }
 
 static PyObject *launch_func(PyObject *self, PyObject *args) {
-  launch_persistent_kernel();
+  int batch_size = 0;
+  if (!PyArg_ParseTuple(args, "i", &batch_size)) {
+    PyErr_SetString(PyExc_TypeError, "Invalid parameters");
+    return NULL;
+  }
+  launch_persistent_kernel(batch_size);
 
   Py_RETURN_NONE;
 }
@@ -1459,11 +1464,11 @@ class PersistentKernel:
 
         # self.call_func = getattr(mod, "call_func")
         
-    def __call__(self, **kwargs):
+    def __call__(self, batch_size):
         # stream = kwargs.get("stream", None)
         # if stream is None:
         #    stream = torch.cuda.default_stream()
-        self.launch_func()
+        self.launch_func(batch_size)
         if self.profiler_tensor is not None:
             from .profiler_persistent import export_to_perfetto_trace
             

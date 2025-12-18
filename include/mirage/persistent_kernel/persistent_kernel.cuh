@@ -129,34 +129,14 @@ __global__ void init_kernel(RuntimeConfig config) {
   assert(gridDim.z == 1);
   // Only a single thread that initializes everything
   if (threadIdx.x == 0) {
-    // initialize metadata
-    // for (int i = 0; i < config.total_num_requests; i++) {
-    //   config.step[i] = 0;
-    // }
     *config.next_request_id = 0;
-    // for (int i = 0; i < MPK_MAX_NUM_BATCHED_REQUESTS; i++) {
-    //   config.request_ids[i] = -1;
-    // }
-    for (int i = 0; i < MPK_MAX_NUM_BATCHED_REQUESTS + 1; i++) {
-      config.qo_indptr_buffer[i] = 0;
-    }
   }
 }
 
 __global__ void prepare_kernel(RuntimeConfig config,
                                int end_of_task_graph_event_pos) {
   if (blockIdx.x == 0 && threadIdx.x == 0) {
-    // initialize metadata
-    // for (int i = 0; i < config.total_num_requests; i++) {
-    //   config.step[i] = 0;
-    // }
     *config.next_request_id = 0;
-    // for (int i = 0; i < MPK_MAX_NUM_BATCHED_REQUESTS; i++) {
-    //   config.request_ids[i] = -1;
-    // }
-    for (int i = 0; i < MPK_MAX_NUM_BATCHED_REQUESTS + 1; i++) {
-      config.qo_indptr_buffer[i] = 0;
-    }
   }
   ///////////////////////////////////////////////////////////////////
 
@@ -195,99 +175,8 @@ __global__ void prepare_kernel(RuntimeConfig config,
 // TODO: parallelize this processing
 __device__ __forceinline__ bool
     prepare_next_batch(RuntimeConfig const &config) {
-  // __shared__ int smem_kv_indices[MPK_MAX_NUM_PAGES];
-  // int page_queue_head = *config.page_queue_head;
-  // int page_queue_tail = *config.page_queue_tail;
-  // Step 1: finalize previous batch
-//   for (int i = 0; i < MPK_MAX_NUM_BATCHED_REQUESTS; i++) {
-//     int16_t request_id = config.request_ids[i];
-//     if (request_id != -1) {
-//       // // Step 1.1: move output_tokens to tokens
-//       // int step = config.step[request_id];
-//       // int qo_indptr = config.qo_indptr_buffer[i];
-//       // int num_tokens = config.qo_indptr_buffer[i + 1] - qo_indptr;
-//       // int prompt_len = config.prompt_length[request_id];
-//       // for (int j = 0; j < num_tokens; j++) {
-//       //   if (step + j + 1 >= prompt_len &&
-//       //       step + j + 1 < config.max_seq_length) {
-//       //     config.tokens[request_id * MPK_MAX_SEQ_LENGTH + step + j + 1] =
-//       //         config.output_tokens[qo_indptr + j];
-//       //   }
-//       // }
-//       // config.step[request_id] = step + num_tokens;
-// // #ifdef MPK_ENABLE_PROFILING
-//       // if (true) {
-// // #else
-// //       if ((step + num_tokens + 1 >= config.max_seq_length) ||
-// //           ((config.tokens[request_id * MPK_MAX_SEQ_LENGTH + step +
-// //                           num_tokens] == config.eos_token_id) &&
-// //            (step + num_tokens >= prompt_len))) {
-// // #endif
-//         // Request is done
-//         config.request_ids[i] = -1;
-//         // // Free pages
-//         // int kv_indptr = config.paged_kv_indptr_buffer[i];
-//         // int num_pages = config.paged_kv_indptr_buffer[i + 1] - kv_indptr;
-//         // for (int j = 0; j < num_pages; j++) {
-//         //   config.page_queue[page_queue_tail % MPK_MAX_NUM_PAGES] =
-//         //       config.paged_kv_indices_buffer[kv_indptr + j];
-//         //   page_queue_tail++;
-//         // }
-//       // }
-//     }
-//   }
 
-  // // Step 2: copy kv_indices to shared mem
-  // int num_pages = config.paged_kv_indptr_buffer[MPK_MAX_NUM_BATCHED_REQUESTS];
-  // for (int i = 0; i < num_pages; i++) {
-  //   smem_kv_indices[i] = config.paged_kv_indices_buffer[i];
-  // }
-
-  // Step 3: prepare next batch
   int num_reqs = 0, num_tokens = 0;
-  // num_pages = 0;
-  // for (int i = 0; i < MPK_MAX_NUM_BATCHED_REQUESTS; i++) {
-  //   int16_t request_id = config.request_ids[i];
-  //   if (request_id != -1) {
-  //     // int kv_indptr = config.paged_kv_indptr_buffer[i];
-  //     // int num_old_pages = config.paged_kv_indptr_buffer[i + 1] - kv_indptr;
-  //     // config.request_ids[num_reqs] = request_id;
-  //     // config.qo_indptr_buffer[num_reqs] = num_tokens;
-  //     // config.paged_kv_indptr_buffer[num_reqs] = num_pages;
-  //     // int step = config.step[request_id];
-  //     // int num_new_tokens = config.prompt_length[request_id] - step;
-  //     // if (num_new_tokens > 0) {
-  //     //   // Prefill requests
-  //     //   num_new_tokens =
-  //     //       min(num_new_tokens, MPK_MAX_NUM_BATCHED_TOKENS - num_tokens);
-  //     // } else {
-  //     //   // Decode requests
-  //     //   num_new_tokens = min(1, MPK_MAX_NUM_BATCHED_TOKENS - num_tokens);
-  //     // }
-  //     // // Move tokens to input_tokens
-  //     // for (int j = 0; j < num_new_tokens; j++) {
-  //     //   config.input_tokens[num_tokens + j] =
-  //     //       config.tokens[request_id * MPK_MAX_SEQ_LENGTH + step + j];
-  //     // }
-  //     // // Prepare page indptrs
-  //     // int num_new_pages =
-  //     //     (step + num_new_tokens + MPK_PAGE_SIZE - 1) / MPK_PAGE_SIZE;
-  //     // config.paged_kv_last_page_len_buffer[num_reqs] =
-  //     //     (step + num_new_tokens) % MPK_PAGE_SIZE;
-  //     // for (int j = 0; j < num_old_pages; j++) {
-  //     //   config.paged_kv_indices_buffer[num_pages + j] =
-  //     //       smem_kv_indices[kv_indptr + j];
-  //     // }
-  //     // for (int j = num_old_pages; j < num_new_pages; j++) {
-  //     //   config.paged_kv_indices_buffer[num_pages + j] =
-  //     //       config.page_queue[page_queue_head % MPK_MAX_NUM_PAGES];
-  //     //   page_queue_head++;
-  //     // }
-  //     // num_pages += num_new_pages;
-  //     // num_tokens += num_new_tokens;
-  //     // num_reqs++;
-  //   }
-  // }
 
   // Add new prefill requests until we reach capacity
   while (num_reqs < MPK_MAX_NUM_BATCHED_REQUESTS &&
@@ -296,24 +185,8 @@ __device__ __forceinline__ bool
     if (next_request_id >= config.total_num_requests) {
       break;
     }
-    // config.request_ids[num_reqs] = next_request_id;
-    // config.qo_indptr_buffer[num_reqs] = num_tokens;
-    // config.paged_kv_indptr_buffer[num_reqs] = num_pages;
     // Prefill request
     int num_new_tokens = MPK_MAX_NUM_BATCHED_TOKENS - num_tokens; // min(config.prompt_length[next_request_id], MPK_MAX_NUM_BATCHED_TOKENS - num_tokens);
-    // // Move tokens to input tokens
-    // for (int j = 0; j < num_new_tokens; j++) {
-    //   config.input_tokens[num_tokens + j] =
-    //       config.tokens[next_request_id * MPK_MAX_SEQ_LENGTH + j];
-    // }
-    // int num_new_pages = (num_new_tokens + MPK_PAGE_SIZE - 1) / MPK_PAGE_SIZE;
-    // config.paged_kv_last_page_len_buffer[num_reqs] =
-    //     num_new_tokens % MPK_PAGE_SIZE;
-    // for (int j = 0; j < num_new_pages; j++) {
-    //   config.paged_kv_indices_buffer[num_pages + j] =
-    //       config.page_queue[page_queue_head % MPK_MAX_NUM_PAGES];
-    //   page_queue_head++;
-    // }
     num_tokens += num_new_tokens;
     // num_pages += num_new_pages;
     num_reqs++;
@@ -321,24 +194,9 @@ __device__ __forceinline__ bool
   }
 
   // // Step 4: Update all unused requests slots
-  // for (int i = num_reqs; i < MPK_MAX_NUM_BATCHED_REQUESTS; i++) {
-  //   config.request_ids[i] = -1;
-  // }
   for (int i = num_reqs; i <= MPK_MAX_NUM_BATCHED_REQUESTS; i++) {
     config.qo_indptr_buffer[i] = num_tokens;
-    // config.paged_kv_indptr_buffer[i] = num_pages;
   }
-
-  // // Step 5: update page head tail
-  // *config.page_queue_head = page_queue_head;
-  // *config.page_queue_tail = page_queue_tail;
-
-  // printf("Next batch: steps[%d %d %d %d] num_active_tokens(%d)\n",
-  //        config.step[0],
-  //        config.step[1],
-  //        config.step[2],
-  //        config.step[3],
-  //        config.qo_indptr_buffer[MPK_MAX_NUM_BATCHED_REQUESTS]);
 
   if (num_tokens == 0) {
     return false;
@@ -437,9 +295,6 @@ __device__ __forceinline__ void init_launch(RuntimeConfig config) {
   // 只需要1个block负责
   if (threadIdx.x == 0) {
     *config.next_request_id = 0;
-    for (int i = 0; i < MPK_MAX_NUM_BATCHED_REQUESTS + 1; i++) {
-      config.qo_indptr_buffer[i] = 0;
-    }
   }
 }
 
@@ -1319,11 +1174,12 @@ extern "C" void init_persistent_kernel(std::vector<void *> meta_tensors,
 
 // Entry point for C/C++
 // TODO: change launch config
-extern "C" void launch_persistent_kernel() {
+extern "C" void launch_persistent_kernel(int batch_size) {
   // int device;
   // cudaGetDevice(&device);
   // int sm_count;
   // cudaDeviceGetAttribute(&sm_count, cudaDevAttrMultiProcessorCount, device);
+  global_runtime_config.batch_size = batch_size;
 
   int num_schedulers = global_runtime_config.num_local_schedulers +
                        global_runtime_config.num_remote_schedulers;

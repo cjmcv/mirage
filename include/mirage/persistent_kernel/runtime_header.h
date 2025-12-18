@@ -250,6 +250,7 @@ struct RuntimeConfig {
   TaskId **worker_queues;
   EventId **sched_queues;
   TaskId *first_tasks;
+  int batch_size;
   int *step;                    // Metadata for LLM serving
   long long *tokens;            // Metadata for LLM serving
   long long *input_tokens;      // Metadata for LLM serving

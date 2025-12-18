@@ -71,6 +71,7 @@ class PersistentKernelTest:
             # spec_decode_config=spec_decode_config,
             use_cutlass_kernel=False,
         )
+        self.batch_size = max_num_batched_tokens
     
     def get_mpk(self):
         return self.mpk
@@ -98,14 +99,14 @@ class PersistentKernelTest:
         print(prof.key_averages().table(sort_by="cuda_time_total"))
         prof.export_chrome_trace("trace.json") # chrome://tracing/        
     
-    def check_allclose(self, mpk_out, splitk, torch_ref_func):
+    def check_allclose(self, mpk_run, mpk_out, splitk, torch_ref_run):
         # torch.set_printoptions(threshold=float('inf'))
         torch.cuda.synchronize()
         
-        torch_out = torch_ref_func()
+        torch_out = torch_ref_run()
         for _ in range(5):
             mpk_out.zero_()
-            self.mpk()
+            mpk_run()
             torch.cuda.synchronize()
             
             mpk_result = mpk_out
@@ -131,7 +132,7 @@ class PersistentKernelTest:
                 print("diff: ", mpk_result - torch_result)
                 
                 threshold = 0.05
-                radio_num = (mpk_result - torch_result)/torch_result > threshold
+                radio_num = abs((mpk_result - torch_result)/torch_result) > threshold
                 count = radio_num.sum().item()
                 print("radio > ", threshold, ": ", count, "-", count/total_num)
                 
