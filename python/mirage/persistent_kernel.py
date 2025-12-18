@@ -169,8 +169,8 @@ def get_compile_command(
     else:
         raise ValueError(f"Invalid persistent kernel mode: {mpk.mode}")
 
-    flags = flags + [f"-DMPK_MAX_NUM_BATCHED_REQUESTS={mpk.max_num_batched_requests}"]
-    flags = flags + [f"-DMPK_MAX_NUM_BATCHED_TOKENS={mpk.max_num_batched_tokens}"]
+    # flags = flags + [f"-DMPK_MAX_NUM_BATCHED_REQUESTS={mpk.max_num_batched_requests}"]
+    # flags = flags + [f"-DMPK_MAX_NUM_BATCHED_TOKENS={mpk.max_num_batched_tokens}"]
     # flags = flags + [f"-DMPK_MAX_NUM_PAGES={mpk.max_num_pages}"]
     # flags = flags + [f"-DMPK_PAGE_SIZE={mpk.page_size}"]
     # flags = flags + [f"-DMPK_MAX_SEQ_LENGTH={mpk.max_seq_length}"]
@@ -223,8 +223,8 @@ class PersistentKernel:
         num_workers: int,
         num_local_schedulers: int,
         num_remote_schedulers: int,
-        max_num_batched_requests: int,
-        max_num_batched_tokens: int,
+        # max_num_batched_requests: int,
+        # max_num_batched_tokens: int,
         meta_tensors: dict,
         profiler_tensor: torch.Tensor,
         trace_name: str,
@@ -241,8 +241,8 @@ class PersistentKernel:
         self.num_workers = num_workers
         self.num_local_schedulers = num_local_schedulers
         self.num_remote_schedulers = num_remote_schedulers
-        self.max_num_batched_requests = max_num_batched_requests
-        self.max_num_batched_tokens = max_num_batched_tokens
+        # self.max_num_batched_requests = max_num_batched_requests
+        # self.max_num_batched_tokens = max_num_batched_tokens
         self.kn_graph = KNGraph(CyKNGraph())
         self.meta_tensors = meta_tensors
         self.profiler_tensor = profiler_tensor

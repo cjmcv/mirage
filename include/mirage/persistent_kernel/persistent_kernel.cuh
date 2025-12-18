@@ -176,28 +176,42 @@ __global__ void prepare_kernel(RuntimeConfig config,
 __device__ __forceinline__ bool
     prepare_next_batch(RuntimeConfig const &config) {
 
-  int num_reqs = 0, num_tokens = 0;
-
-  // Add new prefill requests until we reach capacity
-  while (num_reqs < MPK_MAX_NUM_BATCHED_REQUESTS &&
-         num_tokens < MPK_MAX_NUM_BATCHED_TOKENS) {
-    int next_request_id = *config.next_request_id;
-    if (next_request_id >= config.total_num_requests) {
-      break;
-    }
-    // Prefill request
-    int num_new_tokens = MPK_MAX_NUM_BATCHED_TOKENS - num_tokens; // min(config.prompt_length[next_request_id], MPK_MAX_NUM_BATCHED_TOKENS - num_tokens);
-    num_tokens += num_new_tokens;
-    // num_pages += num_new_pages;
-    num_reqs++;
+  int next_request_id = *config.next_request_id;
+  if (next_request_id == 0) {
+    // printf("prepare_next_batch true (%d, %d).\n", blockIdx.x, threadIdx.x);
     *config.next_request_id = next_request_id + 1;
-  }
-  
-  if (num_tokens == 0) {
-    return false;
-  } else {
     return true;
   }
+  else {
+    // printf("prepare_next_batch false (%d, %d).\n", blockIdx.x, threadIdx.x);
+    return false;
+  }
+  // int num_reqs = 0, num_tokens = 0;
+
+  // // Add new prefill requests until we reach capacity
+  // while (num_reqs < MPK_MAX_NUM_BATCHED_REQUESTS &&
+  //        num_tokens < MPK_MAX_NUM_BATCHED_TOKENS) {
+  //   printf("while(%d,%d)\n", blockIdx.x, threadIdx.x);
+  //   int next_request_id = *config.next_request_id;
+  //   if (next_request_id >= config.total_num_requests) {
+  //     break;
+  //   }
+  //   // Prefill request
+  //   int num_new_tokens = MPK_MAX_NUM_BATCHED_TOKENS - num_tokens; // min(config.prompt_length[next_request_id], MPK_MAX_NUM_BATCHED_TOKENS - num_tokens);
+  //   num_tokens += num_new_tokens;
+  //   // num_pages += num_new_pages;
+  //   num_reqs++;
+  //   *config.next_request_id = next_request_id + 1;
+  // }
+  
+  // printf("into prepare_next_batch.\n");
+  // if (num_tokens == 0) {
+  //   printf("into prepare_next_batch false.\n");
+  //   return false;
+  // } else {
+  //   printf("into prepare_next_batch true.\n");
+  //   return true;
+  // }
 }
 #endif
 
@@ -1005,8 +1019,8 @@ extern "C" void init_persistent_kernel(std::vector<void *> meta_tensors,
 #endif
 
 #if defined(MODE_OFFLINE) || defined(MODE_ONLINE)
-  global_runtime_config.request_ids =
-      gpu_malloc<int>(sizeof(int) * (MPK_MAX_NUM_BATCHED_REQUESTS + 1));
+  // global_runtime_config.request_ids =
+  //     gpu_malloc<int>(sizeof(int) * (MPK_MAX_NUM_BATCHED_REQUESTS + 1));
   global_runtime_config.next_request_id = gpu_malloc<int>(sizeof(int));
   // global_runtime_config.page_queue =
   //     gpu_malloc<int>(MPK_MAX_NUM_PAGES * sizeof(int));
