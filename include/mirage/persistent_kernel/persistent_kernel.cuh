@@ -192,12 +192,7 @@ __device__ __forceinline__ bool
     num_reqs++;
     *config.next_request_id = next_request_id + 1;
   }
-
-  // // Step 4: Update all unused requests slots
-  for (int i = num_reqs; i <= MPK_MAX_NUM_BATCHED_REQUESTS; i++) {
-    config.qo_indptr_buffer[i] = num_tokens;
-  }
-
+  
   if (num_tokens == 0) {
     return false;
   } else {
@@ -984,8 +979,6 @@ extern "C" void init_persistent_kernel(std::vector<void *> meta_tensors,
                                        int num_local_schedulers,
                                        int num_remote_schedulers,
                                        int total_num_requests) {
-
-  global_runtime_config.qo_indptr_buffer = static_cast<int *>(meta_tensors[0]);
 
   global_runtime_config.num_workers = num_workers;
   global_runtime_config.num_local_schedulers = num_local_schedulers;

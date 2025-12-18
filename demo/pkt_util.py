@@ -52,8 +52,6 @@ class PersistentKernelTest:
         print("num_workers: ", num_workers)
         print("num_schedulers: ", num_schedulers)
         
-        self.qo_indptr_buffer = torch.empty(
-            max_num_batched_requests + 1, dtype=torch.int32, device="cuda")
         self.mpk = mi.PersistentKernel(
             mode="offline",
             world_size=world_size,
@@ -63,9 +61,7 @@ class PersistentKernelTest:
             num_remote_schedulers=0,
             max_num_batched_requests=max_num_batched_requests,
             max_num_batched_tokens=max_num_batched_tokens,
-            meta_tensors={
-                "qo_indptr_buffer": self.qo_indptr_buffer,
-            },
+            meta_tensors={}, #  meta_tensors={"qo_indptr_buffer": self.qo_indptr_buffer,},
             profiler_tensor=self.profiler_tensor,
             trace_name=trace_name,
             # spec_decode_config=spec_decode_config,

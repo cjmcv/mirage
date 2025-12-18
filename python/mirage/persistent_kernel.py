@@ -251,9 +251,6 @@ class PersistentKernel:
         self.use_cutlass_kernel = use_cutlass_kernel
 
         self.target_cc = torch.cuda.get_device_properties(0).major * 10 + torch.cuda.get_device_properties(0).minor
-        # Check tensor shapes
-        qo_indptr_buffer = self.meta_tensors["qo_indptr_buffer"]
-        assert qo_indptr_buffer.shape == (self.max_num_batched_requests+1,)
 
     def attach_input(self, torch_tensor: torch.Tensor, name: str = None) -> DTensor:
         dims = tuple([d for d in torch_tensor.shape])
@@ -1445,7 +1442,6 @@ class PersistentKernel:
         print("Finished megakernel Loading...")
 
         meta_tensors = list()
-        meta_tensors.append(self.meta_tensors["qo_indptr_buffer"])
         meta_tensors_ptr = [tensor.data_ptr() for tensor in meta_tensors]
         profiler_buffer_ptr = (
             self.profiler_tensor.data_ptr() if self.profiler_tensor is not None else 0
