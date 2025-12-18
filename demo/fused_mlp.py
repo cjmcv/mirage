@@ -8,8 +8,6 @@ from pkt_util import TorchRef, PersistentKernelTest
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
-    parser.add_argument("--max-num-batched-tokens", default=1, type=int, help="Max number of tokens in a batch")
-    parser.add_argument("--max-num-batched-requests", default=1, type=int, help="Max number of requests in a batch")
     parser.add_argument("--output-dir", default="./gen", help="Output files directory")
     parser.add_argument("--trace-name", default="qwen3", help="Perfetto trace output name")
     parser.add_argument("--profiling", action="store_true", help="Use Profiler to generate trace")
@@ -28,7 +26,7 @@ if __name__ == "__main__":
     # model_name = args.model
     torch.set_default_dtype(torch.bfloat16)
 
-    pkt = PersistentKernelTest(world_size, rank, args.max_num_batched_requests, args.max_num_batched_tokens, args.trace_name, args.profiling)
+    pkt = PersistentKernelTest(world_size, rank, args.trace_name, args.profiling)
     mpk = pkt.get_mpk()
     
     # pkt.memory_footprint_simulation(rank)

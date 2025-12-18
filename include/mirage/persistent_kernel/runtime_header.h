@@ -262,15 +262,9 @@ struct RuntimeConfig {
   int *paged_kv_indptr_buffer;  // Metadata for LLM serving (paged attention)
   int *paged_kv_indices_buffer; // Metadata for LLM serving (paged attention)
   int *paged_kv_last_page_len_buffer; // Metadata for LLM serving
-#if defined(MODE_OFFLINE) || defined(MODE_ONLINE)
-  int *prompt_length;     // Metadata for online/offline serving
-  int *request_ids;       // Metadata for online/offline serving
-  int *page_queue;        // Metadata for online/offline serving
-  int *page_queue_head;   // Metadata for online/offline serving
-  int *page_queue_tail;   // Metadata for oneline/offline serving
-  int *next_request_id;   // Metadata for LLM serving
-  int total_num_requests; // Metadata for LLM serving
-#endif
+
+  int *infer_cnt; 
+
   void *profiler_buffer;
   bool split_worker_scheduler;
   cudaStream_t worker_stream, scheduler_stream;

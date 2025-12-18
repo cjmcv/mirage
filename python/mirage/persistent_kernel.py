@@ -17,10 +17,10 @@ HARD_CODE = """
 static PyObject *init_func(PyObject *self, PyObject *args) {
   PyObject *meta_list, *py_profiler_buffer;
   std::vector<void*> meta_tensors;
-  int my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers, total_num_requests;
+  int my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers;
   void *profiler_buffer;
 
-  if (!PyArg_ParseTuple(args, "OOiiiii", &meta_list, &py_profiler_buffer, &my_mpi_rank, &num_workers, &num_local_schedulers, &num_remote_schedulers, &total_num_requests)) {
+  if (!PyArg_ParseTuple(args, "OOiiiii", &meta_list, &py_profiler_buffer, &my_mpi_rank, &num_workers, &num_local_schedulers, &num_remote_schedulers)) {
     PyErr_SetString(PyExc_TypeError, "Invalid parameters");
     return NULL;
   }
@@ -43,7 +43,7 @@ static PyObject *init_func(PyObject *self, PyObject *args) {
   }
   profiler_buffer = PyLong_AsVoidPtr(py_profiler_buffer);
 
-  init_persistent_kernel(meta_tensors, profiler_buffer, my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers, total_num_requests);
+  init_persistent_kernel(meta_tensors, profiler_buffer, my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers);
   Py_RETURN_NONE;
 }
 
@@ -160,14 +160,14 @@ def get_compile_command(
     ]
     flags = flags + [f"-DMPK_TARGET_CC={target_cc}", "-DMIRAGE_BACKEND_USE_CUDA"]
 
-    if mpk.mode == "offline":
-        flags = flags + ["-DMODE_OFFLINE"]
-    elif mpk.mode == "online":
-        flags = flags + ["-DMODE_ONLINE"]
-    elif mpk.mode == "onepass":
-        flags = flags + ["-DMODE_ONEPASS"]
-    else:
-        raise ValueError(f"Invalid persistent kernel mode: {mpk.mode}")
+    # if mpk.mode == "offline":
+    #     flags = flags + ["-DMODE_OFFLINE"]
+    # elif mpk.mode == "online":
+    #     flags = flags + ["-DMODE_ONLINE"]
+    # elif mpk.mode == "onepass":
+    #     flags = flags + ["-DMODE_ONEPASS"]
+    # else:
+    #     raise ValueError(f"Invalid persistent kernel mode: {mpk.mode}")
 
     # flags = flags + [f"-DMPK_MAX_NUM_BATCHED_REQUESTS={mpk.max_num_batched_requests}"]
     # flags = flags + [f"-DMPK_MAX_NUM_BATCHED_TOKENS={mpk.max_num_batched_tokens}"]

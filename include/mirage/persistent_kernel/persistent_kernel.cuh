@@ -123,20 +123,10 @@ __device__ __forceinline__ TaskId compute_task_id(size_t iteration_num,
   return ((iteration_num << 32) | position_index);
 }
 
-__global__ void init_kernel(RuntimeConfig config) {
-  assert(gridDim.x == 1);
-  assert(gridDim.y == 1);
-  assert(gridDim.z == 1);
-  // Only a single thread that initializes everything
-  if (threadIdx.x == 0) {
-    *config.next_request_id = 0;
-  }
-}
-
 __global__ void prepare_kernel(RuntimeConfig config,
                                int end_of_task_graph_event_pos) {
   if (blockIdx.x == 0 && threadIdx.x == 0) {
-    *config.next_request_id = 0;
+    *config.infer_cnt = 0;
   }
   ///////////////////////////////////////////////////////////////////
 
@@ -171,78 +161,21 @@ __global__ void prepare_kernel(RuntimeConfig config,
   }
 }
 
-#ifdef MODE_OFFLINE
 // TODO: parallelize this processing
 __device__ __forceinline__ bool
     prepare_next_batch(RuntimeConfig const &config) {
 
-  int next_request_id = *config.next_request_id;
-  if (next_request_id == 0) {
+  int infer_cnt = *config.infer_cnt;
+  if (infer_cnt == 0) {
     // printf("prepare_next_batch true (%d, %d).\n", blockIdx.x, threadIdx.x);
-    *config.next_request_id = next_request_id + 1;
+    *config.infer_cnt = infer_cnt + 1;
     return true;
   }
   else {
     // printf("prepare_next_batch false (%d, %d).\n", blockIdx.x, threadIdx.x);
     return false;
   }
-  // int num_reqs = 0, num_tokens = 0;
-
-  // // Add new prefill requests until we reach capacity
-  // while (num_reqs < MPK_MAX_NUM_BATCHED_REQUESTS &&
-  //        num_tokens < MPK_MAX_NUM_BATCHED_TOKENS) {
-  //   printf("while(%d,%d)\n", blockIdx.x, threadIdx.x);
-  //   int next_request_id = *config.next_request_id;
-  //   if (next_request_id >= config.total_num_requests) {
-  //     break;
-  //   }
-  //   // Prefill request
-  //   int num_new_tokens = MPK_MAX_NUM_BATCHED_TOKENS - num_tokens; // min(config.prompt_length[next_request_id], MPK_MAX_NUM_BATCHED_TOKENS - num_tokens);
-  //   num_tokens += num_new_tokens;
-  //   // num_pages += num_new_pages;
-  //   num_reqs++;
-  //   *config.next_request_id = next_request_id + 1;
-  // }
-  
-  // printf("into prepare_next_batch.\n");
-  // if (num_tokens == 0) {
-  //   printf("into prepare_next_batch false.\n");
-  //   return false;
-  // } else {
-  //   printf("into prepare_next_batch true.\n");
-  //   return true;
-  // }
 }
-#endif
-
-// #ifdef MODE_ONLINE
-// __device__ __forceinline__ bool
-//     prepare_next_batch(RuntimeConfig const &config) {
-//   int step = config.step[0];
-// #ifdef MPK_ENABLE_VERBOSE
-//   printf("step: %d, new_token_num(%p): %d, new_token_ids:\n",
-//          step,
-//          config.new_token_nums,
-//          config.new_token_nums[0]);
-//   for (int i = 0; i < config.new_token_nums[0]; i++) {
-//     printf("%lld ", config.tokens[step + 1 + i]);
-//   }
-//   printf("\n");
-// #endif
-//   config.step[0] = step + config.new_token_nums[0];
-
-// #ifdef MPK_ENABLE_PROFILING
-//   return false;
-// #else
-//   if ((step + 2 >= config.max_seq_length) ||
-//       (config.tokens[step + 1] == config.eos_token_id)) {
-//     return false;
-//   } else {
-//     return true;
-//   }
-// #endif
-// }
-// #endif
 
 __device__ __forceinline__ int get_rand_sched_id(size_t event_index,
                                                  int worker_id,
@@ -303,7 +236,7 @@ __device__ __forceinline__ void terminate_schedulers(RuntimeConfig config) {
 __device__ __forceinline__ void init_launch(RuntimeConfig config) {
   // 只需要1个block负责
   if (threadIdx.x == 0) {
-    *config.next_request_id = 0;
+    *config.infer_cnt = 0;
   }
 }
 
@@ -991,8 +924,7 @@ extern "C" void init_persistent_kernel(std::vector<void *> meta_tensors,
                                        int my_rank,
                                        int num_workers,
                                        int num_local_schedulers,
-                                       int num_remote_schedulers,
-                                       int total_num_requests) {
+                                       int num_remote_schedulers) {
 
   global_runtime_config.num_workers = num_workers;
   global_runtime_config.num_local_schedulers = num_local_schedulers;
@@ -1018,16 +950,7 @@ extern "C" void init_persistent_kernel(std::vector<void *> meta_tensors,
   int npes = 1;
 #endif
 
-#if defined(MODE_OFFLINE) || defined(MODE_ONLINE)
-  // global_runtime_config.request_ids =
-  //     gpu_malloc<int>(sizeof(int) * (MPK_MAX_NUM_BATCHED_REQUESTS + 1));
-  global_runtime_config.next_request_id = gpu_malloc<int>(sizeof(int));
-  // global_runtime_config.page_queue =
-  //     gpu_malloc<int>(MPK_MAX_NUM_PAGES * sizeof(int));
-  // global_runtime_config.page_queue_head = gpu_malloc<int>(sizeof(int));
-  // global_runtime_config.page_queue_tail = gpu_malloc<int>(sizeof(int));
-  global_runtime_config.total_num_requests = total_num_requests;
-#endif
+  global_runtime_config.infer_cnt = gpu_malloc<int>(sizeof(int));
   global_runtime_config.per_worker_queue_len = 1024;
   global_runtime_config.per_sched_queue_len = 1024;
   global_runtime_config.num_gpus = npes;
@@ -1249,12 +1172,9 @@ extern "C" void finalize_persistent_kernel() {
   gpu_free(global_runtime_config.all_event_num_triggers);
   gpu_free(global_runtime_config.all_tasks);
   gpu_free(global_runtime_config.all_events);
-#if defined(MODE_OFFLINE) || defined(MODE_ONLINE)
-  gpu_free(global_runtime_config.next_request_id);
-  // gpu_free(global_runtime_config.page_queue);
-  // gpu_free(global_runtime_config.page_queue_head);
-  // gpu_free(global_runtime_config.page_queue_tail);
-#endif
+
+  gpu_free(global_runtime_config.infer_cnt);
+
   int num_workers = global_runtime_config.num_workers;
   std::vector<TaskId *> host_worker_queues(num_workers * 2);
   cudaMemcpy(host_worker_queues.data(),

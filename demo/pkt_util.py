@@ -40,7 +40,7 @@ class TorchRef:
     
     
 class PersistentKernelTest:
-    def __init__(self, world_size, rank, max_num_batched_requests, max_num_batched_tokens, trace_name, profiling):
+    def __init__(self, world_size, rank, trace_name, profiling):
         if profiling:
             self.profiler_tensor = torch.zeros(
                 3000 * 128, dtype=torch.uint64, device="cuda"
@@ -59,15 +59,11 @@ class PersistentKernelTest:
             num_workers=num_workers,
             num_local_schedulers=num_schedulers,
             num_remote_schedulers=0,
-            # max_num_batched_requests=max_num_batched_requests,
-            # max_num_batched_tokens=max_num_batched_tokens,
             meta_tensors={}, #  meta_tensors={"qo_indptr_buffer": self.qo_indptr_buffer,},
             profiler_tensor=self.profiler_tensor,
             trace_name=trace_name,
-            # spec_decode_config=spec_decode_config,
             use_cutlass_kernel=False,
         )
-        self.batch_size = max_num_batched_tokens
     
     def get_mpk(self):
         return self.mpk
@@ -127,10 +123,12 @@ class PersistentKernelTest:
                 print("torch_out:", torch_result)
                 print("diff: ", mpk_result - torch_result)
                 
-                threshold = 0.05
-                radio_num = abs((mpk_result - torch_result)/torch_result) > threshold
-                count = radio_num.sum().item()
-                print("radio > ", threshold, ": ", count, "-", count/total_num)
+                radio = abs((mpk_result - torch_result)/torch_result)
+                
+                threshold = [0.05, 0.10]
+                count0 = (radio > threshold[0]).sum().item()
+                count1 = (radio > threshold[1]).sum().item()
+                print("radio > ", threshold[0], ": ", count0, "-", count0/total_num, " / ", threshold[1], ": ", count1, "-", count1/total_num)
                 
                 
                 

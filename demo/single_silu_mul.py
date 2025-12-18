@@ -8,8 +8,6 @@ from pkt_util import TorchRef, PersistentKernelTest
 if __name__ == "__main__":
     batch_size = 8
     parser = argparse.ArgumentParser()
-    parser.add_argument("--max-num-batched-tokens", default=batch_size, type=int, help="Max number of tokens in a batch")
-    parser.add_argument("--max-num-batched-requests", default=batch_size, type=int, help="Max number of requests in a batch")
     parser.add_argument("--output-dir", default="./gen", help="Output files directory")
     parser.add_argument("--trace-name", default="qwen3", help="Perfetto trace output name")
     parser.add_argument("--profiling", action="store_true", help="Use Profiler to generate trace")
