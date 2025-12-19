@@ -30,7 +30,7 @@ if __name__ == "__main__":
     pkt = PersistentKernelTest(world_size, rank, args.trace_name, args.profiling)
     mpk = pkt.get_mpk()
     
-    pkt.memory_footprint_simulation(rank)
+    # pkt.memory_footprint_simulation(rank)
     
     splitk = 1 # 8
     hidden_size = 2560
@@ -97,8 +97,8 @@ if __name__ == "__main__":
     
     pkt.compile_load(args.nc, args.output_dir)
     
-    # pkt.memory_footprint_simulation(rank)
-    
+    pkt.memory_footprint_simulation(rank)
+        
     ###
     warnup_iter = 100
     test_iter = 200
@@ -113,11 +113,15 @@ if __name__ == "__main__":
         ref_run()
     ###
     
+    if (args.profiling):
+        mpk(batch_size)
+        print("Finish profiling.")
+        exit()
+        
     ################################################################
     pkt.check_allclose(mpk_run, mlp_out_torch, splitk, ref_run)        
-    #############################################################
 
-    pkt.time_event_record("torch_ref", ref_run, test_iter)        
+    pkt.time_event_record("torch_ref", ref_run, test_iter)
     pkt.time_event_record("mpk", mpk_run, test_iter)
 
     pkt.torch_profile(ref_run)

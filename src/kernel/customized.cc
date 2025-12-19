@@ -14,16 +14,10 @@
  */
 
 #include "mirage/kernel/customized.h"
-// #include "mirage/kernel/device_memory_manager.h"
 #include "mirage/kernel/graph.h"
-// #include "mirage/threadblock/element_unary.h"
 #include "mirage/threadblock/graph.h"
 #include "mirage/threadblock/operator.h"
-// #include "mirage/threadblock/reduction.h"
 #include "mirage/threadblock/smem_tensor.h"
-// #include "mirage/utils/fingerprint_functions.h"
-// #include "mirage/utils/hash_utils.h"
-#include "omp.h"
 #include <cassert>
 
 namespace mirage {

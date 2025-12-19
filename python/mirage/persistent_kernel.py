@@ -20,7 +20,7 @@ static PyObject *init_func(PyObject *self, PyObject *args) {
   int my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers;
   void *profiler_buffer;
 
-  if (!PyArg_ParseTuple(args, "OOiiiii", &meta_list, &py_profiler_buffer, &my_mpi_rank, &num_workers, &num_local_schedulers, &num_remote_schedulers)) {
+  if (!PyArg_ParseTuple(args, "OOiiii", &meta_list, &py_profiler_buffer, &my_mpi_rank, &num_workers, &num_local_schedulers, &num_remote_schedulers)) {
     PyErr_SetString(PyExc_TypeError, "Invalid parameters");
     return NULL;
   }
@@ -1453,7 +1453,6 @@ class PersistentKernel:
             self.num_workers,
             self.num_local_schedulers,
             self.num_remote_schedulers,
-            1, 
         )
 
         self._is_compiled = True

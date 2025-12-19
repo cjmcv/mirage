@@ -65,19 +65,21 @@ if __name__ == "__main__":
     warnup_iter = 100
     test_iter = 200
     
-    def ref():
+    def ref_run():
         return TorchRef.linear(x_torch, w_torch)
         
+    def mpk_run():
+        mpk(batch_size)
+        
     for _ in range(warnup_iter):
-        ref()
+        ref_run()
     ###
     
     ################################################################
-    pkt.check_allclose(linear_out_torch, splitk, ref)        
-    #############################################################
+    pkt.check_allclose(mpk_run, linear_out_torch, splitk, ref_run)
         
-    pkt.time_event_record("mpk", mpk, test_iter)
-    pkt.time_event_record("torch_ref", ref, test_iter)
+    pkt.time_event_record("mpk", mpk_run, test_iter)
+    pkt.time_event_record("torch_ref", ref_run, test_iter)
 
-    pkt.torch_profile(ref)
-    pkt.torch_profile(mpk)
+    pkt.torch_profile(ref_run)
+    pkt.torch_profile(mpk_run)

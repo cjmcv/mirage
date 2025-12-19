@@ -106,12 +106,9 @@ public:
   int num_dims;
   int dim[mirage::config::MAX_TENSOR_DIMS];
   type::GuidType guid;
-  // int stride[MAX_TENSOR_DIMS];
   //  DTensor fields
   KNOperator *owner_op;
   int owner_ts_idx;
-  // pointer to data
-  // void *data_ptr;
   // offset in device memory
   int64_t data_offset;
 

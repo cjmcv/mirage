@@ -439,42 +439,6 @@ cdef class CyTBInputOp(CyTBOperator):
             else:
                 return self.c_input_ptr.get_dtensor_guid()
 
-# cdef class CyTBOutputOp(CyTBOperator):
-#     cdef CppTBOutputOp* c_output_ptr
-
-#     def __cinit__(self, op):
-#         cdef unsigned long long ptr
-#         if op is None:
-#             self.c_output_ptr = <CppTBOutputOp*>(NULL)
-#         else:
-#             ptr = ctypes.cast(op, ctypes.c_void_p).value
-#             self.c_output_ptr = <CppTBOutputOp*>(ptr)
-
-#     property output_map:
-#         def __get__(self):
-#             if self.c_output_ptr == NULL:
-#                 return None
-#             else:
-#                 return {
-#                     "x": self.c_output_ptr.output_map.x,
-#                     "y": self.c_output_ptr.output_map.y,
-#                     "z": self.c_output_ptr.output_map.z
-#                 }
-
-#     property forloop_dim:
-#         def __get__(self):
-#             if self.c_output_ptr == NULL:
-#                 return None
-#             else:
-#                 return self.c_output_ptr.forloop_dim
-
-#     property dtensor_guid:
-#         def __get__(self):
-#             if self.c_output_ptr == NULL:
-#                 return None
-#             else:
-#                 return self.c_output_ptr.get_dtensor_guid()
-
 cdef class CyKNGraph:
     cdef CppKNGraph *p_kgraph #Hold a CppKNGraph instance
 
@@ -505,16 +469,6 @@ cdef class CyKNGraph:
         t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
         return DTensor(t)
 
-    # def mark_output(self, DTensor A, tuple strides):
-    #     cdef vector[size_t] cstrides
-    #     if strides is None:
-    #         cstrides.resize(0)
-    #     else:
-    #         cstrides.resize(len(strides))
-    #         for i in range(len(strides)):
-    #             cstrides[i] = strides[i]
-    #     self.p_kgraph.mark_output(A.c_ptr, cstrides)
-
     def customized(self, list inputs, CyTBGraph bgraph):
         cdef vector[const CppDTensor*] cinputs
         cinputs.resize(len(inputs))
@@ -543,9 +497,6 @@ cdef class CyKNGraph:
             inputs.append(DTensor(ptr))
         return inputs
     
-    # def get_owner_independent_hash(self):
-    #     return self.p_kgraph.get_owner_independent_hash()
-
     # visualizer utils
 
     def _kn_tensor_to_dict(self, DTensor t):
@@ -575,13 +526,6 @@ cdef class CyKNGraph:
             ans["dtensor"] = {
                 "guid": input_op.dtensor_guid
             }
-        # elif "output" in op.op_type:
-        #     output_op = CyTBOutputOp(ctypes.cast(<unsigned long long>(op.c_ptr), ctypes.c_void_p))
-        #     ans["output_map"] = output_op.output_map
-        #     ans["forloop_dim"] = output_op.forloop_dim
-        #     ans["dtensor"] = {
-        #         "guid": output_op.dtensor_guid
-        #     }
         return ans
 
     def _get_bgraph_info(self, CyKNOperator op):
@@ -619,9 +563,6 @@ cdef class CyKNGraph:
 
     def get_num_inputs(self):
         return self.p_kgraph.get_num_input_dtensors()
-
-    # def get_num_outputs(self):
-    #     return self.p_kgraph.get_num_output_dtensors()
 
     def get_input_dtensor_shape_and_stride(self, DTensor A):
         cdef int cstrides[128]
@@ -773,6 +714,3 @@ cdef class CyTBGraph:
                 ptr = ctypes.cast(<unsigned long long>coperators[i], ctypes.c_void_p)
                 operators.append(CyTBOperator(ptr))
             return operators
-
-# def set_gpu_device_id(gpu_id: int):
-#     cython_set_gpu_device_id(gpu_id)
