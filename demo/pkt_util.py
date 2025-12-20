@@ -7,6 +7,20 @@ import os
 import mirage as mi
 import torch.nn.functional as F
 
+class TestUtil:
+    @staticmethod
+    def create_matrix_arange_row(shape, dtype=torch.bfloat16, device='cuda'):
+        M, N = shape
+        row_indices = torch.arange(M, dtype=dtype, device=device)
+        matrix = row_indices.unsqueeze(1).expand(M, N).contiguous()  # contiguous is very important!
+        return matrix
+    
+    @staticmethod
+    def create_matrix_arange_col(shape, dtype=torch.bfloat16, device='cuda'):
+        M, N = shape
+        col_indices = torch.arange(N, dtype=dtype, device=device)
+        matrix = col_indices.unsqueeze(0).expand(M, N).contiguous()
+        return matrix
 class TorchRef:
     @staticmethod
     def linear(x, w):
@@ -62,7 +76,7 @@ class PersistentKernelTest:
             meta_tensors={}, #  meta_tensors={"qo_indptr_buffer": self.qo_indptr_buffer,},
             profiler_tensor=self.profiler_tensor,
             trace_name=trace_name,
-            use_cutlass_kernel=False,
+            use_cutlass_kernel=True,
         )
     
     def get_mpk(self):
@@ -91,19 +105,21 @@ class PersistentKernelTest:
         print(prof.key_averages().table(sort_by="cuda_time_total"))
         prof.export_chrome_trace("trace.json") # chrome://tracing/        
     
-    def check_allclose(self, mpk_run, mpk_out, splitk, torch_ref_run):
-        # torch.set_printoptions(threshold=float('inf'))
+    def check_allclose(self, mpk_run, mpk_out, splitk, torch_ref_run, iter):
+        torch.set_printoptions(threshold=float('inf'))
         torch.cuda.synchronize()
         
         torch_out = torch_ref_run()
-        for _ in range(5):
+        # print("inner: ", torch_out, torch_out.data_ptr())
+        for _ in range(iter):
             mpk_out.zero_()
             mpk_run()
+            # print("inner2: ", torch_out)
             torch.cuda.synchronize()
             
             mpk_result = mpk_out
             torch_result = torch_out
-            
+            # print("inner3: ", torch_out)
             if splitk != 1:
                 for i in range(1, splitk):
                     mpk_out[0] += mpk_out[i]
@@ -129,9 +145,7 @@ class PersistentKernelTest:
                 count0 = (radio > threshold[0]).sum().item()
                 count1 = (radio > threshold[1]).sum().item()
                 print("radio > ", threshold[0], ": ", count0, "-", count0/total_num, " / ", threshold[1], ": ", count1, "-", count1/total_num)
-                
-                
-                
+                 
     def time_event_record(self, name, func, test_iter):
         starter = torch.cuda.Event(enable_timing=True)
         ender = torch.cuda.Event(enable_timing=True)

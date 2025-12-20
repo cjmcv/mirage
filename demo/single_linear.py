@@ -3,10 +3,10 @@ import torch
 import argparse
 import mirage as mi
 
-from pkt_util import TorchRef, PersistentKernelTest
+from pkt_util import TestUtil, TorchRef, PersistentKernelTest
 
 if __name__ == "__main__":
-    batch_size = 1
+    batch_size = 128
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", default="./gen", help="Output files directory")
     parser.add_argument("--trace-name", default="qwen3", help="Perfetto trace output name")
@@ -32,22 +32,22 @@ if __name__ == "__main__":
     # pkt.memory_footprint_simulation(rank)
     
     splitk = 1 # 8
-    hidden_size = 2560
-    intermediate_size = 9728
-    x_torch = torch.randn((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
-    w_torch = torch.randn((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
+    hidden_size = 2560        # K
+    intermediate_size = 9728 # torch.randn / ones / TestUtil.create_matrix_arange_col/
+    x_torch = torch.ones((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
+    w_torch = TestUtil.create_matrix_arange_row((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
     linear_out_torch = torch.zeros((splitk, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
     
     x = mpk.attach_input(torch_tensor=x_torch, name="in")
     w = mpk.attach_input(torch_tensor=w_torch, name="w")
     linear_out = mpk.attach_input(torch_tensor=linear_out_torch, name="linear_out")
-    
+
     if splitk == 1:
         mpk.linear_layer(
             input=x,
             weight=w,
             output=linear_out,
-            grid_dim=(32, 1, 1),  # (64, 1, 1)
+            grid_dim=(1, 1, 1),  # (64, 1, 1)
             block_dim=(128, 1, 1),
         )
     else:
@@ -61,9 +61,10 @@ if __name__ == "__main__":
     
     pkt.compile_load(args.nc, args.output_dir)
     
-    ###
-    warnup_iter = 100
-    test_iter = 200
+    mpk(batch_size)
+    # ###
+    # warnup_iter = 100
+    # test_iter = 200
     
     def ref_run():
         return TorchRef.linear(x_torch, w_torch)
@@ -71,15 +72,16 @@ if __name__ == "__main__":
     def mpk_run():
         mpk(batch_size)
         
-    for _ in range(warnup_iter):
-        ref_run()
-    ###
+    # for _ in range(warnup_iter):
+    #     ref_run()
+    # ###
     
-    ################################################################
-    pkt.check_allclose(mpk_run, linear_out_torch, splitk, ref_run)
+    # ################################################################
+    print("mpk_out:", linear_out_torch)
+    pkt.check_allclose(mpk_run, linear_out_torch, splitk, ref_run, 1)
         
-    pkt.time_event_record("mpk", mpk_run, test_iter)
-    pkt.time_event_record("torch_ref", ref_run, test_iter)
+    # pkt.time_event_record("mpk", mpk_run, test_iter)
+    # pkt.time_event_record("torch_ref", ref_run, test_iter)
 
-    pkt.torch_profile(ref_run)
-    pkt.torch_profile(mpk_run)
+    # pkt.torch_profile(ref_run)
+    # pkt.torch_profile(mpk_run)
