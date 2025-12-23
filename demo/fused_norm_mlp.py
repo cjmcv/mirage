@@ -41,6 +41,9 @@ if __name__ == "__main__":
     w_down_proj_torch = torch.randn((hidden_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
     mlp_out_torch = torch.zeros((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
     
+    # (batch_size, 38, 19, 20)
+    # (batch_size, 76, 38, 40)
+    gridsize = [batch_size, 76, 38, 40]
     x = mpk.attach_input(torch_tensor=x_torch, name="in")
     w_rms = mpk.attach_input(torch_tensor=w_rms_torch, name="w_rms")
     w_gatedup = mpk.attach_input(torch_tensor=w_gatedup_torch, name="w_gatedup")
@@ -52,7 +55,7 @@ if __name__ == "__main__":
         input=x,
         weight=w_rms,
         output=rmsnorm_out,
-        grid_dim=(batch_size, 1, 1),
+        grid_dim=(gridsize[0], 1, 1),
         block_dim=(128, 1, 1),
     )
     
@@ -63,7 +66,7 @@ if __name__ == "__main__":
         input=rmsnorm_out,
         weight=w_gatedup,
         output=mlp_mid,
-        grid_dim=(38, 1, 1),
+        grid_dim=(gridsize[1], 1, 1),
         block_dim=(128, 1, 1),
     )
     
@@ -74,7 +77,7 @@ if __name__ == "__main__":
     mpk.silu_mul_layer(
         input=mlp_mid,
         output=silu_mul_out,
-        grid_dim=(19, 1, 1),
+        grid_dim=(gridsize[2], 1, 1),
         block_dim=(128, 1, 1),
     )
     if splitk == 1:
@@ -83,7 +86,7 @@ if __name__ == "__main__":
             weight=w_down_proj,
             residual=x,
             output=mlp_out,
-            grid_dim=(20, 1, 1), # (64, 1, 1)
+            grid_dim=(gridsize[3], 1, 1), # (64, 1, 1)
             block_dim=(128, 1, 1),
         )
     else:

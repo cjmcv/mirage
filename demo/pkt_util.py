@@ -181,9 +181,9 @@ class PersistentKernelTest:
             torch_run()
         
         self.check_allclose(mpk_run, mpk_out, splitk, torch_out, allclose_iter, print_all)      
-            
+
+        self.time_event_record("torch_ref", torch_run, test_iter)   
         self.time_event_record("mpk", mpk_run, test_iter)
-        self.time_event_record("torch_ref", torch_run, test_iter)
 
         self.torch_profile(torch_run)
         self.torch_profile(mpk_run)

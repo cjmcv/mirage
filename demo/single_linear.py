@@ -6,7 +6,7 @@ import mirage as mi
 from pkt_util import TestUtil, TorchRef, PersistentKernelTest
 
 if __name__ == "__main__":
-    # 只支持8的倍数，gridSize需要能N被整除。
+    # batch_size只支持8的倍数，gridSize切分后，每个block的N也需要是8的倍数
     batch_size = 8
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", default="./gen", help="Output files directory")
@@ -49,7 +49,7 @@ if __name__ == "__main__":
             input=x,
             weight=w,
             output=linear_out,
-            grid_dim=(38, 1, 1),  # (9728 * 2) / 128 / 4 = 38 / 19 / 8
+            grid_dim=(38, 1, 1),  # (9728 * 2) / 8 = 2432 / ... / 76 / 38 / 19 / 8
             block_dim=(128, 1, 1),
         )
     else:
