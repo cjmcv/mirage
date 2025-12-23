@@ -34,6 +34,8 @@ from .configuration_qwen3 import Qwen3Config
 import time
 
 import mirage as mi
+from mpk_layers import MpkLayers
+
 from .rope import apply_rotary_pos_emb_triton
 
 
@@ -353,7 +355,18 @@ class Qwen3DecoderLayer(nn.Module):
         self.post_attention_layernorm = Qwen3RMSNorm(
             config.hidden_size, eps=config.rms_norm_eps
         )
-
+        #############
+        # self.mpk_layers = MpkLayers(world_size, 0, 16, "qwen3", None)
+        # gridsize = [16, 48, 24, 32]
+        # print(self.mlp.hidden_size, self.mlp.intermediate_size)
+        # self.w_gatedup_torch = torch.cat((self.mlp.gate_proj.weight, self.mlp.up_proj.weight), 0)
+        # self.x_torch, self.out_torch = self.mpk_layers.create_qwen3_norm_mlp(
+        #                                         gridsize, self.mlp.hidden_size, self.mlp.intermediate_size, 
+        #                                         w_rms_torch = self.post_attention_layernorm.weight, 
+        #                                         w_gatedup_torch = self.w_gatedup_torch,
+        #                                         w_down_proj_torch = self.mlp.down_proj.weight)
+        # self.mpk_layers.compile_load(False, "./gen")
+        
     def forward(
         self,
         hidden_states: torch.Tensor,
@@ -369,7 +382,7 @@ class Qwen3DecoderLayer(nn.Module):
     ]:
 
         residual = hidden_states
-        print("shape0: ", residual.shape)
+        # print("shape0: ", residual.shape)
 
         # hidden_states = self.input_layernorm(hidden_states)
 
@@ -383,7 +396,7 @@ class Qwen3DecoderLayer(nn.Module):
             stream=stream,
         )
         hidden_states = residual + hidden_states
-        print("shape1: ", hidden_states.shape, residual.shape)
+        # print("shape1: ", hidden_states.shape, residual.shape)
         
         # Fully Connected
         residual = hidden_states
@@ -392,7 +405,7 @@ class Qwen3DecoderLayer(nn.Module):
             self.post_attention_layernorm, hidden_states, stream=stream
         )
         hidden_states = residual + hidden_states
-        print("shape2: ", hidden_states.shape, residual.shape)
+        # print("shape2: ", hidden_states.shape, residual.shape)
         outputs = (hidden_states,)
 
         return outputs

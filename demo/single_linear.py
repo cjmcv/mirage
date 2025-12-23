@@ -3,7 +3,8 @@ import torch
 import argparse
 import mirage as mi
 
-from pkt_util import TestUtil, TorchRef, PersistentKernelTest
+from pkt_util import TorchRef, MpkReporter, TestUtil
+from mpk_layers import MpkLayers
 
 if __name__ == "__main__":
     # batch_size只支持8的倍数，gridSize切分后，每个block的N也需要是8的倍数
@@ -28,10 +29,10 @@ if __name__ == "__main__":
     # model_name = args.model
     torch.set_default_dtype(torch.bfloat16)
 
-    pkt = PersistentKernelTest(world_size, rank, args.trace_name, args.profiling)
-    mpk = pkt.get_mpk()
-    
-    # pkt.memory_footprint_simulation(rank)
+    layers = MpkLayers(world_size, rank, max_batch_size, args.trace_name, args.profiling)
+    mpk = layers.get_mpk()
+    reporter = MpkReporter() 
+    # reporter.memory_footprint_simulation(rank)
     
     splitk = 1 # 8
     hidden_size = 2560        # K
@@ -62,7 +63,7 @@ if __name__ == "__main__":
             block_dim=(128, 1, 1),
         )
     
-    pkt.compile_load(args.nc, args.output_dir)
+    layers.compile_load(args.nc, args.output_dir)
     
     
     # ###
@@ -80,7 +81,7 @@ if __name__ == "__main__":
     #     print("allclose: True")
     ###
     
-    pkt.generate_report(mpk_run, mpk_output, splitk, 
-                        ref_run, ref_output, 
-                        warnup_iter=100, test_iter=200, 
-                        allclose_iter=5, print_all=False)
+    reporter.generate_report(mpk_run, mpk_output, splitk, 
+                            ref_run, ref_output, 
+                            warnup_iter=100, test_iter=200, 
+                            allclose_iter=5, print_all=False)

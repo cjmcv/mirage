@@ -71,51 +71,14 @@ class TorchRef:
         return D
     
     
-class PersistentKernelTest:
-    def __init__(self, world_size, rank, trace_name, profiling):
-        if profiling:
-            self.profiler_tensor = torch.zeros(
-                3000 * 128, dtype=torch.uint64, device="cuda"
-            ).contiguous()
-        else:
-            self.profiler_tensor = None
-            
-        num_workers, num_schedulers = mi.get_configurations_from_gpu(rank)
-        print("num_workers: ", num_workers)
-        print("num_schedulers: ", num_schedulers)
-        
-        self.mpk = mi.PersistentKernel(
-            mode="offline",
-            world_size=world_size,
-            mpi_rank=rank,
-            num_workers=num_workers,
-            num_local_schedulers=num_schedulers,
-            num_remote_schedulers=0,
-            meta_tensors={}, #  meta_tensors={"qo_indptr_buffer": self.qo_indptr_buffer,},
-            profiler_tensor=self.profiler_tensor,
-            trace_name=trace_name,
-            use_cutlass_kernel=False,
-        )
-    
-    def get_mpk(self):
-        return self.mpk
-
-    def compile_load(self, is_no_compile, output_dir):
-        if is_no_compile is True:
-            module_path = output_dir + "/test.cpython-38-x86_64-linux-gnu.so"
-            self.mpk.load_module(module_path)
-        else:
-            module_path = self.mpk.compile(output_dir=output_dir)
-            print("module_path: ", module_path)
-            self.mpk.load_module(module_path) 
-            
+class MpkReporter:
     def memory_footprint_simulation(self, rank):
         torch.cuda.set_device(rank)
         with torch.device("cuda"):
             model_name = "/home/cjmcv/project/llm_models/Qwen/Qwen3-0.6B"
             self.model = Qwen3ForCausalLM.from_pretrained(model_name, world_size=1, max_num_pages=16, page_size=4096).to("cuda")
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)    
-            
+    
     def torch_profile(self, func):
         from torch.profiler import profile, ProfilerActivity
         with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:

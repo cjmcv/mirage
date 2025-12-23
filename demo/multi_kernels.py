@@ -7,8 +7,9 @@ from pkt_util import TorchRef, MpkReporter, TestUtil
 from mpk_layers import MpkLayers
 
 if __name__ == "__main__":
-    max_batch_size = 128
-    batch_size = 128
+    # batch_size只支持8的倍数，gridSize切分后，每个block的N也需要是8的倍数
+    max_batch_size = 16
+    batch_size = 8
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", default="./gen", help="Output files directory")
     parser.add_argument("--trace-name", default="qwen3", help="Perfetto trace output name")
@@ -34,32 +35,42 @@ if __name__ == "__main__":
     # reporter.memory_footprint_simulation(rank)
     
     splitk = 1 # 8
-    hidden_size = 2560
-    intermediate_size = 9728
-    x_torch = torch.randn((batch_size, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
-    out_torch = torch.zeros((batch_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
+    hidden_size = 2560        # K
+    intermediate_size = 9728 # torch.randn / ones / TestUtil.create_matrix_arange_col/
+    x_torch = torch.ones((max_batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
+    w_torch = TestUtil.create_matrix_arange_row((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
+    out_torch = torch.zeros((max_batch_size, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
+    print("x: ", x_torch.data_ptr(), "w: ", w_torch.data_ptr(), "o: ", out_torch.data_ptr())
     
     x = mpk.attach_input(torch_tensor=x_torch, name="in")
-    silu_mul_out = mpk.attach_input(torch_tensor=out_torch, name="silu_mul_out")
-    mpk.silu_mul_layer(
+    w = mpk.attach_input(torch_tensor=w_torch, name="w")
+    linear_out = mpk.attach_input(torch_tensor=out_torch, name="linear_out")
+    mpk.linear_layer(
         input=x,
-        output=silu_mul_out,
-        grid_dim=(16, 1, 1),
+        weight=w,
+        output=linear_out,
+        grid_dim=(38, 1, 1),  # (9728 * 2) / 8 = 2432 / ... / 76 / 38 / 19 / 8
         block_dim=(128, 1, 1),
     )
-    
     layers.compile_load(args.nc, args.output_dir)
     
-    ##
+    
+    # ###
     def ref_run():
-        return TorchRef.silu_and_mul(x_torch)
+        return TorchRef.linear(x_torch[:batch_size], w_torch)
     def mpk_run():
         mpk(batch_size)
-
+        
     ref_output = ref_run()
+    mpk_output = out_torch[:batch_size]
+    # print("ref_output", ref_output)
+    # mpk(batch_size)
+    # print("out_torch", out_torch)
+    # if (torch.allclose(out_torch, ref_output, rtol=1e-2, atol=0)):
+    #     print("allclose: True")
     ###
     
-    reporter.generate_report(mpk_run, out_torch, splitk, 
+    reporter.generate_report(mpk_run, mpk_output, splitk, 
                             ref_run, ref_output, 
                             warnup_iter=100, test_iter=200, 
                             allclose_iter=5, print_all=False)

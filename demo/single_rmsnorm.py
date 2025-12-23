@@ -3,9 +3,11 @@ import torch
 import argparse
 import mirage as mi
 
-from pkt_util import TorchRef, PersistentKernelTest
+from pkt_util import TorchRef, MpkReporter, TestUtil
+from mpk_layers import MpkLayers
 
 if __name__ == "__main__":
+    max_batch_size = 4
     batch_size = 4
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", default="./gen", help="Output files directory")
@@ -26,10 +28,10 @@ if __name__ == "__main__":
     # model_name = args.model
     torch.set_default_dtype(torch.bfloat16)
 
-    pkt = PersistentKernelTest(world_size, rank, args.trace_name, args.profiling)
-    mpk = pkt.get_mpk()
-    
-    # pkt.memory_footprint_simulation(rank)
+    layers = MpkLayers(world_size, rank, max_batch_size, args.trace_name, args.profiling)
+    mpk = layers.get_mpk()
+    reporter = MpkReporter() 
+    # reporter.memory_footprint_simulation(rank)
     
     splitk = 1 # 8
     hidden_size = 2560
@@ -48,7 +50,7 @@ if __name__ == "__main__":
         block_dim=(128, 1, 1),
     )
     
-    pkt.compile_load(args.nc, args.output_dir)
+    layers.compile_load(args.nc, args.output_dir)
     
     print("torch -> in: ", x_torch.data_ptr(), ", w: ", w_torch.data_ptr(), ", rmsnorm_out: ", out_torch.data_ptr())
     mpk(batch_size)
@@ -65,7 +67,7 @@ if __name__ == "__main__":
     ref_output = ref_run()
     ###
     
-    pkt.generate_report(mpk_run, out_torch, splitk, 
-                        ref_run, ref_output, 
-                        warnup_iter=100, test_iter=200, 
-                        allclose_iter=5, print_all=False)
+    reporter.generate_report(mpk_run, out_torch, splitk, 
+                            ref_run, ref_output, 
+                            warnup_iter=100, test_iter=200, 
+                            allclose_iter=5, print_all=False)

@@ -1,9 +1,10 @@
 
 import torch
+from torch import nn
 import argparse
 import mirage as mi
 
-from pkt_util import TorchRef, PersistentKernelTest
+from pkt_util import TorchRef
 
 if __name__ == "__main__":
     batch_size = 1
@@ -16,8 +17,11 @@ if __name__ == "__main__":
     w_down_proj_torch = torch.randn((hidden_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
     mlp_out_torch = torch.zeros((splitk, hidden_size), dtype=torch.bfloat16, device="cuda")
     
-        
     ###
+    weight = nn.Parameter(torch.ones(hidden_size))
+    print(type(weight.data.data_ptr()))
+    print(type(w_gatedup_torch.data_ptr()))
+    
     warnup_iter = 100
     test_iter = 200
             
