@@ -189,8 +189,7 @@ __device__ __noinline__ void linear_kernel(void const *input_ptr,
       S2GCopyC s2g_tiled_copy_c;
       auto s2g_thr_copy_c = s2g_tiled_copy_c.get_thread_slice(idx);
       auto tCgR_s2g = s2g_thr_copy_c.partition_D(gR); // gR in global memory
-      auto tCsR_s2g =
-          s2g_thr_copy_c.partition_S(sR_init); // sR_init in shared memory
+      auto tCsR_s2g = s2g_thr_copy_c.partition_S(sR_init); // sR_init in shared memory
       auto tCcC = s2g_thr_copy_c.partition_S(cta_cC);
       auto tCpC = make_tensor<bool>(make_shape(size<0>(tCcC), Int<1>{}),
                                     make_stride(Int<1>{}, Int<0>{}));

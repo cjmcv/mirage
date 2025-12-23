@@ -6,7 +6,8 @@ import mirage as mi
 from pkt_util import TestUtil, TorchRef, PersistentKernelTest
 
 if __name__ == "__main__":
-    batch_size = 128
+    # 只支持8的倍数，gridSize需要能N被整除。
+    batch_size = 8
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", default="./gen", help="Output files directory")
     parser.add_argument("--trace-name", default="qwen3", help="Perfetto trace output name")
@@ -36,18 +37,19 @@ if __name__ == "__main__":
     intermediate_size = 9728 # torch.randn / ones / TestUtil.create_matrix_arange_col/
     x_torch = torch.ones((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
     w_torch = TestUtil.create_matrix_arange_row((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
-    linear_out_torch = torch.zeros((splitk, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
+    out_torch = torch.zeros((batch_size, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
+    print("x: ", x_torch.data_ptr(), "w: ", w_torch.data_ptr(), "o: ", out_torch.data_ptr())
     
     x = mpk.attach_input(torch_tensor=x_torch, name="in")
     w = mpk.attach_input(torch_tensor=w_torch, name="w")
-    linear_out = mpk.attach_input(torch_tensor=linear_out_torch, name="linear_out")
+    linear_out = mpk.attach_input(torch_tensor=out_torch, name="linear_out")
 
     if splitk == 1:
         mpk.linear_layer(
             input=x,
             weight=w,
             output=linear_out,
-            grid_dim=(1, 1, 1),  # (64, 1, 1)
+            grid_dim=(38, 1, 1),  # (9728 * 2) / 128 / 4 = 38 / 19 / 8
             block_dim=(128, 1, 1),
         )
     else:
@@ -61,27 +63,22 @@ if __name__ == "__main__":
     
     pkt.compile_load(args.nc, args.output_dir)
     
-    mpk(batch_size)
-    # ###
-    # warnup_iter = 100
-    # test_iter = 200
     
+    # ###
     def ref_run():
         return TorchRef.linear(x_torch, w_torch)
-        
     def mpk_run():
         mpk(batch_size)
         
-    # for _ in range(warnup_iter):
-    #     ref_run()
-    # ###
+    ref_output = ref_run()
+    # print("ref_output", ref_output)
+    # mpk(batch_size)
+    # print("out_torch", out_torch)
+    # if (torch.allclose(out_torch, ref_output, rtol=1e-2, atol=0)):
+    #     print("allclose: True")
+    ###
     
-    # ################################################################
-    print("mpk_out:", linear_out_torch)
-    pkt.check_allclose(mpk_run, linear_out_torch, splitk, ref_run, 1)
-        
-    # pkt.time_event_record("mpk", mpk_run, test_iter)
-    # pkt.time_event_record("torch_ref", ref_run, test_iter)
-
-    # pkt.torch_profile(ref_run)
-    # pkt.torch_profile(mpk_run)
+    pkt.generate_report(mpk_run, out_torch, splitk, 
+                        ref_run, ref_output, 
+                        warnup_iter=100, test_iter=200, 
+                        allclose_iter=5, print_all=False)

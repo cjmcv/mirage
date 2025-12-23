@@ -23,6 +23,24 @@ class TestUtil:
         return matrix
 class TorchRef:
     @staticmethod
+    def compile_capture(fn, is_compile):
+        if is_compile:
+            compiled_ref_fn = torch.compile(fn, backend="inductor")
+        else:
+            compiled_ref_fn = fn
+            
+        for _ in range(20):
+            output = compiled_ref_fn()
+        torch.cuda.synchronize()
+        
+        graph = torch.cuda.CUDAGraph()
+        stream = torch.cuda.Stream()
+        with torch.cuda.stream(stream):
+            with torch.cuda.graph(graph):
+                output = compiled_ref_fn()
+        return graph, output
+    
+    @staticmethod
     def linear(x, w):
         return F.linear(x, w)
     
@@ -76,7 +94,7 @@ class PersistentKernelTest:
             meta_tensors={}, #  meta_tensors={"qo_indptr_buffer": self.qo_indptr_buffer,},
             profiler_tensor=self.profiler_tensor,
             trace_name=trace_name,
-            use_cutlass_kernel=True,
+            use_cutlass_kernel=False,
         )
     
     def get_mpk(self):
@@ -105,11 +123,11 @@ class PersistentKernelTest:
         print(prof.key_averages().table(sort_by="cuda_time_total"))
         prof.export_chrome_trace("trace.json") # chrome://tracing/        
     
-    def check_allclose(self, mpk_run, mpk_out, splitk, torch_ref_run, iter):
-        torch.set_printoptions(threshold=float('inf'))
+    def check_allclose(self, mpk_run, mpk_out, splitk, torch_out, iter, print_all):
+        if (print_all):
+            torch.set_printoptions(threshold=float('inf'))
         torch.cuda.synchronize()
         
-        torch_out = torch_ref_run()
         # print("inner: ", torch_out, torch_out.data_ptr())
         for _ in range(iter):
             mpk_out.zero_()
@@ -135,8 +153,8 @@ class PersistentKernelTest:
             if (torch.allclose(mpk_result, torch_result, rtol=1e-2, atol=0)):
                 print("allclose: True")
             else:
-                print("mpk_out:", mpk_result)
-                print("torch_out:", torch_result)
+                print("mpk_out:", mpk_result.shape, "\n", mpk_result)
+                print("torch_out:", torch_result.shape, "\n", torch_result)
                 print("diff: ", mpk_result - torch_result)
                 
                 radio = abs((mpk_result - torch_result)/torch_result)
@@ -158,8 +176,19 @@ class PersistentKernelTest:
         run_time = starter.elapsed_time(ender)
         print(name, "run time (ms): ", run_time / test_iter)
      
-     
-    ##########################################################
+    def generate_report(self, mpk_run, mpk_out, splitk, torch_run, torch_out, warnup_iter, test_iter, allclose_iter, print_all):
+        for _ in range(warnup_iter):
+            torch_run()
+        
+        self.check_allclose(mpk_run, mpk_out, splitk, torch_out, allclose_iter, print_all)      
+            
+        self.time_event_record("mpk", mpk_run, test_iter)
+        self.time_event_record("torch_ref", torch_run, test_iter)
+
+        self.torch_profile(torch_run)
+        self.torch_profile(mpk_run)
+
+
     # pushd build && make -j8 && popd
     
     # git clone --recursive https://www.github.com/mirage-project/mirage

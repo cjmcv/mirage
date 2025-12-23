@@ -6,7 +6,7 @@ import mirage as mi
 from pkt_util import TorchRef, PersistentKernelTest
 
 if __name__ == "__main__":
-    batch_size = 8
+    batch_size = 128
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", default="./gen", help="Output files directory")
     parser.add_argument("--trace-name", default="qwen3", help="Perfetto trace output name")
@@ -26,7 +26,7 @@ if __name__ == "__main__":
     # model_name = args.model
     torch.set_default_dtype(torch.bfloat16)
 
-    pkt = PersistentKernelTest(world_size, rank, args.max_num_batched_requests, args.max_num_batched_tokens, args.trace_name, args.profiling)
+    pkt = PersistentKernelTest(world_size, rank, args.trace_name, args.profiling)
     mpk = pkt.get_mpk()
     
     # pkt.memory_footprint_simulation(rank)
@@ -35,10 +35,10 @@ if __name__ == "__main__":
     hidden_size = 2560
     intermediate_size = 9728
     x_torch = torch.randn((batch_size, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
-    silu_mul_out_torch = torch.zeros((batch_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
+    out_torch = torch.zeros((batch_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
     
     x = mpk.attach_input(torch_tensor=x_torch, name="in")
-    silu_mul_out = mpk.attach_input(torch_tensor=silu_mul_out_torch, name="silu_mul_out")
+    silu_mul_out = mpk.attach_input(torch_tensor=out_torch, name="silu_mul_out")
     mpk.silu_mul_layer(
         input=x,
         output=silu_mul_out,
@@ -47,25 +47,17 @@ if __name__ == "__main__":
     )
     
     pkt.compile_load(args.nc, args.output_dir)
-    mpk()
     
     ##
-    warnup_iter = 100
-    test_iter = 200
-    
-    def ref():
+    def ref_run():
         return TorchRef.silu_and_mul(x_torch)
-        
-    for _ in range(warnup_iter):
-        ref()
+    def mpk_run():
+        mpk(batch_size)
+
+    ref_output = ref_run()
     ###
     
-    ################################################################
-    pkt.check_allclose(silu_mul_out_torch, splitk, ref)        
-    #############################################################
-        
-    pkt.time_event_record("mpk", mpk, test_iter)
-    pkt.time_event_record("torch_ref", ref, test_iter)
-
-    pkt.torch_profile(ref)
-    pkt.torch_profile(mpk)
+    pkt.generate_report(mpk_run, out_torch, splitk, 
+                        ref_run, ref_output, 
+                        warnup_iter=100, test_iter=200, 
+                        allclose_iter=5, print_all=False)

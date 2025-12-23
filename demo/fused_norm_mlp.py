@@ -6,7 +6,7 @@ import mirage as mi
 from pkt_util import TorchRef, PersistentKernelTest
 
 if __name__ == "__main__":
-    batch_size = 1
+    batch_size = 8
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", default="./gen", help="Output files directory")
     parser.add_argument("--trace-name", default="qwen3", help="Perfetto trace output name")
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     pkt = PersistentKernelTest(world_size, rank, args.trace_name, args.profiling)
     mpk = pkt.get_mpk()
     
-    # pkt.memory_footprint_simulation(rank)
+    pkt.memory_footprint_simulation(rank)
     
     splitk = 1 # 8
     hidden_size = 2560
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     w_rms_torch = torch.randn((1, hidden_size), dtype=torch.bfloat16, device="cuda")
     w_gatedup_torch = torch.randn((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
     w_down_proj_torch = torch.randn((hidden_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
-    mlp_out_torch = torch.zeros((splitk, hidden_size), dtype=torch.bfloat16, device="cuda")
+    mlp_out_torch = torch.zeros((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
     
     x = mpk.attach_input(torch_tensor=x_torch, name="in")
     w_rms = mpk.attach_input(torch_tensor=w_rms_torch, name="w_rms")
@@ -63,7 +63,7 @@ if __name__ == "__main__":
         input=rmsnorm_out,
         weight=w_gatedup,
         output=mlp_mid,
-        grid_dim=(32, 1, 1),
+        grid_dim=(38, 1, 1),
         block_dim=(128, 1, 1),
     )
     
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     mpk.silu_mul_layer(
         input=mlp_mid,
         output=silu_mul_out,
-        grid_dim=(16, 1, 1),
+        grid_dim=(19, 1, 1),
         block_dim=(128, 1, 1),
     )
     if splitk == 1:
@@ -83,7 +83,7 @@ if __name__ == "__main__":
             weight=w_down_proj,
             residual=x,
             output=mlp_out,
-            grid_dim=(32, 1, 1), # (64, 1, 1)
+            grid_dim=(20, 1, 1), # (64, 1, 1)
             block_dim=(128, 1, 1),
         )
     else:
@@ -97,20 +97,21 @@ if __name__ == "__main__":
     
     pkt.compile_load(args.nc, args.output_dir)
     
-    pkt.memory_footprint_simulation(rank)
+    # pkt.memory_footprint_simulation(rank)
         
     ###
     warnup_iter = 100
     test_iter = 200
     
     def ref_run():
-        O = TorchRef.norm_mlp(x_torch, w_rms_torch, w_gatedup_torch, w_down_proj_torch)
-        return O + x_torch
+        return TorchRef.norm_mlp(x_torch, w_rms_torch, w_gatedup_torch, w_down_proj_torch) + x_torch
+    graph, ref_output = TorchRef.compile_capture(ref_run, is_compile=False)
+
     def mpk_run():
         mpk(batch_size)
     
     for _ in range(warnup_iter):
-        ref_run()
+        graph.replay()
     ###
     
     if (args.profiling):
@@ -119,11 +120,11 @@ if __name__ == "__main__":
         exit()
         
     ################################################################
-    pkt.check_allclose(mpk_run, mlp_out_torch, splitk, ref_run)        
+    pkt.check_allclose(mpk_run, mlp_out_torch, splitk, ref_output, 5, False)        
 
-    pkt.time_event_record("torch_ref", ref_run, test_iter)
+    pkt.time_event_record("torch_ref", graph.replay, test_iter)
     pkt.time_event_record("mpk", mpk_run, test_iter)
 
-    pkt.torch_profile(ref_run)
+    pkt.torch_profile(graph.replay)
     pkt.torch_profile(mpk_run)
 

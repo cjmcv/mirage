@@ -35,11 +35,11 @@ if __name__ == "__main__":
     hidden_size = 2560
     x_torch = torch.randn((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
     w_torch = torch.randn((1, hidden_size), dtype=torch.bfloat16, device="cuda")
-    rmsnorm_out_torch = torch.zeros((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
+    out_torch = torch.zeros((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
     
     x = mpk.attach_input(torch_tensor=x_torch, name="in")
     w = mpk.attach_input(torch_tensor=w_torch, name="w")
-    rmsnorm_out = mpk.attach_input(torch_tensor=rmsnorm_out_torch, name="rms_out")
+    rmsnorm_out = mpk.attach_input(torch_tensor=out_torch, name="rms_out")
     mpk.rmsnorm_layer(
         input=x,
         weight=w,
@@ -50,26 +50,22 @@ if __name__ == "__main__":
     
     pkt.compile_load(args.nc, args.output_dir)
     
-    print("torch -> in: ", x_torch.data_ptr(), ", w: ", w_torch.data_ptr(), ", rmsnorm_out: ", rmsnorm_out_torch.data_ptr())
-    mpk()
+    print("torch -> in: ", x_torch.data_ptr(), ", w: ", w_torch.data_ptr(), ", rmsnorm_out: ", out_torch.data_ptr())
+    mpk(batch_size)
     
     ##
     warnup_iter = 100
     test_iter = 200
     
-    def ref():
+    def ref_run():
         return TorchRef.rms_norm(x_torch, w_torch)
+    def mpk_run():
+        mpk(batch_size)
         
-    for _ in range(warnup_iter):
-        ref()
+    ref_output = ref_run()
     ###
     
-    ################################################################
-    pkt.check_allclose(rmsnorm_out_torch, splitk, ref)        
-    #############################################################
-        
-    pkt.time_event_record("mpk", mpk, test_iter)
-    pkt.time_event_record("torch_ref", ref, test_iter)
-
-    pkt.torch_profile(ref)
-    pkt.torch_profile(mpk)
+    pkt.generate_report(mpk_run, out_torch, splitk, 
+                        ref_run, ref_output, 
+                        warnup_iter=100, test_iter=200, 
+                        allclose_iter=5, print_all=False)

@@ -359,6 +359,10 @@ def main(do_bench: bool = True):
 
     print("Test passed!")
 
+    kernel = splitk_gemv_vectorized_tvm(N, K, 2, 32)
+    cuda_source = kernel.get_kernel_source()
+    print(cuda_source)
+        
     if not do_bench:
         best_result = get_autotuned_kernel(N, K)
         best_config = best_result.config
