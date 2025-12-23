@@ -6,7 +6,8 @@ import mirage as mi
 from pkt_util import TorchRef, PersistentKernelTest
 
 if __name__ == "__main__":
-    batch_size = 8
+    max_batch_size = 16
+    batch_size = 2
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", default="./gen", help="Output files directory")
     parser.add_argument("--trace-name", default="qwen3", help="Perfetto trace output name")
@@ -35,22 +36,22 @@ if __name__ == "__main__":
     splitk = 1 # 8
     hidden_size = 2560
     intermediate_size = 9728
-    x_torch = torch.randn((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
+    x_torch = torch.randn((max_batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
     w_rms_torch = torch.randn((1, hidden_size), dtype=torch.bfloat16, device="cuda")
     w_gatedup_torch = torch.randn((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
     w_down_proj_torch = torch.randn((hidden_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
-    mlp_out_torch = torch.zeros((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
+    out_torch = torch.zeros((max_batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
     
     # (batch_size, 38, 19, 20)
     # (batch_size, 76, 38, 40)
-    gridsize = [batch_size, 76, 38, 40]
+    gridsize = [max_batch_size, 76, 38, 40]
     x = mpk.attach_input(torch_tensor=x_torch, name="in")
     w_rms = mpk.attach_input(torch_tensor=w_rms_torch, name="w_rms")
     w_gatedup = mpk.attach_input(torch_tensor=w_gatedup_torch, name="w_gatedup")
     w_down_proj = mpk.attach_input(torch_tensor=w_down_proj_torch, name="w_down_proj")
-    mlp_out = mpk.attach_input(torch_tensor=mlp_out_torch, name="mlp_out")
+    mlp_out = mpk.attach_input(torch_tensor=out_torch, name="mlp_out")
     
-    rmsnorm_out = mpk.new_tensor(dims=(batch_size, hidden_size), dtype=mi.bfloat16, name="rmsnorm_out", io_category="cuda_tensor")
+    rmsnorm_out = mpk.new_tensor(dims=(max_batch_size, hidden_size), dtype=mi.bfloat16, name="rmsnorm_out", io_category="cuda_tensor")
     mpk.rmsnorm_layer(
         input=x,
         weight=w_rms,
@@ -59,9 +60,9 @@ if __name__ == "__main__":
         block_dim=(128, 1, 1),
     )
     
-    # mlp_mid_torch = torch.zeros((batch_size, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
+    # mlp_mid_torch = torch.zeros((max_batch_size, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
     # mlp_mid = mpk.attach_input(torch_tensor=mlp_mid_torch, name="mlp_mid")    
-    mlp_mid = mpk.new_tensor(dims=(batch_size, intermediate_size*2), dtype=mi.bfloat16, name="mlp_mid", io_category="cuda_tensor")
+    mlp_mid = mpk.new_tensor(dims=(max_batch_size, intermediate_size*2), dtype=mi.bfloat16, name="mlp_mid", io_category="cuda_tensor")
     mpk.linear_layer(
         input=rmsnorm_out,
         weight=w_gatedup,
@@ -70,10 +71,10 @@ if __name__ == "__main__":
         block_dim=(128, 1, 1),
     )
     
-    # silu_mul_out_torch = torch.zeros((batch_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
+    # silu_mul_out_torch = torch.zeros((max_batch_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
     # silu_mul_out = mpk.attach_input(torch_tensor=silu_mul_out_torch, name="silu_mul_out")
-    # mlp_out_torch = silu_mul_out_torch
-    silu_mul_out = mpk.new_tensor(dims=(batch_size, intermediate_size), dtype=mi.bfloat16, name="silu_mul_out", io_category="cuda_tensor")
+    # out_torch = silu_mul_out_torch
+    silu_mul_out = mpk.new_tensor(dims=(max_batch_size, intermediate_size), dtype=mi.bfloat16, name="silu_mul_out", io_category="cuda_tensor")
     mpk.silu_mul_layer(
         input=mlp_mid,
         output=silu_mul_out,
@@ -103,18 +104,14 @@ if __name__ == "__main__":
     # pkt.memory_footprint_simulation(rank)
         
     ###
-    warnup_iter = 100
-    test_iter = 200
-    
-    def ref_run():
-        return TorchRef.norm_mlp(x_torch, w_rms_torch, w_gatedup_torch, w_down_proj_torch) + x_torch
-    graph, ref_output = TorchRef.compile_capture(ref_run, is_compile=False)
 
+    def ref_run():
+        return TorchRef.norm_mlp(x_torch[:batch_size], w_rms_torch, w_gatedup_torch, w_down_proj_torch) + x_torch[:batch_size]
     def mpk_run():
         mpk(batch_size)
-    
-    for _ in range(warnup_iter):
-        graph.replay()
+        
+    graph, ref_output = TorchRef.compile_capture(ref_run, is_compile=False)
+    mpk_output = out_torch[:batch_size]
     ###
     
     if (args.profiling):
@@ -122,12 +119,8 @@ if __name__ == "__main__":
         print("Finish profiling.")
         exit()
         
-    ################################################################
-    pkt.check_allclose(mpk_run, mlp_out_torch, splitk, ref_output, 5, False)        
-
-    pkt.time_event_record("torch_ref", graph.replay, test_iter)
-    pkt.time_event_record("mpk", mpk_run, test_iter)
-
-    pkt.torch_profile(graph.replay)
-    pkt.torch_profile(mpk_run)
+    pkt.generate_report(mpk_run, mpk_output, splitk, 
+                        graph.replay, ref_output, 
+                        warnup_iter=100, test_iter=200, 
+                        allclose_iter=5, print_all=False)
 

@@ -6,6 +6,7 @@ import mirage as mi
 from pkt_util import TorchRef, PersistentKernelTest
 
 if __name__ == "__main__":
+    max_batch_size = 16
     batch_size = 8
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", default="./gen", help="Output files directory")
@@ -34,10 +35,10 @@ if __name__ == "__main__":
     splitk = 1 # 8
     hidden_size = 2560
     intermediate_size = 9728
-    x_torch = torch.randn((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
+    x_torch = torch.randn((max_batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
     w_gatedup_torch = torch.randn((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
     w_down_proj_torch = torch.randn((hidden_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
-    out_torch = torch.zeros((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
+    out_torch = torch.zeros((max_batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
     
     # (38, 19, 20) => 512, 512, 128 => 19456/38, 9728/19, 2560/20
     # (76, 38, 40) => 256, 256, 64 => 19456/76, 9728/38, 2560/40
@@ -47,9 +48,9 @@ if __name__ == "__main__":
     w_down_proj = mpk.attach_input(torch_tensor=w_down_proj_torch, name="w_down_proj")
     mlp_out = mpk.attach_input(torch_tensor=out_torch, name="mlp_out")
     
-    # mlp_mid_torch = torch.zeros((batch_size, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
+    # mlp_mid_torch = torch.zeros((max_batch_size, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
     # mlp_mid = mpk.attach_input(torch_tensor=mlp_mid_torch, name="mlp_mid")    
-    mlp_mid = mpk.new_tensor(dims=(batch_size, intermediate_size*2), dtype=mi.bfloat16, name="mlp_mid", io_category="cuda_tensor")
+    mlp_mid = mpk.new_tensor(dims=(max_batch_size, intermediate_size*2), dtype=mi.bfloat16, name="mlp_mid", io_category="cuda_tensor")
     mpk.linear_layer(
         input=x,
         weight=w_gatedup,
@@ -58,10 +59,10 @@ if __name__ == "__main__":
         block_dim=(128, 1, 1),
     )
     
-    # silu_mul_out_torch = torch.zeros((batch_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
+    # silu_mul_out_torch = torch.zeros((max_batch_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
     # silu_mul_out = mpk.attach_input(torch_tensor=silu_mul_out_torch, name="silu_mul_out")
     # mlp_out_torch = silu_mul_out_torch
-    silu_mul_out = mpk.new_tensor(dims=(batch_size, intermediate_size), dtype=mi.bfloat16, name="silu_mul_out", io_category="cuda_tensor")
+    silu_mul_out = mpk.new_tensor(dims=(max_batch_size, intermediate_size), dtype=mi.bfloat16, name="silu_mul_out", io_category="cuda_tensor")
     mpk.silu_mul_layer(
         input=mlp_mid,
         output=silu_mul_out,
@@ -89,14 +90,15 @@ if __name__ == "__main__":
     
     ###
     def ref_run():
-        return TorchRef.mlp(x_torch, w_gatedup_torch, w_down_proj_torch)
+        return TorchRef.mlp(x_torch[:batch_size], w_gatedup_torch, w_down_proj_torch)
     def mpk_run():
         mpk(batch_size)
         
     ref_output = ref_run()
+    mpk_output = out_torch[:batch_size]
     ###
     
-    pkt.generate_report(mpk_run, out_torch, splitk, 
+    pkt.generate_report(mpk_run, mpk_output, splitk, 
                         ref_run, ref_output, 
                         warnup_iter=100, test_iter=200, 
                         allclose_iter=5, print_all=False)

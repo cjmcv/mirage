@@ -7,6 +7,7 @@ from pkt_util import TestUtil, TorchRef, PersistentKernelTest
 
 if __name__ == "__main__":
     # batch_size只支持8的倍数，gridSize切分后，每个block的N也需要是8的倍数
+    max_batch_size = 16
     batch_size = 8
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", default="./gen", help="Output files directory")
@@ -35,9 +36,9 @@ if __name__ == "__main__":
     splitk = 1 # 8
     hidden_size = 2560        # K
     intermediate_size = 9728 # torch.randn / ones / TestUtil.create_matrix_arange_col/
-    x_torch = torch.ones((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
+    x_torch = torch.ones((max_batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
     w_torch = TestUtil.create_matrix_arange_row((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
-    out_torch = torch.zeros((batch_size, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
+    out_torch = torch.zeros((max_batch_size, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
     print("x: ", x_torch.data_ptr(), "w: ", w_torch.data_ptr(), "o: ", out_torch.data_ptr())
     
     x = mpk.attach_input(torch_tensor=x_torch, name="in")
@@ -66,11 +67,12 @@ if __name__ == "__main__":
     
     # ###
     def ref_run():
-        return TorchRef.linear(x_torch, w_torch)
+        return TorchRef.linear(x_torch[:batch_size], w_torch)
     def mpk_run():
         mpk(batch_size)
         
     ref_output = ref_run()
+    mpk_output = out_torch[:batch_size]
     # print("ref_output", ref_output)
     # mpk(batch_size)
     # print("out_torch", out_torch)
@@ -78,7 +80,7 @@ if __name__ == "__main__":
     #     print("allclose: True")
     ###
     
-    pkt.generate_report(mpk_run, out_torch, splitk, 
+    pkt.generate_report(mpk_run, mpk_output, splitk, 
                         ref_run, ref_output, 
                         warnup_iter=100, test_iter=200, 
                         allclose_iter=5, print_all=False)
