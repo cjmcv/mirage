@@ -35,9 +35,9 @@ if __name__ == "__main__":
     
     splitk = 1 # 8
     hidden_size = 2560
-    x_torch = torch.randn((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
-    w_torch = torch.randn((1, hidden_size), dtype=torch.bfloat16, device="cuda")
-    out_torch = torch.zeros((batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
+    x_torch = torch.randn((max_batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
+    w_torch = torch.randn((max_batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
+    out_torch = torch.zeros((max_batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
     
     x = mpk.attach_input(torch_tensor=x_torch, name="in")
     w = mpk.attach_input(torch_tensor=w_torch, name="w")
@@ -46,7 +46,7 @@ if __name__ == "__main__":
         input=x,
         weight=w,
         output=rmsnorm_out,
-        grid_dim=(batch_size, 1, 1),
+        grid_dim=(max_batch_size, 1, 1),
         block_dim=(128, 1, 1),
     )
     

@@ -331,6 +331,8 @@ class Qwen3Attention(nn.Module):
         attn_output = attn_output.reshape(bsz, q_len, self.local_qkv_size)
 
         attn_output = self.o_proj(attn_output)
+        print("self.o_proj: ", self.o_proj.weight.shape)
+        print("attn_output.shape: ", attn_output.shape)
         if self.world_size > 1:
             dist.all_reduce(attn_output)
 
