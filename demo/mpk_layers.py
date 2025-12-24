@@ -3,7 +3,7 @@ import torch
 import mirage as mi
 
 class MpkLayers:
-    def __init__(self, world_size, rank, max_batch_size, trace_name, profiling):
+    def __init__(self, kernel_id, world_size, rank, max_batch_size, trace_name, profiling):
         if profiling:
             self.profiler_tensor = torch.zeros(
                 3000 * 128, dtype=torch.uint64, device="cuda"
@@ -16,6 +16,7 @@ class MpkLayers:
         print("num_schedulers: ", num_schedulers)
         
         self.mpk = mi.PersistentKernel(
+            kernel_id=kernel_id,
             mode="offline",
             world_size=world_size,
             mpi_rank=rank,
@@ -39,7 +40,7 @@ class MpkLayers:
         else:
             module_path = self.mpk.compile(output_dir=output_dir)
             print("module_path: ", module_path)
-            self.mpk.load_module(module_path) 
+            self.mpk.load_module(module_path)
                 
     def create_qwen3_norm_mlp(self, gridsize, hidden_size, intermediate_size, w_rms_torch, w_gatedup_torch, w_down_proj_torch):
         self.x_torch = torch.randn((self.max_batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")

@@ -17,10 +17,10 @@ HARD_CODE = """
 static PyObject *init_func(PyObject *self, PyObject *args) {
   PyObject *meta_list, *py_profiler_buffer;
   std::vector<void*> meta_tensors;
-  int my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers;
+  int kernel_id, my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers;
   void *profiler_buffer;
 
-  if (!PyArg_ParseTuple(args, "OOiiii", &meta_list, &py_profiler_buffer, &my_mpi_rank, &num_workers, &num_local_schedulers, &num_remote_schedulers)) {
+  if (!PyArg_ParseTuple(args, "iOOiiii", &kernel_id, &meta_list, &py_profiler_buffer, &my_mpi_rank, &num_workers, &num_local_schedulers, &num_remote_schedulers)) {
     PyErr_SetString(PyExc_TypeError, "Invalid parameters");
     return NULL;
   }
@@ -43,23 +43,28 @@ static PyObject *init_func(PyObject *self, PyObject *args) {
   }
   profiler_buffer = PyLong_AsVoidPtr(py_profiler_buffer);
 
-  init_persistent_kernel(meta_tensors, profiler_buffer, my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers);
+  init_persistent_kernel(kernel_id, meta_tensors, profiler_buffer, my_mpi_rank, num_workers, num_local_schedulers, num_remote_schedulers);
   Py_RETURN_NONE;
 }
 
 static PyObject *launch_func(PyObject *self, PyObject *args) {
-  int batch_size = 0;
-  if (!PyArg_ParseTuple(args, "i", &batch_size)) {
+  int kernel_id = 0, batch_size = 0;
+  if (!PyArg_ParseTuple(args, "ii", &kernel_id, &batch_size)) {
     PyErr_SetString(PyExc_TypeError, "Invalid parameters");
     return NULL;
   }
-  launch_persistent_kernel(batch_size);
+  launch_persistent_kernel(kernel_id, batch_size);
 
   Py_RETURN_NONE;
 }
 
 static PyObject *finalize_func(PyObject *self, PyObject *args) {
-  finalize_persistent_kernel();
+  int kernel_id = 0;
+  if (!PyArg_ParseTuple(args, "i", &kernel_id)) {
+    PyErr_SetString(PyExc_TypeError, "Invalid parameters");
+    return NULL;
+  }
+  finalize_persistent_kernel(kernel_id);
 
   Py_RETURN_NONE;
 }
@@ -217,6 +222,7 @@ def get_compile_command(
 class PersistentKernel:
     def __init__(
         self,
+        kernel_id: int,
         mode: str,
         world_size: int,
         mpi_rank: int,
@@ -231,6 +237,7 @@ class PersistentKernel:
         # spec_decode_config: SpecDecodeConfig,
         use_cutlass_kernel: bool
     ):
+        self.kernel_id = kernel_id
         self.__finalized__ = False
         self._is_compiled = False
         if mode not in valid_persistent_kernel_modes:
@@ -1300,7 +1307,7 @@ class PersistentKernel:
         so_path = os.path.join(output_dir, "test.cpython-38-x86_64-linux-gnu.so")
         self.kn_graph.visualize(os.path.join(output_dir, "kn_graph"))
         
-        if 0:
+        if 1:
             # check json file
             json_file_path = os.path.join(output_dir, "task_graph.json")
             with open(json_file_path, "w") as f:
@@ -1448,6 +1455,7 @@ class PersistentKernel:
             self.profiler_tensor.data_ptr() if self.profiler_tensor is not None else 0
         )
         self.init_func(
+            self.kernel_id,
             meta_tensors_ptr,
             profiler_buffer_ptr,
             self.mpi_rank,
@@ -1464,7 +1472,7 @@ class PersistentKernel:
         # stream = kwargs.get("stream", None)
         # if stream is None:
         #    stream = torch.cuda.default_stream()
-        self.launch_func(batch_size)
+        self.launch_func(self.kernel_id, batch_size)
         if self.profiler_tensor is not None:
             from .profiler_persistent import export_to_perfetto_trace
             
@@ -1484,5 +1492,5 @@ class PersistentKernel:
     def finalize(self):
         assert not self.__finalized__
         if self._is_compiled:
-            self.finalize_func()
+            self.finalize_func(self.kernel_id)
         self.__finalized__ = True
