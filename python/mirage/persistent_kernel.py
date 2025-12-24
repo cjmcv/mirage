@@ -1300,14 +1300,15 @@ class PersistentKernel:
         so_path = os.path.join(output_dir, "test.cpython-38-x86_64-linux-gnu.so")
         self.kn_graph.visualize(os.path.join(output_dir, "kn_graph"))
         
-        # check json file
-        json_file_path = os.path.join(output_dir, "task_graph.json")
-        with open(json_file_path, "w") as f:
-            f.write(results["json_file"])
-        with open(cuda_code_path, "w") as f:
-            f.write(results["cuda_code"] + HARD_CODE)
-        
-        display_task_graph(json_file_path, False)
+        if 0:
+            # check json file
+            json_file_path = os.path.join(output_dir, "task_graph.json")
+            with open(json_file_path, "w") as f:
+                f.write(results["json_file"])
+            with open(cuda_code_path, "w") as f:
+                f.write(results["cuda_code"] + HARD_CODE)
+            
+            display_task_graph(json_file_path, False)
         
         # if output_dir is not None:
         #     os.makedirs(output_dir, exist_ok=True)

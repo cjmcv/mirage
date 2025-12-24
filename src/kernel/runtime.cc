@@ -512,8 +512,8 @@ void register_mugraph(
       int3 input_map, output_map;
       for (auto const &input : input_ops) {
         for (auto const &output : pre_output_ops) {
-          // opµÄÊäÈëtensorÓëÇ°Ò»¸öopµÄÊä³ötensorÊÇÍ¬Ò»¸ötensor£¬Ôò¶þÕß¹²Ïí¡£¿ÉÒÔÉèÖÃinput_map/output_map£¬ÊµÏÖÏ¸Á£¶ÈÖ´ÐÐ¡£
-          // ÈçÃ»ÓÐ¹²ÏíµÄtensor£¬ÔòÐèÒªÇ¿ÖÆÍ¬²½ºóÖ´ÐÐ£¿
+          // opï¿½ï¿½ï¿½ï¿½ï¿½ï¿½tensorï¿½ï¿½Ç°Ò»ï¿½ï¿½opï¿½ï¿½ï¿½ï¿½ï¿½tensorï¿½ï¿½Í¬Ò»ï¿½ï¿½tensorï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½input_map/output_mapï¿½ï¿½Êµï¿½ï¿½Ï¸ï¿½ï¿½ï¿½ï¿½Ö´ï¿½Ð¡ï¿½
+          // ï¿½ï¿½Ã»ï¿½Ð¹ï¿½ï¿½ï¿½ï¿½ï¿½tensorï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÒªÇ¿ï¿½ï¿½Í¬ï¿½ï¿½ï¿½ï¿½Ö´ï¿½Ð£ï¿½
           if (input->dtensor.guid == output->dtensor.guid) {
             input_map = input->input_map;
             output_map = output->input_map;
@@ -782,6 +782,7 @@ TaskGraphResult print_task_graph(
     code.e("}");
 
     code.e("task_desc.outputs[task_desc.num_outputs++] = output;");
+    // code.e("printf(\"task_desc.num_outputs: %d\", task_desc.num_outputs);");
     code.e("}");
 
     // create TMA desc for each task
@@ -1261,7 +1262,7 @@ TaskGraphResult print_task_graph(
             offset +=
                 fused_dim_off_subtensor * sub_desc.tensor.stride[input_map.z];
           }
-          if (task_type == TASK_SILU_MUL) { // CJM-TODO: ÊÇ·ñÐèÒªÐÞ¸Äinput_map
+          if (task_type == TASK_SILU_MUL) { // CJM-TODO: ï¿½Ç·ï¿½ï¿½ï¿½Òªï¿½Þ¸ï¿½input_map
             offset /= 2;
           }
           tgbody.e("TensorDesc input$;", i);
@@ -1306,7 +1307,7 @@ TaskGraphResult print_task_graph(
                 io_desc.tensor.dim[input_map.z] / bgraph.grid_dim.z;
             offset += block_size * bid.z * io_desc.tensor.stride[input_map.z];
           }
-          if (task_type == TASK_SILU_MUL) { // CJM-TODO: ÊÇ·ñÐèÒªÐÞ¸Äinput_map
+          if (task_type == TASK_SILU_MUL) { // CJM-TODO: ï¿½Ç·ï¿½ï¿½ï¿½Òªï¿½Þ¸ï¿½input_map
             offset /= 2;
           }
           tgbody.e("TensorDesc input$;", i);

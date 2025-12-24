@@ -38,16 +38,18 @@ if __name__ == "__main__":
     hidden_size = 2560        # K
     intermediate_size = 9728 # torch.randn / ones / TestUtil.create_matrix_arange_col/
     x_torch = torch.ones((max_batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
-    w_torch = TestUtil.create_matrix_arange_row((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
+    w_torch1 = TestUtil.create_matrix_arange_row((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
+    w_torch2 = TestUtil.create_matrix_arange_col((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
     out_torch = torch.zeros((max_batch_size, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
-    print("x: ", x_torch.data_ptr(), "w: ", w_torch.data_ptr(), "o: ", out_torch.data_ptr())
+    print("x: ", x_torch.data_ptr(), "w: ", w_torch1.data_ptr(), "w2: ", w_torch2.data_ptr(), "o: ", out_torch.data_ptr())
     
     x = mpk.attach_input(torch_tensor=x_torch, name="in")
-    w = mpk.attach_input(torch_tensor=w_torch, name="w")
+    w1 = mpk.attach_input(torch_tensor=w_torch1, name="w1")
+    w2 = mpk.attach_input(torch_tensor=w_torch2, name="w2")
     linear_out = mpk.attach_input(torch_tensor=out_torch, name="linear_out")
     mpk.linear_layer(
         input=x,
-        weight=w,
+        weight=w1,
         output=linear_out,
         grid_dim=(38, 1, 1),  # (9728 * 2) / 8 = 2432 / ... / 76 / 38 / 19 / 8
         block_dim=(128, 1, 1),
@@ -57,7 +59,7 @@ if __name__ == "__main__":
     
     # ###
     def ref_run():
-        return TorchRef.linear(x_torch[:batch_size], w_torch)
+        return TorchRef.linear(x_torch[:batch_size], w_torch1)
     def mpk_run():
         mpk(batch_size)
         

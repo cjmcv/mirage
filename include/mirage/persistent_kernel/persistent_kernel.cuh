@@ -904,14 +904,6 @@ static void _init_persistent_kernel(std::vector<FullTaskDesc> &all_tasks,
 
 static RuntimeConfig global_runtime_config;
 
-std::vector<FullTaskDesc> all_fulltasks;
-std::vector<EventDesc> all_events;
-std::vector<TaskId> first_tasks;
-static std::vector<TaskDesc> all_tasks;
-std::vector<int> host_all_event_counters;
-std::vector<TaskId *> host_worker_queues;
-std::vector<EventId *> host_sched_queues;
-
 extern "C" void init_persistent_kernel(std::vector<void *> meta_tensors,
                                        void *profiler_buffer,
                                        int my_rank,
@@ -951,11 +943,12 @@ extern "C" void init_persistent_kernel(std::vector<void *> meta_tensors,
   global_runtime_config.num_graphs = 1;
   global_runtime_config.split_worker_scheduler = false;
 
-  all_fulltasks.clear();
-  all_events.clear();
-  first_tasks.clear();
+  std::vector<FullTaskDesc> all_fulltasks;
+  std::vector<EventDesc> all_events;
+  std::vector<TaskId> first_tasks;
   _init_persistent_kernel(all_fulltasks, all_events, first_tasks, npes, mype);
-  all_tasks.clear();
+  
+  std::vector<TaskDesc> all_tasks;
   for (auto const &ft : all_fulltasks) {
     TaskDesc task_desc(ft);
     // if (ft.task_type == TASK_PAGED_ATTENTION_SPLIT_KV_SM100 || ft.task_type
@@ -1013,8 +1006,8 @@ extern "C" void init_persistent_kernel(std::vector<void *> meta_tensors,
       gpu_malloc<EventCounter>(all_events.size() * sizeof(EventCounter));
   global_runtime_config.all_event_num_triggers =
       gpu_malloc<int>(all_events.size() * sizeof(int));
-  
-  host_all_event_counters.clear();
+
+  std::vector<int> host_all_event_counters;
   for (size_t i = 0; i < all_events.size(); i++) {
     host_all_event_counters.push_back(all_events.at(i).num_triggers);
   }
@@ -1042,7 +1035,7 @@ extern "C" void init_persistent_kernel(std::vector<void *> meta_tensors,
              cudaMemcpyHostToDevice);
   // Initialize worker queues
   {
-    host_worker_queues.clear();
+    std::vector<TaskId *> host_worker_queues;
     for (int i = 0; i < (num_workers * 2); i++) {
       TaskId *worker_queue = gpu_malloc<TaskId>(
           global_runtime_config.per_worker_queue_len * sizeof(TaskId));
@@ -1057,7 +1050,7 @@ extern "C" void init_persistent_kernel(std::vector<void *> meta_tensors,
   }
   // Initialize scheduler queues
   {
-    host_sched_queues.clear();
+    std::vector<EventId *> host_sched_queues;
     for (int i = 0; i < (num_schedulers + 1); i++) {
       EventId *sched_queue = gpu_malloc<EventId>(
           global_runtime_config.per_sched_queue_len * sizeof(EventId));
