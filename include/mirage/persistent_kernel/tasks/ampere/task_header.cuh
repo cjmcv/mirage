@@ -14,10 +14,10 @@
 #include "silu_mul.cuh"
 
 #if MIRAGE_USE_CUTLASS_KERNEL
-#include "linear_cutlass.cuh"
+// #include "linear_cutlass.cuh"
 // #include "linear_cutlass_withp.cuh"
 // #include "linear_cutlass_origin.cuh"
+#include "linear_gemv_cutlass.cuh"
 #else
 #include "linear.cuh"
-// #include "linear_gemv_cutlass.cuh"
 #endif // MIRAGE_USE_CUTLASS_KERNEL

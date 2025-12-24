@@ -26,7 +26,7 @@ class MpkLayers:
             meta_tensors={}, #  meta_tensors={"qo_indptr_buffer": self.qo_indptr_buffer,},
             profiler_tensor=self.profiler_tensor,
             trace_name=trace_name,
-            use_cutlass_kernel=False,
+            use_cutlass_kernel=True,
         )
         self.max_batch_size = max_batch_size
     

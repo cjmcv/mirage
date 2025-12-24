@@ -1,6 +1,7 @@
 
 import torch
 import argparse
+from torch import nn
 import mirage as mi
 
 from pkt_util import TorchRef, MpkReporter, TestUtil
@@ -8,8 +9,8 @@ from mpk_layers import MpkLayers
 
 if __name__ == "__main__":
     # batch_size只支持8的倍数，gridSize切分后，每个block的N也需要是8的倍数
-    max_batch_size = 16
-    batch_size = 8
+    max_batch_size = 1
+    batch_size = 1
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", default="./gen", help="Output files directory")
     parser.add_argument("--trace-name", default="qwen3", help="Perfetto trace output name")
@@ -29,7 +30,7 @@ if __name__ == "__main__":
     # model_name = args.model
     torch.set_default_dtype(torch.bfloat16)
 
-    layers = MpkLayers(world_size, rank, max_batch_size, args.trace_name, args.profiling)
+    layers = MpkLayers(0, world_size, rank, max_batch_size, args.trace_name, args.profiling)
     mpk = layers.get_mpk()
     reporter = MpkReporter() 
     # reporter.memory_footprint_simulation(rank)
@@ -41,6 +42,10 @@ if __name__ == "__main__":
     w_torch = TestUtil.create_matrix_arange_row((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
     out_torch = torch.zeros((max_batch_size, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
     print("x: ", x_torch.data_ptr(), "w: ", w_torch.data_ptr(), "o: ", out_torch.data_ptr())
+    
+    # x_torch2 = nn.Parameter(x_torch)
+    # w_torch2 = nn.Parameter(w_torch)
+    # out_torch2 = nn.Parameter(out_torch)
     
     x = mpk.attach_input(torch_tensor=x_torch, name="in")
     w = mpk.attach_input(torch_tensor=w_torch, name="w")

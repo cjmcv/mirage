@@ -355,17 +355,10 @@ class Qwen3DecoderLayer(nn.Module):
         self.post_attention_layernorm = Qwen3RMSNorm(
             config.hidden_size, eps=config.rms_norm_eps
         )
-        #############
-        # self.mpk_layers = MpkLayers(world_size, 0, 16, "qwen3", None)
-        # gridsize = [16, 48, 24, 32]
-        # print(self.mlp.hidden_size, self.mlp.intermediate_size)
-        # self.w_gatedup_torch = torch.cat((self.mlp.gate_proj.weight, self.mlp.up_proj.weight), 0)
-        # self.x_torch, self.out_torch = self.mpk_layers.create_qwen3_norm_mlp(
-        #                                         gridsize, self.mlp.hidden_size, self.mlp.intermediate_size, 
-        #                                         w_rms_torch = self.post_attention_layernorm.weight, 
-        #                                         w_gatedup_torch = self.w_gatedup_torch,
-        #                                         w_down_proj_torch = self.mlp.down_proj.weight)
-        # self.mpk_layers.compile_load(False, "./gen")
+        ############
+        
+        self.layer_idx = layer_idx
+        self.mpk = None
         
     def forward(
         self,
@@ -380,7 +373,49 @@ class Qwen3DecoderLayer(nn.Module):
     ) -> Tuple[
         torch.FloatTensor, Optional[Tuple[torch.FloatTensor, torch.FloatTensor]]
     ]:
+        if (self.layer_idx < -1 and hidden_states.shape[1] == 1):
+            if (self.mpk == None):
+                print("weight init: ", self.post_attention_layernorm.weight.data_ptr())
+                max_batch_size = 1
+                self.mpk_layers = MpkLayers(self.layer_idx, 1, 0, max_batch_size, "qwen3", None)
+                gridsize = [max_batch_size, 48, 24, 16] # 1024 3072
+                print(self.mlp.hidden_size, self.mlp.intermediate_size)
+                self.w_gatedup_torch = torch.cat((self.mlp.gate_proj.weight, self.mlp.up_proj.weight), 0).contiguous()
+                self.x_torch, self.out_torch = self.mpk_layers.create_qwen3_norm_mlp(
+                                                        gridsize, self.mlp.hidden_size, self.mlp.intermediate_size, 
+                                                        w_rms_torch = self.post_attention_layernorm.weight, 
+                                                        w_gatedup_torch = self.w_gatedup_torch,
+                                                        w_down_proj_torch = self.mlp.down_proj.weight)
+                self.mpk_layers.compile_load(True, "./gen/"+str(self.layer_idx))
+                self.mpk = self.mpk_layers.get_mpk()
+                
+            residual = hidden_states
+            # print("shape0: ", residual.shape)
 
+            # Self Attention
+            hidden_states = self.self_attn(
+                input_layernorm=self.input_layernorm,
+                hidden_states=hidden_states,
+                attention_mask=attention_mask,
+                position_embeddings=position_embeddings,
+                step=step,
+                stream=stream,
+            )
+            hidden_states = residual + hidden_states
+            
+            #
+            
+            # print("shape1: ", hidden_states.shape, residual.shape)
+            batch_size = hidden_states.shape[1]
+            self.x_torch[:batch_size, :].copy_(hidden_states.squeeze(0))
+            self.mpk(batch_size)
+            hidden_states = self.out_torch[:batch_size, :].unsqueeze(0)
+            print("mpk outputs", hidden_states.shape)
+            outputs = (hidden_states,)
+            return outputs
+            
+        ###########################################################
+        
         residual = hidden_states
         # print("shape0: ", residual.shape)
 
@@ -399,6 +434,7 @@ class Qwen3DecoderLayer(nn.Module):
         # print("shape1: ", hidden_states.shape, residual.shape)
         
         # Fully Connected
+        print("input", hidden_states.shape)
         residual = hidden_states
         # hidden_states = self.post_attention_layernorm(hidden_states)
         hidden_states = self.mlp(
@@ -406,8 +442,9 @@ class Qwen3DecoderLayer(nn.Module):
         )
         hidden_states = residual + hidden_states
         # print("shape2: ", hidden_states.shape, residual.shape)
-        outputs = (hidden_states,)
-
+        print("outputs", hidden_states.shape)
+        outputs = (hidden_states,)        
+        
         return outputs
 
 
