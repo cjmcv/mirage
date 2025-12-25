@@ -4,6 +4,7 @@ import torch
 import torch.distributed as dist
 import argparse
 import os
+import time
 import mirage as mi
 import torch.nn.functional as F
 
@@ -86,7 +87,30 @@ class MpkReporter:
         with torch.device("cuda"):
             model_name = "/home/cjmcv/project/llm_models/Qwen/Qwen3-0.6B"
             self.model = Qwen3ForCausalLM.from_pretrained(model_name, world_size=1, max_num_pages=16, page_size=4096).to("cuda")
-            self.tokenizer = AutoTokenizer.from_pretrained(model_name)    
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name) 
+        return self.model, self.tokenizer
+    
+    def get_weight_qwen3_mlp(self, layer_id):
+        layer = self.model.model.layers[layer_id]
+        w_rms = layer.post_attention_layernorm.weight
+        w_gatedup = torch.cat((layer.mlp.gate_proj.weight, layer.mlp.up_proj.weight), 0).contiguous()
+        w_down_proj = layer.mlp.down_proj.weight
+        return w_rms, w_gatedup, w_down_proj
+
+    def get_weight_qwen3_attention(self, layer_id):
+        num_q_heads = self.model.config.num_attention_heads
+        num_kv_heads = self.model.config.num_key_value_heads
+    
+        layer = self.model.model.layers[layer_id]
+        w_q_norm = layer.self_attn.q_norm.weight
+        w_k_norm = layer.self_attn.k_norm.weight
+        w_q = layer.self_attn.q_proj.weight
+        w_k = layer.self_attn.k_proj.weight
+        w_v = layer.self_attn.v_proj.weight
+        
+        k_cache = self.model.model.kv_cache[0][layer_id]
+        v_cache = self.model.model.kv_cache[1][layer_id]
+        return num_q_heads, num_kv_heads, w_q_norm, w_k_norm, w_q, w_k, w_v, k_cache, v_cache
     
     def torch_profile(self, func):
         from torch.profiler import profile, ProfilerActivity
@@ -136,27 +160,44 @@ class MpkReporter:
                 count1 = (radio > threshold[1]).sum().item()
                 print("radio > ", threshold[0], ": ", count0, "-", count0/total_num, " / ", threshold[1], ": ", count1, "-", count1/total_num)
                  
-    def time_event_record(self, name, func, test_iter):
+    def time_cuda_event_record(self, name, func, test_iter):
         starter = torch.cuda.Event(enable_timing=True)
         ender = torch.cuda.Event(enable_timing=True)
+        torch.cuda.synchronize()
             
         starter.record()
         for _ in range(test_iter):
             func()
         ender.record()
         torch.cuda.synchronize()
+        
         run_time = starter.elapsed_time(ender)
-        print(name, "run time (ms): ", run_time / test_iter)
+        print(name, "cuda_event time (ms): ", run_time / test_iter)
      
+    def time_cpu_record(self, name, func, test_iter):
+        torch.cuda.synchronize()
+        
+        start_time = time.perf_counter()
+        for _ in range(test_iter):
+            func()
+        torch.cuda.synchronize()
+        end_time = time.perf_counter()
+        
+        run_time = (end_time - start_time) * 1000
+        print(name, "run time (ms): ", run_time / test_iter)
+        
     def generate_report(self, mpk_run, mpk_out, splitk, torch_run, torch_out, warnup_iter, test_iter, allclose_iter, print_all):
         for _ in range(warnup_iter):
             torch_run()
         
         self.check_allclose(mpk_run, mpk_out, splitk, torch_out, allclose_iter, print_all)      
 
-        self.time_event_record("torch_ref", torch_run, test_iter)   
-        self.time_event_record("mpk", mpk_run, test_iter)
+        self.time_cuda_event_record("torch_ref", torch_run, test_iter)   
+        self.time_cuda_event_record("mpk", mpk_run, test_iter)
 
+        self.time_cpu_record("torch_ref", torch_run, test_iter)   
+        self.time_cpu_record("mpk", mpk_run, test_iter)
+        
         self.torch_profile(torch_run)
         self.torch_profile(mpk_run)
 

@@ -3,11 +3,12 @@ import torch
 import argparse
 import mirage as mi
 
-from pkt_util import TorchRef, PersistentKernelTest
+from pkt_util import TorchRef, MpkReporter
+from mpk_layers import MpkLayers
 
 if __name__ == "__main__":
-    max_batch_size = 16
-    batch_size = 8
+    max_batch_size = 1
+    batch_size = 1
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", default="./gen", help="Output files directory")
     parser.add_argument("--trace-name", default="qwen3", help="Perfetto trace output name")
@@ -27,10 +28,10 @@ if __name__ == "__main__":
     # model_name = args.model
     torch.set_default_dtype(torch.bfloat16)
 
-    pkt = PersistentKernelTest(world_size, rank, args.trace_name, args.profiling)
-    mpk = pkt.get_mpk()
-    
-    # pkt.memory_footprint_simulation(rank)
+    layers = MpkLayers(0, world_size, rank, max_batch_size, args.trace_name, args.profiling)
+    mpk = layers.get_mpk()
+    reporter = MpkReporter() 
+    # reporter.memory_footprint_simulation(rank)
     
     splitk = 1 # 8
     hidden_size = 2560
@@ -42,14 +43,15 @@ if __name__ == "__main__":
     
     # (38, 19, 20) => 512, 512, 128 => 19456/38, 9728/19, 2560/20
     # (76, 38, 40) => 256, 256, 64 => 19456/76, 9728/38, 2560/40
-    gridsize = [76, 38, 40]
+    # gridsize = [76, 38, 40]
+    gridsize = [32, 16, 40]
     x = mpk.attach_input(torch_tensor=x_torch, name="in")
     w_gatedup = mpk.attach_input(torch_tensor=w_gatedup_torch, name="w_gatedup")
     w_down_proj = mpk.attach_input(torch_tensor=w_down_proj_torch, name="w_down_proj")
     mlp_out = mpk.attach_input(torch_tensor=out_torch, name="mlp_out")
     
     # mlp_mid_torch = torch.zeros((max_batch_size, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
-    # mlp_mid = mpk.attach_input(torch_tensor=mlp_mid_torch, name="mlp_mid")    
+    # mlp_mid = mpk.attach_input(torch_tensor=mlp_mid_torch, name="mlp_mid")
     mlp_mid = mpk.new_tensor(dims=(max_batch_size, intermediate_size*2), dtype=mi.bfloat16, name="mlp_mid", io_category="cuda_tensor")
     mpk.linear_layer(
         input=x,
@@ -82,15 +84,17 @@ if __name__ == "__main__":
             input=silu_mul_out,
             weight=w_down_proj,
             output=mlp_out,
-            grid_dim=(splitk, 8, 1), # (64, 1, 1)
+            grid_dim=(splitk, 1, 1), # (64, 1, 1)
             block_dim=(128, 1, 1),
         )
     
-    pkt.compile_load(args.nc, args.output_dir)
+    layers.compile_load(args.nc, args.output_dir)
     
     ###
     def ref_run():
         return TorchRef.mlp(x_torch[:batch_size], w_gatedup_torch, w_down_proj_torch)
+    graph, ref_output = TorchRef.compile_capture(ref_run, is_compile=False)
+    
     def mpk_run():
         mpk(batch_size)
         
@@ -98,7 +102,7 @@ if __name__ == "__main__":
     mpk_output = out_torch[:batch_size]
     ###
     
-    pkt.generate_report(mpk_run, mpk_output, splitk, 
-                        ref_run, ref_output, 
-                        warnup_iter=100, test_iter=200, 
-                        allclose_iter=5, print_all=False)
+    reporter.generate_report(mpk_run, mpk_output, splitk, 
+                            graph.replay, ref_output, 
+                            warnup_iter=100, test_iter=200, 
+                            allclose_iter=5, print_all=False)

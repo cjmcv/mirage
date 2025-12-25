@@ -31,24 +31,24 @@ if __name__ == "__main__":
     
     layers = MpkLayers(0, world_size, rank, max_batch_size, args.trace_name, args.profiling)
     mpk = layers.get_mpk()
+    
     reporter = MpkReporter() 
-    reporter.memory_footprint_simulation(rank)
+    model, tokenizer = reporter.memory_footprint_simulation(rank) 
+    w_rms_torch, w_gatedup_torch, w_down_proj_torch = reporter.get_weight_qwen3_mlp(layer_id=0)
     
-    splitk = 1 # 8
-    hidden_size = 2560
-    intermediate_size = 9728
-    # hidden_size = 1024
-    # intermediate_size = 3072
-    x_torch = torch.randn((max_batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
-    w_rms_torch = torch.randn((1, hidden_size), dtype=torch.bfloat16, device="cuda")
-    w_gatedup_torch = torch.randn((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
-    w_down_proj_torch = torch.randn((hidden_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
-    out_torch = torch.zeros((max_batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
-    
+    # hidden_size = 2560
+    # intermediate_size = 9728
+    hidden_size = 1024
+    intermediate_size = 3072
+
+    # w_rms_torch = torch.randn((1, hidden_size), dtype=torch.bfloat16, device="cuda")
+    # w_gatedup_torch = torch.randn((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
+    # w_down_proj_torch = torch.randn((hidden_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
+       
     # (batch_size, 38, 19, 20)
     # (batch_size, 76, 38, 40)
-    gridsize = [max_batch_size, 76, 38, 40]
-    # gridsize = [max_batch_size, 48, 24, 16] # 1024 3072
+    # gridsize = [max_batch_size, 76, 38, 40]
+    gridsize = [max_batch_size, 48, 24, 32] # 1024 3072
     x_torch, out_torch = layers.create_qwen3_norm_mlp(gridsize, hidden_size, intermediate_size, w_rms_torch, w_gatedup_torch, w_down_proj_torch)    
     layers.compile_load(args.nc, args.output_dir)
     
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         print("Finish profiling.")
         exit()
         
-    reporter.generate_report(mpk_run, mpk_output, splitk, 
+    reporter.generate_report(mpk_run, mpk_output, 1, 
                             graph.replay, ref_output, 
                             warnup_iter=100, test_iter=200, 
                             allclose_iter=5, print_all=False)

@@ -331,8 +331,8 @@ class Qwen3Attention(nn.Module):
         attn_output = attn_output.reshape(bsz, q_len, self.local_qkv_size)
 
         attn_output = self.o_proj(attn_output)
-        print("self.o_proj: ", self.o_proj.weight.shape)
-        print("attn_output.shape: ", attn_output.shape)
+        # print("self.o_proj: ", self.o_proj.weight.shape)
+        # print("attn_output.shape: ", attn_output.shape)
         if self.world_size > 1:
             dist.all_reduce(attn_output)
 
@@ -375,7 +375,7 @@ class Qwen3DecoderLayer(nn.Module):
     ) -> Tuple[
         torch.FloatTensor, Optional[Tuple[torch.FloatTensor, torch.FloatTensor]]
     ]:
-        if (self.layer_idx < -1 and hidden_states.shape[1] == 1):
+        if (self.layer_idx < 10 and hidden_states.shape[1] == 1):
             if (self.mpk == None):
                 print("weight init: ", self.post_attention_layernorm.weight.data_ptr())
                 max_batch_size = 1
