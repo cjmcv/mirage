@@ -960,9 +960,9 @@ class PersistentKernel:
         assert weight.num_dims == 2  # (hidden_size, hidden_size / world_size)
         assert output.num_dims == 2  # (batch_size, hidden_size)
         tb_graph = TBGraph(CyTBGraph(grid_dim, block_dim, 1, 64))
-        tb_graph.new_input(input,  (1, -1, -1), 1, True) # 1 ¿ç x ÖáÍÆ½ø£¬Ò»²½size/vir_gridDim.x
-        tb_graph.new_input(weight, (1, 0, -1), -1, True)  # µÚÒ»¸ö 1 ¿ç x ÖáÍÆ½ø£¬Ò»²½size/blockDim.x, µÚ¶þ¸ö0¿çyÖáÍÆ½ø£¬Ò»²½¿çsize.y/blockDim.y
-        tb_graph.new_input(output, (0, 1, -1), -1, True) # 0 ¿ç y ÖáÍÆ½ø, Ò»²½2560
+        tb_graph.new_input(input,  (1, -1, -1), 1, True) # 1 è·¨ x è½´æŽ¨è¿›ï¼Œä¸€æ­¥size/vir_gridDim.x
+        tb_graph.new_input(weight, (1, 0, -1), -1, True)  # ç¬¬ä¸€ä¸ª 1 è·¨ x è½´æŽ¨è¿›ï¼Œä¸€æ­¥size/blockDim.x, ç¬¬äºŒä¸ª0è·¨yè½´æŽ¨è¿›ï¼Œä¸€æ­¥è·¨size.y/blockDim.y
+        tb_graph.new_input(output, (0, 1, -1), -1, True) # 0 è·¨ y è½´æŽ¨è¿›, ä¸€æ­¥2560
         self.kn_graph.customized([input, weight, output], tb_graph)
 
         if self.target_cc == 80 or self.target_cc == 89:

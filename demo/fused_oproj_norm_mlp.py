@@ -32,7 +32,7 @@ if __name__ == "__main__":
     layers = MpkLayers(0, world_size, rank, max_batch_size, args.trace_name, args.profiling)
     mpk = layers.get_mpk()
     reporter = MpkReporter() 
-    reporter.memory_footprint_simulation(rank)
+    # reporter.memory_footprint_simulation(rank)
     
     splitk = 1 # 8
     total_head_dims = 4096    # o_proj: [4096, 2560]

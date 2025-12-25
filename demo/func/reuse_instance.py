@@ -7,9 +7,8 @@ from pkt_util import TorchRef, MpkReporter, TestUtil
 from mpk_layers import MpkLayers
 
 if __name__ == "__main__":
-    # batch_size只支持8的倍数，gridSize切分后，每个block的N也需要是8的倍数
-    max_batch_size = 16
-    batch_size = 8
+    max_batch_size = 1
+    batch_size = 1
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", default="./gen", help="Output files directory")
     parser.add_argument("--trace-name", default="qwen3", help="Perfetto trace output name")
@@ -26,7 +25,6 @@ if __name__ == "__main__":
 
     print("Input arguments:", args)
     print(f"world_size({world_size}) rank({rank})")
-    # model_name = args.model
     torch.set_default_dtype(torch.bfloat16)
 
     layers1 = MpkLayers(0, world_size, rank, max_batch_size, args.trace_name, args.profiling)

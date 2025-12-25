@@ -512,8 +512,8 @@ void register_mugraph(
       int3 input_map, output_map;
       for (auto const &input : input_ops) {
         for (auto const &output : pre_output_ops) {
-          // op������tensor��ǰһ��op�����tensor��ͬһ��tensor������߹�������������input_map/output_map��ʵ��ϸ����ִ�С�
-          // ��û�й�����tensor������Ҫǿ��ͬ����ִ�У�
+          // op??????tensor??????op?????tensor??????tensor????????????????????input_map/output_map????????????��?
+          // ????��?????tensor?????????????????��?
           if (input->dtensor.guid == output->dtensor.guid) {
             input_map = input->input_map;
             output_map = output->input_map;
@@ -1262,7 +1262,7 @@ TaskGraphResult print_task_graph(
             offset +=
                 fused_dim_off_subtensor * sub_desc.tensor.stride[input_map.z];
           }
-          if (task_type == TASK_SILU_MUL) { // CJM-TODO: �Ƿ���Ҫ�޸�input_map
+          if (task_type == TASK_SILU_MUL) { // CJM-TODO: ?????????input_map
             offset /= 2;
           }
           tgbody.e("TensorDesc input$;", i);
@@ -1307,7 +1307,7 @@ TaskGraphResult print_task_graph(
                 io_desc.tensor.dim[input_map.z] / bgraph.grid_dim.z;
             offset += block_size * bid.z * io_desc.tensor.stride[input_map.z];
           }
-          if (task_type == TASK_SILU_MUL) { // CJM-TODO: �Ƿ���Ҫ�޸�input_map
+          if (task_type == TASK_SILU_MUL) { // CJM-TODO: ?????????input_map
             offset /= 2;
           }
           tgbody.e("TensorDesc input$;", i);

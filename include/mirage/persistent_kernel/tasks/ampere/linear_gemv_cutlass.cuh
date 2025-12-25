@@ -154,7 +154,8 @@ template <typename T,
           int OUTPUT_SIZE,
           int REDUCTION_SIZE,
           int O_STRIDE = OUTPUT_SIZE,
-          int PIPE_MAX = 3>
+          int PIPE_MAX = 3,
+          bool FUSE_RES = false>
 __device__ __forceinline__ void linear_postfix_kernel(void const *input_ptr,
                                               void const *weight_ptr,
                                               void const *residual_ptr,

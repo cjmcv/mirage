@@ -98,7 +98,11 @@ TBInputOp::TBInputOp(Graph *_graph,
     }
     if (dim_idx >= 0) {
       assert(tensor.dim[dim_idx] > 0);
-      assert(tensor.dim[dim_idx] % dim_div == 0);
+      // assert(tensor.dim[dim_idx] % dim_div == 0);
+      if (tensor.dim[dim_idx] % dim_div != 0) {
+        fprintf(stderr, "(tensor.dim[dim_idx] %% dim_div != 0): [tensor.dim[%d]=%d, dim_div=%d]\n", dim_idx, tensor.dim[dim_idx], dim_div);
+        abort();
+      }
       tensor.dim[dim_idx] /= dim_div;
     }
   }
