@@ -3,7 +3,7 @@ import torch
 import mirage as mi
 
 class MpkLayers:
-    def __init__(self, kernel_id, world_size, rank, max_batch_size, trace_name, profiling):
+    def __init__(self, instance_id, kernel_num, world_size, rank, max_batch_size, trace_name, profiling):
         if profiling:
             self.profiler_tensor = torch.zeros(
                 3000 * 128, dtype=torch.uint64, device="cuda"
@@ -16,7 +16,8 @@ class MpkLayers:
         print("num_schedulers: ", num_schedulers)
         
         self.mpk = mi.PersistentKernel(
-            kernel_id=kernel_id,
+            instance_id=instance_id,
+            kernel_num=kernel_num,
             mode="offline",
             world_size=world_size,
             mpi_rank=rank,

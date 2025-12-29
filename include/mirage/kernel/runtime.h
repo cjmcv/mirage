@@ -33,6 +33,7 @@ struct IODesc {
          std::string _name,
          mirage::kernel::DTensor const &_tensor,
          void *_torch_data_ptr = nullptr);
+  int kernel_id;
   IOType type;
   std::string name;
   TensorDesc tensor;

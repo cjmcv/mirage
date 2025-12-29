@@ -10,6 +10,16 @@ from .core import *
 from .kernel import get_key_paths, KNGraph, TBGraph
 from .visualizer.task_graph_visualizer import display_task_graph
 
+
+INSTANCE_REUSE_PLUGIN = """
+// Plugin
+void adjust_params_with_kernel_id(int kernel_id, std::map<std::string, void*> &all_tensors) {
+  if (kernel_id == 1) {
+    all_tensors["w1"] = all_tensors["w2"];
+  }
+}
+"""
+
 HARD_CODE = """
 #include <Python.h>
 #include <cuda_runtime.h>
@@ -222,7 +232,8 @@ def get_compile_command(
 class PersistentKernel:
     def __init__(
         self,
-        kernel_id: int,
+        instance_id: int,
+        kernel_num: int,
         mode: str,
         world_size: int,
         mpi_rank: int,
@@ -237,7 +248,8 @@ class PersistentKernel:
         # spec_decode_config: SpecDecodeConfig,
         use_cutlass_kernel: bool
     ):
-        self.kernel_id = kernel_id
+        self.instance_id = instance_id
+        self.kernel_num = kernel_num
         self.__finalized__ = False
         self._is_compiled = False
         if mode not in valid_persistent_kernel_modes:
@@ -258,6 +270,9 @@ class PersistentKernel:
         self.use_cutlass_kernel = use_cutlass_kernel
 
         self.target_cc = torch.cuda.get_device_properties(0).major * 10 + torch.cuda.get_device_properties(0).minor
+        # For the reuse of instance
+        self.basic_weight_names = None
+        self.replaceable_weight_names = []
 
     def attach_input(self, torch_tensor: torch.Tensor, name: str = None) -> DTensor:
         dims = tuple([d for d in torch_tensor.shape])
@@ -1294,10 +1309,36 @@ class PersistentKernel:
     #         raise ValueError(f"Invalid spec decode method: {method}")
     #     return handler(spec_decode_config, spec_tokens, target_output, grid_dim, block_dim)
 
-    def compile(
-        self,
-        **kwargs,
-    ):
+    def mark_basic_weights(self, weight_names):
+        self.basic_weight_names = weight_names
+        
+    def append_replaceable_weights(self, kernel_id, weight_names):
+        assert self.basic_weight_names is not None
+        self.replaceable_weight_names.append((kernel_id, weight_names))
+        assert len(self.replaceable_weight_names) < self.kernel_num 
+        
+    def gen_plugin_code(self):
+        plugin_code = "// Plugin \n"
+        
+        # replace weights
+        func_str = "void adjust_params_with_kernel_id(int kernel_id, std::map<std::string, void*> &all_tensors) {\n"
+        
+        if self.basic_weight_names is not None:
+            for w_group in self.replaceable_weight_names:
+                kernel_id = w_group[0]
+                weight_names = w_group[1]
+                t_str = "  if (kernel_id == {0}) {{\n".format(str(kernel_id))
+                for w_base, w_replace in zip(self.basic_weight_names, weight_names):
+                    t_str += "    all_tensors[\"{0}\"] = all_tensors[\"{1}\"];\n".format(w_base, w_replace)
+                t_str += "  }\n"
+            func_str += t_str
+        
+        func_str += "}\n"
+        
+        plugin_code += func_str
+        return plugin_code
+        
+    def compile(self, **kwargs):
         assert not self._is_compiled
         
         output_dir = kwargs.get("output_dir", None)
@@ -1311,14 +1352,19 @@ class PersistentKernel:
         so_path = os.path.join(output_dir, "test.cpython-38-x86_64-linux-gnu.so")
         self.kn_graph.visualize(os.path.join(output_dir, "kn_graph"))
         
+        # if (kernel_id == 1) {
         if 1:
+            plugin_code = self.gen_plugin_code()
+            
             # check json file
             json_file_path = os.path.join(output_dir, "task_graph.json")
             with open(json_file_path, "w") as f:
                 f.write(results["json_file"])
             with open(cuda_code_path, "w") as f:
-                f.write(results["cuda_code"] + HARD_CODE)
-            
+                f.write(results["cuda_code"])
+                f.write(plugin_code)
+                f.write(HARD_CODE)
+                
             display_task_graph(json_file_path, False)
         
         # if output_dir is not None:
@@ -1458,25 +1504,27 @@ class PersistentKernel:
         profiler_buffer_ptr = (
             self.profiler_tensor.data_ptr() if self.profiler_tensor is not None else 0
         )
-        self.init_func(
-            self.kernel_id,
-            meta_tensors_ptr,
-            profiler_buffer_ptr,
-            self.mpi_rank,
-            self.num_workers,
-            self.num_local_schedulers,
-            self.num_remote_schedulers,
-        )
+        
+        for kernel_id in range(self.kernel_num):
+            self.init_func(
+                kernel_id,
+                meta_tensors_ptr,
+                profiler_buffer_ptr,
+                self.mpi_rank,
+                self.num_workers,
+                self.num_local_schedulers,
+                self.num_remote_schedulers,
+            )
 
         self._is_compiled = True
 
         # self.call_func = getattr(mod, "call_func")
         
-    def __call__(self, batch_size):
+    def __call__(self, batch_size, kernel_id=0):
         # stream = kwargs.get("stream", None)
         # if stream is None:
         #    stream = torch.cuda.default_stream()
-        self.launch_func(self.kernel_id, batch_size)
+        self.launch_func(self.instance_id*10+kernel_id, batch_size)
         if self.profiler_tensor is not None:
             from .profiler_persistent import export_to_perfetto_trace
             
@@ -1496,5 +1544,5 @@ class PersistentKernel:
     def finalize(self):
         assert not self.__finalized__
         if self._is_compiled:
-            self.finalize_func(self.kernel_id)
+            self.finalize_func(self.instance_id)
         self.__finalized__ = True

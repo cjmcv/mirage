@@ -4,8 +4,8 @@ import argparse
 from torch import nn
 import mirage as mi
 
-from pkt_util import TorchRef, MpkReporter, TestUtil
-from mpk_layers import MpkLayers
+from common.pkt_util import TorchRef, MpkReporter, TestUtil
+from common.mpk_layers import MpkLayers
 
 if __name__ == "__main__":
     # batch_size只支持8的倍数，gridSize切分后，每个block的N也需要是8的倍数
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     model, tokenizer = reporter.memory_footprint_simulation(rank)
     w_rms_torch, w_gatedup_torch, w_down_proj_torch = reporter.get_weight_qwen3_mlp(layer_id=0)
     
-    layers = MpkLayers(0, world_size, rank, max_batch_size, args.trace_name, args.profiling)
+    layers = MpkLayers(0, 1, world_size, rank, max_batch_size, args.trace_name, args.profiling)
     mpk = layers.get_mpk()
     
     splitk = 1 # 8
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     
     # ###
     def ref_run():
-        return TorchRef.linear(x_torch[:batch_size], w_torch, out=out_torch)
+        return TorchRef.linear_o(x_torch[:batch_size], w_torch, out=out_torch)
     
     def mpk_run():
         mpk(batch_size)

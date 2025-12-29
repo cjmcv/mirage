@@ -3,8 +3,8 @@ import torch
 import argparse
 import mirage as mi
 
-from pkt_util import TorchRef, MpkReporter, TestUtil
-from mpk_layers import MpkLayers
+from common.pkt_util import TorchRef, MpkReporter, TestUtil
+from common.mpk_layers import MpkLayers
 
 if __name__ == "__main__":
     max_batch_size = 128
@@ -28,7 +28,7 @@ if __name__ == "__main__":
     # model_name = args.model
     torch.set_default_dtype(torch.bfloat16)
 
-    layers = MpkLayers(world_size, rank, max_batch_size, args.trace_name, args.profiling)
+    layers = MpkLayers(0,1, world_size, rank, max_batch_size, args.trace_name, args.profiling)
     mpk = layers.get_mpk()
     reporter = MpkReporter() 
     # reporter.memory_footprint_simulation(rank)

@@ -818,13 +818,13 @@ TaskGraphResult print_task_graph(
     code.e("");
   }
 
-  code.e("static void _init_persistent_kernel(std::vector<FullTaskDesc> "
-         "&all_tasks,");
-  code.e("                                    std::vector<EventDesc> "
-         "&all_events,");
-  code.e("                                  std::vector<TaskId> &first_tasks,");
-  code.e("                                  int num_gpus,");
-  code.e("                                  int my_gpu_id) {");
+  code.e("void adjust_params_with_kernel_id(int kernel_id, std::map<std::string, void*> &all_tensors);");
+  code.e("static void _init_persistent_kernel(int kernel_id,");
+  code.e("                                    std::vector<FullTaskDesc> &all_tasks,");
+  code.e("                                    std::vector<EventDesc> &all_events,");
+  code.e("                                    std::vector<TaskId> &first_tasks,");
+  code.e("                                    int num_gpus,");
+  code.e("                                    int my_gpu_id) {");
   code.e("assert(num_gpus = $);", num_gpus);
 
   if (use_json_format) {
@@ -887,7 +887,7 @@ TaskGraphResult print_task_graph(
         size_t bytes_per_row = size / desc.tensor.dim[0];
         size_t bytes_per_group = 0;
         std::vector<size_t> bytes_per_tensor;
-        for (int i = 0; i < desc.sub_descs.size(); i++) {
+        for (size_t i = 0; i < desc.sub_descs.size(); i++) {
           bytes_per_group +=
               bytes_per_row * desc.sub_descs[i].tensor.dim[0] / desc.num_groups;
           bytes_per_tensor.push_back(bytes_per_row *
@@ -895,7 +895,7 @@ TaskGraphResult print_task_graph(
                                      desc.num_groups);
         }
         size_t start_addr_offset = 0;
-        for (int i = 0; i < desc.sub_descs.size(); i++) {
+        for (size_t i = 0; i < desc.sub_descs.size(); i++) {
           code.e("CUDA_CHECK(cudaMemcpy2DAsync(reinterpret_cast<void *>($ + "
                  "$), $, "
                  "reinterpret_cast<const void *>($), $, $, $, "
@@ -1420,6 +1420,10 @@ TaskGraphResult print_task_graph(
   if (use_json_format) {
     // Add nullptr for tensors set as None
     code.e("all_tensors[\"nullptr\"] = nullptr;");
+    code.e("adjust_params_with_kernel_id(kernel_id, all_tensors);");
+    // code.e("if (kernel_id == 1) {");
+    // code.e("all_tensors[\"w1\"] = w2;");
+    // code.e("}");
     code.e("construct_task_graph(num_gpus, my_gpu_id, all_tasks, all_events, "
            "first_tasks, all_tensors);");
   } else {
