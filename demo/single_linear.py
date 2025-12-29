@@ -29,21 +29,22 @@ if __name__ == "__main__":
     print(f"world_size({world_size}) rank({rank})")
     # model_name = args.model
     torch.set_default_dtype(torch.bfloat16)
-
-    layers = MpkLayers(0, world_size, rank, max_batch_size, args.trace_name, args.profiling)
-    mpk = layers.get_mpk()
+    
     reporter = MpkReporter() 
     model, tokenizer = reporter.memory_footprint_simulation(rank)
     w_rms_torch, w_gatedup_torch, w_down_proj_torch = reporter.get_weight_qwen3_mlp(layer_id=0)
     
+    layers = MpkLayers(0, world_size, rank, max_batch_size, args.trace_name, args.profiling)
+    mpk = layers.get_mpk()
     
     splitk = 1 # 8
     # hidden_size = 2560        # K
-    # intermediate_size = 9728 # torch.randn / ones / TestUtil.create_matrix_arange_col/
+    # intermediate_size = 9728 # torch.randn / ones / TestUtil.create_matrix_arange_col /
     hidden_size = 1024
     intermediate_size = 3072
     
-    w_torch = w_gatedup_torch # TestUtil.create_matrix_arange_row((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
+    w_torch = w_gatedup_torch 
+    # w_torch = TestUtil.create_matrix_arange_row((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
     # a = torch.ones((100000, 30000), dtype=torch.bfloat16, device="cuda")
     x_torch = torch.ones((max_batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
     out_torch = torch.zeros((max_batch_size, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
@@ -79,7 +80,8 @@ if __name__ == "__main__":
     
     # ###
     def ref_run():
-        return TorchRef.linear(x_torch[:batch_size], w_torch)
+        return TorchRef.linear(x_torch[:batch_size], w_torch, out=out_torch)
+    
     def mpk_run():
         mpk(batch_size)
     

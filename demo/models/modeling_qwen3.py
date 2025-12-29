@@ -34,7 +34,7 @@ from .configuration_qwen3 import Qwen3Config
 import time
 
 import mirage as mi
-from mpk_layers import MpkLayers
+from common.mpk_layers import MpkLayers
 
 from .rope import apply_rotary_pos_emb_triton
 

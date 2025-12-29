@@ -34,10 +34,10 @@ if __name__ == "__main__":
     # reporter.memory_footprint_simulation(rank)
     
     splitk = 1 # 8
-    # hidden_size = 2560
-    # intermediate_size = 9728
-    hidden_size = 1024
-    intermediate_size = 3072
+    hidden_size = 2560
+    intermediate_size = 9728
+    # hidden_size = 1024
+    # intermediate_size = 3072
     x_torch = torch.randn((max_batch_size, hidden_size), dtype=torch.bfloat16, device="cuda")
     w_gatedup_torch = torch.randn((intermediate_size*2, hidden_size), dtype=torch.bfloat16, device="cuda")
     w_down_proj_torch = torch.randn((hidden_size, intermediate_size), dtype=torch.bfloat16, device="cuda")
@@ -45,8 +45,8 @@ if __name__ == "__main__":
     
     # (38, 19, 20) => 512, 512, 128 => 19456/38, 9728/19, 2560/20
     # (76, 38, 40) => 256, 256, 64 => 19456/76, 9728/38, 2560/40
-    # gridsize = [76, 38, 40]
-    gridsize = [16, 8, 16]
+    gridsize = [76, 38, 40]
+    # gridsize = [64, 32, 32]
     x = mpk.attach_input(torch_tensor=x_torch, name="in")
     w_gatedup = mpk.attach_input(torch_tensor=w_gatedup_torch, name="w_gatedup")
     w_down_proj = mpk.attach_input(torch_tensor=w_down_proj_torch, name="w_down_proj")

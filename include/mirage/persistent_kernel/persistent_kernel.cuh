@@ -903,7 +903,7 @@ static void _init_persistent_kernel(std::vector<FullTaskDesc> &all_tasks,
                                     int my_gpu_id);
 
 static int used_kernel_num = 0;
-static RuntimeConfig global_runtime_config[10];
+static RuntimeConfig global_runtime_config[20];
 
 extern "C" void init_persistent_kernel(int kernel_id,
                                        std::vector<void *> meta_tensors,

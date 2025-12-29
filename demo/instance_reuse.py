@@ -3,11 +3,10 @@ import torch
 import argparse
 import mirage as mi
 
-from pkt_util import TorchRef, MpkReporter, TestUtil
-from mpk_layers import MpkLayers
+from common.pkt_util import TorchRef, MpkReporter, TestUtil
+from common.mpk_layers import MpkLayers
 
 if __name__ == "__main__":
-    # batch_size只支持8的倍数，gridSize切分后，每个block的N也需要是8的倍数
     max_batch_size = 1
     batch_size = 1
     parser = argparse.ArgumentParser()
@@ -26,11 +25,10 @@ if __name__ == "__main__":
 
     print("Input arguments:", args)
     print(f"world_size({world_size}) rank({rank})")
-    # model_name = args.model
     torch.set_default_dtype(torch.bfloat16)
 
-    layers1 = MpkLayers(0, world_size, rank, max_batch_size, args.trace_name, args.profiling)
-    mpk1 = layers1.get_mpk()
+    layers = MpkLayers(0, world_size, rank, max_batch_size, args.trace_name, args.profiling)
+    mpk = layers.get_mpk()
     reporter = MpkReporter() 
     # reporter.memory_footprint_simulation(rank)
     
@@ -43,34 +41,21 @@ if __name__ == "__main__":
     out_torch = torch.zeros((max_batch_size, intermediate_size*2), dtype=torch.bfloat16, device="cuda")
     print("x: ", x_torch.data_ptr(), "w: ", w_torch1.data_ptr(), "w2: ", w_torch2.data_ptr(), "o: ", out_torch.data_ptr())
     
-    x1 = mpk1.attach_input(torch_tensor=x_torch, name="in")
-    w1 = mpk1.attach_input(torch_tensor=w_torch1, name="w1")
-    linear_out1 = mpk1.attach_input(torch_tensor=out_torch, name="linear_out")
-    mpk1.linear_layer(
-        input=x1,
+    x = mpk.attach_input(torch_tensor=x_torch, name="in")
+    w1 = mpk.attach_input(torch_tensor=w_torch1, name="w1")
+    linear_out = mpk.attach_input(torch_tensor=out_torch, name="linear_out")
+    mpk.linear_layer(
+        input=x,
         weight=w1,
-        output=linear_out1,
+        output=linear_out,
         grid_dim=(38, 1, 1),  # (9728 * 2) / 8 = 2432 / ... / 76 / 38 / 19 / 8
         block_dim=(128, 1, 1),
     )
-    layers1.compile_load(args.nc, "./gen/1")
+    layers.compile_load(args.nc, "./gen")
     
     ###########################################################
     
-    layers2 = MpkLayers(1, world_size, rank, max_batch_size, args.trace_name, args.profiling)
-    mpk2 = layers2.get_mpk()
-
-    x2 = mpk2.attach_input(torch_tensor=x_torch, name="in")
-    w2 = mpk2.attach_input(torch_tensor=w_torch2, name="w2")
-    linear_out2 = mpk2.attach_input(torch_tensor=out_torch, name="linear_out")
-    mpk2.linear_layer(
-        input=x2,
-        weight=w2,
-        output=linear_out2,
-        grid_dim=(38, 1, 1),  # (9728 * 2) / 8 = 2432 / ... / 76 / 38 / 19 / 8
-        block_dim=(128, 1, 1),
-    )
-    layers2.compile_load(args.nc, "./gen/2")
+    
     
     # # ###
     def ref_run1():
@@ -78,10 +63,8 @@ if __name__ == "__main__":
     def ref_run2():
         return TorchRef.linear(x_torch[:batch_size], w_torch2)
     
-    def mpk_run1():
-        mpk1(batch_size)
-    def mpk_run2():
-        mpk2(batch_size)
+    def mpk_run():
+        mpk(batch_size)
          
     # for _ in range(10):
     #     print("Run1")
@@ -104,12 +87,12 @@ if __name__ == "__main__":
     # ###
     
     print("report1")
-    reporter.generate_report(mpk_run1, mpk_output, splitk, 
+    reporter.generate_report(mpk_run, mpk_output, splitk, 
                             ref_run1, ref_output1, 
                             warnup_iter=100, test_iter=200, 
                             allclose_iter=5, print_all=False)
     print("report2")
-    reporter.generate_report(mpk_run2, mpk_output, splitk, 
+    reporter.generate_report(mpk_run, mpk_output, splitk, 
                             ref_run2, ref_output2, 
                             warnup_iter=100, test_iter=200, 
                             allclose_iter=5, print_all=False)

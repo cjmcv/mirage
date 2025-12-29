@@ -46,6 +46,12 @@ class TorchRef:
         return F.linear(x, w)
     
     @staticmethod
+    def linear_o(x, w, out):
+        with torch.no_grad():
+            torch.matmul(x, w.t(), out=out)
+        return out
+    
+    @staticmethod
     def rms_norm(hidden_states, weight):
         variance = hidden_states.pow(2).mean(-1, keepdim=True)
         hidden_states = hidden_states * torch.rsqrt(variance)
@@ -195,8 +201,8 @@ class MpkReporter:
         self.time_cuda_event_record("torch_ref", torch_run, test_iter)   
         self.time_cuda_event_record("mpk", mpk_run, test_iter)
 
-        self.time_cpu_record("torch_ref", torch_run, test_iter)   
-        self.time_cpu_record("mpk", mpk_run, test_iter)
+        # self.time_cpu_record("torch_ref", torch_run, test_iter)   
+        # self.time_cpu_record("mpk", mpk_run, test_iter)
         
         self.torch_profile(torch_run)
         self.torch_profile(mpk_run)
