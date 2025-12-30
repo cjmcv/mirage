@@ -14,10 +14,10 @@ def preload_so(lib_path, name_hint):
 
 _this_dir = os.path.dirname(__file__)
 _mirage_root = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-_subexpr_so_path = os.path.join(_mirage_root, "build", "abstract_subexpr", "release", "libabstract_subexpr.so")
-_formal_verifier_so_path = os.path.join(_mirage_root, "build", "formal_verifier", "release", "libformal_verifier.so")
-preload_so(_subexpr_so_path, "libabstract_subexpr.so")
-preload_so(_formal_verifier_so_path, "libformal_verifier.so")
+# _subexpr_so_path = os.path.join(_mirage_root, "build", "abstract_subexpr", "release", "libabstract_subexpr.so")
+# _formal_verifier_so_path = os.path.join(_mirage_root, "build", "formal_verifier", "release", "libformal_verifier.so")
+# preload_so(_subexpr_so_path, "libabstract_subexpr.so")
+# preload_so(_formal_verifier_so_path, "libformal_verifier.so")
 
 from .core import *
 from .kernel import *

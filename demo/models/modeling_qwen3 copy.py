@@ -339,10 +339,6 @@ class Qwen3Attention(nn.Module):
         return attn_output
 
 
-ENABLE_MPK = False
-g_mpk = None
-g_mpk_x_torch = None
-g_mpk_out_torch = None
 class Qwen3DecoderLayer(nn.Module):
     def __init__(
         self,
@@ -364,6 +360,7 @@ class Qwen3DecoderLayer(nn.Module):
         ############
         
         self.layer_idx = layer_idx
+        self.mpk = None
         
     def forward(
         self,
@@ -378,8 +375,22 @@ class Qwen3DecoderLayer(nn.Module):
     ) -> Tuple[
         torch.FloatTensor, Optional[Tuple[torch.FloatTensor, torch.FloatTensor]]
     ]:
-        if (ENABLE_MPK and self.layer_idx == 0 and hidden_states.shape[1] == 1):
-
+        if (self.layer_idx < 10 and hidden_states.shape[1] == 1):
+            if (self.mpk == None):
+                print("weight init: ", self.post_attention_layernorm.weight.data_ptr())
+                max_batch_size = 1
+                self.mpk_layers = MpkLayers(self.layer_idx, 1, 0, max_batch_size, "qwen3", None)
+                gridsize = [max_batch_size, 48, 24, 16] # 1024 3072
+                print(self.mlp.hidden_size, self.mlp.intermediate_size)
+                self.w_gatedup_torch = torch.cat((self.mlp.gate_proj.weight, self.mlp.up_proj.weight), 0).contiguous()
+                self.x_torch, self.out_torch = self.mpk_layers.create_qwen3_norm_mlp(
+                                                        gridsize, self.mlp.hidden_size, self.mlp.intermediate_size, 
+                                                        w_rms_torch = self.post_attention_layernorm.weight, 
+                                                        w_gatedup_torch = self.w_gatedup_torch,
+                                                        w_down_proj_torch = self.mlp.down_proj.weight)
+                self.mpk_layers.compile_load(True, "./gen/"+str(self.layer_idx))
+                self.mpk = self.mpk_layers.get_mpk()
+                
             residual = hidden_states
             # print("shape0: ", residual.shape)
 
@@ -398,9 +409,9 @@ class Qwen3DecoderLayer(nn.Module):
             
             # print("shape1: ", hidden_states.shape, residual.shape)
             batch_size = hidden_states.shape[1]
-            g_mpk_x_torch[:batch_size, :].copy_(hidden_states.squeeze(0))
-            g_mpk(batch_size, self.layer_idx)
-            hidden_states = g_mpk_out_torch[:batch_size, :].unsqueeze(0)
+            self.x_torch[:batch_size, :].copy_(hidden_states.squeeze(0))
+            self.mpk(batch_size)
+            hidden_states = self.out_torch[:batch_size, :].unsqueeze(0)
             print("mpk outputs", hidden_states.shape)
             outputs = (hidden_states,)
             return outputs
@@ -504,35 +515,7 @@ class Qwen3Model(Qwen3PreTrainedModel):
         self.post_init()
 
         self.kv_last_page_len = torch.tensor([0], dtype=torch.int32, device="cuda")
-        
-        #######################
-        if ENABLE_MPK:
-            global g_mpk, g_mpk_x_torch, g_mpk_out_torch
-            
-            self.mpk_layers = MpkLayers(instance_id=0, kernel_num=20, world_size=1, rank=0, max_batch_size=1, trace_name="qwen3", profiling=False)
-            g_mpk = self.mpk_layers.get_mpk()
-            gridsize = [1, 48, 24, 16] # 1024 3072
-            
-            layer_idx = 0
-            layer = self.layers[layer_idx]
-            self.w_gatedup = torch.cat((layer.mlp.gate_proj.weight, layer.mlp.up_proj.weight), 0).contiguous()
-            g_mpk_x_torch, g_mpk_out_torch = self.mpk_layers.create_qwen3_norm_mlp(
-                                                            gridsize, layer.mlp.hidden_size, layer.mlp.intermediate_size, 
-                                                            w_rms_torch = layer.post_attention_layernorm.weight, 
-                                                            w_gatedup_torch = self.w_gatedup,
-                                                            w_down_proj_torch = layer.mlp.down_proj.weight)
-            print(layer.mlp.gate_proj.weight, layer.mlp.up_proj.weight, layer.post_attention_layernorm.weight, layer.mlp.down_proj.weight)
-            self.mpk_layers.compile_load(False, "./gen/"+str(layer_idx))
-            
-            # for layer_id in range(len(self.layers)):
-            #     layer = self.layers[layer_id]
-            #     w_rms = layer.post_attention_layernorm.weight
-            #     w_gatedup = torch.cat((layer.mlp.gate_proj.weight, layer.mlp.up_proj.weight), 0).contiguous()
-            #     w_down_proj = layer.mlp.down_proj.weight
-                
-            #     w2 = self.mpk.attach_input(torch_tensor=w_torch2, name="w2")
-            
-            
+
     def get_input_embeddings(self):
         return self.embed_tokens
 

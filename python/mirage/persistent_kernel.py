@@ -250,6 +250,8 @@ class PersistentKernel:
     ):
         self.instance_id = instance_id
         self.kernel_num = kernel_num
+        self.max_kernel_num_per_instance = 10
+        
         self.__finalized__ = False
         self._is_compiled = False
         if mode not in valid_persistent_kernel_modes:
@@ -975,9 +977,14 @@ class PersistentKernel:
         assert weight.num_dims == 2  # (hidden_size, hidden_size / world_size)
         assert output.num_dims == 2  # (batch_size, hidden_size)
         tb_graph = TBGraph(CyTBGraph(grid_dim, block_dim, 1, 64))
-        tb_graph.new_input(input,  (1, -1, -1), 1, True) # 1 跨 x 轴推进，一步size/vir_gridDim.x
-        tb_graph.new_input(weight, (1, 0, -1), -1, True)  # 第一个 1 跨 x 轴推进，一步size/blockDim.x, 第二个0跨y轴推进，一步跨size.y/blockDim.y
-        tb_graph.new_input(output, (0, 1, -1), -1, True) # 0 跨 y 轴推进, 一步2560
+        # tb_graph.new_input(input,  (1, -1, -1), 1, True) # 1 跨 x 轴推进，一步size/vir_gridDim.x
+        # tb_graph.new_input(weight, (1, 0, -1), -1, True)  # 第一个 1 跨 x 轴推进，一步size/blockDim.x, 第二个0跨y轴推进，一步跨size.y/blockDim.y
+        # tb_graph.new_input(output, (0, 1, -1), -1, True) # 0 跨 y 轴推进, 一步2560
+
+        tb_graph.new_input(input, (-1, 1, -1), 1, True)
+        tb_graph.new_input(weight, (0, 1, -1), 1, True)
+        tb_graph.new_input(output, (1, -1, -1), -1, True)
+        
         self.kn_graph.customized([input, weight, output], tb_graph)
 
         if self.target_cc == 80 or self.target_cc == 89:
@@ -1507,7 +1514,7 @@ class PersistentKernel:
         
         for kernel_id in range(self.kernel_num):
             self.init_func(
-                kernel_id,
+                self.instance_id*self.max_kernel_num_per_instance + kernel_id,
                 meta_tensors_ptr,
                 profiler_buffer_ptr,
                 self.mpi_rank,
@@ -1524,7 +1531,7 @@ class PersistentKernel:
         # stream = kwargs.get("stream", None)
         # if stream is None:
         #    stream = torch.cuda.default_stream()
-        self.launch_func(self.instance_id*10+kernel_id, batch_size)
+        self.launch_func(self.instance_id*self.max_kernel_num_per_instance + kernel_id, batch_size)
         if self.profiler_tensor is not None:
             from .profiler_persistent import export_to_perfetto_trace
             

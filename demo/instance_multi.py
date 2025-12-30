@@ -29,7 +29,7 @@ if __name__ == "__main__":
     # model_name = args.model
     torch.set_default_dtype(torch.bfloat16)
 
-    layers1 = MpkLayers(0, world_size, rank, max_batch_size, args.trace_name, args.profiling)
+    layers1 = MpkLayers(0, 1, world_size, rank, max_batch_size, args.trace_name, args.profiling)
     mpk1 = layers1.get_mpk()
     reporter = MpkReporter() 
     # reporter.memory_footprint_simulation(rank)
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     
     ###########################################################
     
-    layers2 = MpkLayers(1, world_size, rank, max_batch_size, args.trace_name, args.profiling)
+    layers2 = MpkLayers(1, 1, world_size, rank, max_batch_size, args.trace_name, args.profiling)
     mpk2 = layers2.get_mpk()
 
     x2 = mpk2.attach_input(torch_tensor=x_torch, name="in")

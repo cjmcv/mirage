@@ -86,25 +86,25 @@ include_directories(deps/cutlass/tools/util/include)
 
 #include_directories(${MIRAGE_INCLUDE_DIRS})
 
-#set Z3
-if(Z3_CXX_INCLUDE_DIRS AND Z3_LIBRARIES)
-  message(STATUS "Z3_CXX_INCLUDE_DIRS: ${Z3_CXX_INCLUDE_DIRS}")
-  message(STATUS "Z3_LIBRARIES: ${Z3_LIBRARIES}")
-else()
-  find_package(Z3 REQUIRED)
-  message(STATUS "Z3_FOUND: ${Z3_FOUND}")
-  message(STATUS "Found Z3 ${Z3_VERSION_STRING}")
-  message(STATUS "Z3_DIR: ${Z3_DIR}")
-endif()
-include_directories(${Z3_CXX_INCLUDE_DIRS})
-#target_link_libraries(mirage_runtime PUBLIC ${Z3_LIBRARIES})
-list(APPEND MIRAGE_LINK_LIBS ${Z3_LIBRARIES})
+# #set Z3
+# if(Z3_CXX_INCLUDE_DIRS AND Z3_LIBRARIES)
+#   message(STATUS "Z3_CXX_INCLUDE_DIRS: ${Z3_CXX_INCLUDE_DIRS}")
+#   message(STATUS "Z3_LIBRARIES: ${Z3_LIBRARIES}")
+# else()
+#   find_package(Z3 REQUIRED)
+#   message(STATUS "Z3_FOUND: ${Z3_FOUND}")
+#   message(STATUS "Found Z3 ${Z3_VERSION_STRING}")
+#   message(STATUS "Z3_DIR: ${Z3_DIR}")
+# endif()
+# include_directories(${Z3_CXX_INCLUDE_DIRS})
+# #target_link_libraries(mirage_runtime PUBLIC ${Z3_LIBRARIES})
+# list(APPEND MIRAGE_LINK_LIBS ${Z3_LIBRARIES})
 
 add_subdirectory(deps/json)
 list(APPEND MIRAGE_LINK_LIBS nlohmann_json::nlohmann_json)
 
 link_directories(${CMAKE_SOURCE_DIR}/build/release)
-list(APPEND MIRAGE_LINK_LIBS abstract_subexpr)
+# list(APPEND MIRAGE_LINK_LIBS abstract_subexpr)
 
 #add_subdirectory(deps/z3 z3 EXCLUDE_FROM_ALL)
 #include_directories(deps/z3/src/api/c++)
@@ -147,28 +147,28 @@ if(NOT CARGO_RESULT EQUAL 0)
     "and follow the instructions on the screen.")
 endif()
 
-set(ABSTRACT_SUBEXPR_LIBRARIES ${PROJECT_SOURCE_DIR}/build/abstract_subexpr/release/libabstract_subexpr.so)
-set(FORMAL_VERIFIER_LIBRARIES ${PROJECT_SOURCE_DIR}/build/formal_verifier/release/libformal_verifier.so)
+# set(ABSTRACT_SUBEXPR_LIBRARIES ${PROJECT_SOURCE_DIR}/build/abstract_subexpr/release/libabstract_subexpr.so)
+# set(FORMAL_VERIFIER_LIBRARIES ${PROJECT_SOURCE_DIR}/build/formal_verifier/release/libformal_verifier.so)
 list(APPEND MIRAGE_LINK_LIBS "-lstdc++fs")
 
-#set RUST
-if(ABSTRACT_SUBEXPR_LIB AND ABSTRACT_SUBEXPR_LIBRARIES)
-  message(STATUS "ABSTRACT_SUBEXPR_LIB: ${ABSTRACT_SUBEXPR_LIB}")
-  message(STATUS "ABSTRACT_SUBEXPR_LIBRARIES: ${ABSTRACT_SUBEXPR_LIBRARIES}")
-else()
-  message(STATUS "ABSTRACT_SUBEXPR_LIB not set, will build it")
-endif()
-include_directories(${ABSTRACT_SUBEXPR_LIB})
-list(APPEND MIRAGE_LINK_LIBS ${ABSTRACT_SUBEXPR_LIBRARIES})
+# #set RUST
+# if(ABSTRACT_SUBEXPR_LIB AND ABSTRACT_SUBEXPR_LIBRARIES)
+#   message(STATUS "ABSTRACT_SUBEXPR_LIB: ${ABSTRACT_SUBEXPR_LIB}")
+#   message(STATUS "ABSTRACT_SUBEXPR_LIBRARIES: ${ABSTRACT_SUBEXPR_LIBRARIES}")
+# else()
+#   message(STATUS "ABSTRACT_SUBEXPR_LIB not set, will build it")
+# endif()
+# include_directories(${ABSTRACT_SUBEXPR_LIB})
+# list(APPEND MIRAGE_LINK_LIBS ${ABSTRACT_SUBEXPR_LIBRARIES})
 
-if(FORMAL_VERIFIER_LIB AND FORMAL_VERIFIER_LIBRARIES)
-  message(STATUS "FORMAL_VERIFIER_LIB: ${FORMAL_VERIFIER_LIB}")
-  message(STATUS "FORMAL_VERIFIER_LIBRARIES: ${FORMAL_VERIFIER_LIBRARIES}")
-else()
-  message(STATUS "FORMAL_VERIFIER_LIB not set, will build it")
-endif()
-include_directories(${FORMAL_VERIFIER_LIB})
-list(APPEND MIRAGE_LINK_LIBS ${FORMAL_VERIFIER_LIBRARIES})
+# if(FORMAL_VERIFIER_LIB AND FORMAL_VERIFIER_LIBRARIES)
+#   message(STATUS "FORMAL_VERIFIER_LIB: ${FORMAL_VERIFIER_LIB}")
+#   message(STATUS "FORMAL_VERIFIER_LIBRARIES: ${FORMAL_VERIFIER_LIBRARIES}")
+# else()
+#   message(STATUS "FORMAL_VERIFIER_LIB not set, will build it")
+# endif()
+# include_directories(${FORMAL_VERIFIER_LIB})
+# list(APPEND MIRAGE_LINK_LIBS ${FORMAL_VERIFIER_LIBRARIES})
 
 set_target_properties(mirage_runtime PROPERTIES CUDA_ARCHITECTURES "75;80;86;89;90")
 
@@ -183,9 +183,9 @@ endif()
 #   target_compile_definitions(mirage_runtime PUBLIC MIRAGE_FINGERPRINT_USE_CPU)
 # endif()
 
-if (NOT "${USE_FORMAL_VERIFIER}" STREQUAL "OFF")
-  target_compile_definitions(mirage_runtime PUBLIC MIRAGE_USE_FORMAL_VERIFIER)
-endif()
+# if (NOT "${USE_FORMAL_VERIFIER}" STREQUAL "OFF")
+#   target_compile_definitions(mirage_runtime PUBLIC MIRAGE_USE_FORMAL_VERIFIER)
+# endif()
 
 target_link_libraries(mirage_runtime ${MIRAGE_LINK_LIBS})
 
@@ -198,8 +198,8 @@ install(TARGETS mirage_runtime
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/include
     DESTINATION .)
 
-install(FILES ${ABSTRACT_SUBEXPR_LIBRARIES} 
-    DESTINATION lib)
+# install(FILES ${ABSTRACT_SUBEXPR_LIBRARIES} 
+#     DESTINATION lib)
 
 if ("${BUILD_CPP_EXAMPLES}" STREQUAL "ON")
   set(CPP_EXAMPLES_DIR cpp_examples)
