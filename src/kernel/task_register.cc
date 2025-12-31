@@ -539,7 +539,8 @@ int TaskRegister::register_linear_task(threadblock::Graph const &bgraph,
           with_residual);
   }
   else {
-    code.e("kernel::linear_kernel<bfloat16, $, $, $, $, $, $>(",
+    code.e("kernel::linear_kernel<bfloat16, $, $, $, $, $, $, $, $, $, $>(",
+          bgraph.thread_num, bgraph.block_dim.x, bgraph.block_dim.y, bgraph.block_dim.z, 
           batch_size,
           output_size,
           reduction_size,
@@ -548,6 +549,7 @@ int TaskRegister::register_linear_task(threadblock::Graph const &bgraph,
           with_residual);    
   }
 
+  code.e("    task_desc->bx, task_desc->by, task_desc->bz,");
   code.e("    task_desc->input_ptrs[0],");
   code.e("    task_desc->input_ptrs[1],");
   if (with_residual) {

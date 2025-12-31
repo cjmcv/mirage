@@ -34,23 +34,29 @@
 namespace kernel {
 
 // A[1, k] * B[n, k] => C[n]
-// REDUCTION_SIZE => k
-// OUTPUT_SIZE => real_n
+// K => k
+// N => real_n
 template <typename T,
-          int BATCH_SIZE,
-          int OUTPUT_SIZE,
-          int REDUCTION_SIZE,
-          int O_STRIDE = OUTPUT_SIZE,
+          int THREAD_NUM,
+          int TILE_DIM_X, 
+          int TILE_DIM_Y, 
+          int TILE_DIM_Z,
+          int M,
+          int N,
+          int K,
+          int O_STRIDE = N,
           int PIPE_MAX = 3,
           bool FUSE_RES = false>
-__device__ __forceinline__ void linear_kernel(void const *input_ptr,
+__device__ __forceinline__ void linear_kernel(const int bx, const int by, const int bz,
+                                              void const *input_ptr,
                                               void const *weight_ptr,
                                               void const *residual_ptr,
                                               void *output_ptr,
                                               int num_active_tokens,
                                               bool residual) {
   // if (threadIdx.x == 0) {
-  //   printf("[%d] gemv input_ptr: %lld, weight_ptr: %lld, output_ptr: %lld: %d,%d,%d.\n", blockIdx.x, input_ptr, weight_ptr, output_ptr, num_active_tokens, OUTPUT_SIZE, REDUCTION_SIZE);
+  //   printf("[%d-(%d,%d,%d)]-tile(%d,%d,%d)(%d)\n", blockIdx.x, bx, by, bz, TILE_DIM_X, TILE_DIM_Y, TILE_DIM_Z, THREAD_NUM);
+  //   printf("[%d] gemv input_ptr: %lld, weight_ptr: %lld, output_ptr: %lld: %d,%d,%d.\n", blockIdx.x, input_ptr, weight_ptr, output_ptr, num_active_tokens, N, K);
   // }
   using ElementA = cutlass::bfloat16_t;
   using ElementB = cutlass::bfloat16_t;
@@ -67,9 +73,10 @@ __device__ __forceinline__ void linear_kernel(void const *input_ptr,
   // 一个线程处理8个元素，所以内层还有一个8的小循环，执行后得到该线程负责的所有内容。32个线程再累加起来(warp reduce)就得到这一行的计算结果，即C矩阵的一个值。
   static int const kThreadsPerRow = 32;
 
-  int idx_col_k = threadIdx.x % kThreadsPerRow;
-  int idx_row_m = threadIdx.x / kThreadsPerRow;
-  for (; idx_row_m < OUTPUT_SIZE; idx_row_m += blockDim.x / kThreadsPerRow) {
+  int n_step = THREAD_NUM / kThreadsPerRow;
+  int idx_col_k = threadIdx.x % kThreadsPerRow; // 32
+  int idx_row_n = threadIdx.x / kThreadsPerRow; //  4 
+  for (; idx_row_n < TILE_DIM_X; idx_row_n += n_step) {
     // problem_size (row = m, column = k)
     // matrix A (batch, m, k)
     // vector B (batch, 1, k)
@@ -78,19 +85,19 @@ __device__ __forceinline__ void linear_kernel(void const *input_ptr,
 
     // move in the batch dimension
     ElementA const *ptr_A = (ElementA const *)input_ptr;
-    ElementB const *ptr_B = (ElementB const *)weight_ptr;
-    ElementC *ptr_D = (ElementC *)output_ptr;
-    ElementC *ptr_R = (ElementC *)residual_ptr;
+    ElementB const *ptr_B = (ElementB const *)weight_ptr + bx * TILE_DIM_X * K;
+    ElementC *ptr_D = (ElementC *)output_ptr + bx * TILE_DIM_X;
+    ElementC *ptr_R = (ElementC *)residual_ptr + bx * TILE_DIM_X;
 
     // move in the k dimension
     ptr_A += idx_col_k * kElementsPerAccess;
     ptr_B += idx_col_k * kElementsPerAccess;
 
     // move in the m dimension
-    ptr_B += idx_row_m * REDUCTION_SIZE;
-    ptr_D += idx_row_m;
+    ptr_B += idx_row_n * K;
+    ptr_D += idx_row_n;
     if constexpr (FUSE_RES) {
-      ptr_R += idx_row_m;
+      ptr_R += idx_row_n;
     }
     cutlass::NumericArrayConverter<ElementAccumulator, ElementA, kElementsPerAccess, Round> srcA_converter;
     cutlass::NumericArrayConverter<ElementAccumulator, ElementB, kElementsPerAccess, Round> srcB_converter;
@@ -104,7 +111,7 @@ __device__ __forceinline__ void linear_kernel(void const *input_ptr,
     int const tileA_k = kThreadsPerRow * kElementsPerAccess;
     
     int unroll_col_k = 0;
-    for (; unroll_col_k < REDUCTION_SIZE / tileA_k * tileA_k; unroll_col_k += tileA_k) {
+    for (; unroll_col_k < K / tileA_k * tileA_k; unroll_col_k += tileA_k) {
 
       // fetch from matrix A
       cutlass::arch::global_load<FragmentA,
@@ -129,7 +136,7 @@ __device__ __forceinline__ void linear_kernel(void const *input_ptr,
     // calculate the rest of K elements
     // each thread fetch 1 element each time
     // for (int k = unroll_col_k + idx_col_k; k < params.problem_size.column(); k += kThreadsPerRow) {
-    for (int k = unroll_col_k + idx_col_k; k < REDUCTION_SIZE; k += kThreadsPerRow) {
+    for (int k = unroll_col_k + idx_col_k; k < K; k += kThreadsPerRow) {
       ElementB b = *(ptr_B - idx_col_k * kElementsPerAccess + k);
       ElementA a = *(ptr_A - idx_col_k * kElementsPerAccess + k);
 
@@ -150,20 +157,25 @@ __device__ __forceinline__ void linear_kernel(void const *input_ptr,
 }
 
 template <typename T,
-          int BATCH_SIZE,
-          int OUTPUT_SIZE,
-          int REDUCTION_SIZE,
-          int O_STRIDE = OUTPUT_SIZE,
+          int THREAD_NUM,
+          int TILE_DIM_X, 
+          int TILE_DIM_Y, 
+          int TILE_DIM_Z,
+          int M,
+          int N,
+          int K,
+          int O_STRIDE = N,
           int PIPE_MAX = 3,
           bool FUSE_RES = false>
-__device__ __forceinline__ void linear_postfix_kernel(void const *input_ptr,
+__device__ __forceinline__ void linear_postfix_kernel(const int bx, const int by, const int bz,
+                                              void const *input_ptr,
                                               void const *weight_ptr,
                                               void const *residual_ptr,
                                               void *output_ptr,
                                               int num_active_tokens,
                                               bool residual) {
   // if (threadIdx.x == 0) {
-  //   printf("[%d,%d, %d,%d] gemv_postfix input_ptr: %lld, weight_ptr: %lld, output_ptr: %lld: %d,%d,%d.\n", blockIdx.x, blockIdx.y, gridDim.x, gridDim.y, input_ptr, weight_ptr, output_ptr, num_active_tokens, OUTPUT_SIZE, REDUCTION_SIZE);
+  //   printf("[%d,%d, %d,%d] gemv_postfix input_ptr: %lld, weight_ptr: %lld, output_ptr: %lld: %d,%d,%d.\n", blockIdx.x, blockIdx.y, gridDim.x, gridDim.y, input_ptr, weight_ptr, output_ptr, num_active_tokens, N, K);
   // }
   using ElementA = cutlass::bfloat16_t;
   using ElementB = cutlass::bfloat16_t;
@@ -177,13 +189,13 @@ __device__ __forceinline__ void linear_postfix_kernel(void const *input_ptr,
 
   // [1, 9728] * [2560, 9728] => [spk, 2560]
   // 假设外层repeat[2,2], 共4个block。
-  // OUTPUT_SIZE = 2560/rp.x = 1280, REDUCTION_SIZE = 9728/rp.y = 4864
+  // N = 2560/rp.x = 1280, K = 9728/rp.y = 4864
   // 以linear_postfix_layer的布局，会拿到
   // BLOCK1 , BLOCK2 ,    BLOCK3 ,     BLOCK4 
   // A(0, 0), A(0, 4864), A(0, 0),     A(0, 4864) 
   // B(0, 0), B(0, 4864), B(1280, 0),  B(1280, 4864)
   // C(0, 0), C(1, 0),    C(0, 1280),  C(1, 1280)
-  // BLOCK1 负责A[0, 0:REDUCTION_SIZE] * B[0:OUTPUT_SIZE, 0:REDUCTION_SIZE] = C[0, 0:OUTPUT_SIZE]
+  // BLOCK1 负责A[0, 0:K] * B[0:N, 0:K] = C[0, 0:N]
   // 一个block有128个线程，一行32个线程，共4行。
   // 每个线程一次处理8个元素，32个线程一次处理256个元素。
 
@@ -192,15 +204,15 @@ __device__ __forceinline__ void linear_postfix_kernel(void const *input_ptr,
   // BLOCK4 [3,0, 20,1] gemv_postfix input_ptr: 21552443392, weight_ptr: 21527012864, output_ptr: 21552460800: 1,1280,4864.
   // BLOCK1 [0,0, 20,1] gemv_postfix input_ptr: 21552433664, weight_ptr: 21502099456, output_ptr: 21552453120: 1,1280,4864.
 
-  // int row_chunk = OUTPUT_SIZE / gridDim.y;
+  // int row_chunk = N / gridDim.y;
   // int base_row_m = blockIdx.y * row_chunk;
   
   static int const kThreadsPerRow = 32;
-  int row_m = blockDim.x / kThreadsPerRow;      // 4
+  int row_m = THREAD_NUM / kThreadsPerRow;      // 4
   int idx_col_k = threadIdx.x % kThreadsPerRow; // [0-31]
-  int idx_row_m = threadIdx.x / kThreadsPerRow; // [0-3]
+  int idx_row_n = threadIdx.x / kThreadsPerRow; // [0-3]
 
-  for (; idx_row_m < OUTPUT_SIZE; idx_row_m += row_m) {
+  for (; idx_row_n < N; idx_row_n += row_m) {
     ElementA const *ptr_A = (ElementA const *)input_ptr;
     ElementB const *ptr_B = (ElementB const *)weight_ptr;
     ElementC *ptr_D = (ElementC *)output_ptr;
@@ -210,8 +222,8 @@ __device__ __forceinline__ void linear_postfix_kernel(void const *input_ptr,
     ptr_B += idx_col_k * kElementsPerAccess;
 
     // move in the m dimension
-    ptr_B += idx_row_m * 9728;
-    ptr_D += idx_row_m;
+    ptr_B += idx_row_n * 9728;
+    ptr_D += idx_row_n;
 
     cutlass::NumericArrayConverter<ElementAccumulator, ElementA, kElementsPerAccess, Round> srcA_converter;
     cutlass::NumericArrayConverter<ElementAccumulator, ElementB, kElementsPerAccess, Round> srcB_converter;
@@ -225,7 +237,7 @@ __device__ __forceinline__ void linear_postfix_kernel(void const *input_ptr,
     int const tileA_k = kThreadsPerRow * kElementsPerAccess;
     
     int unroll_col_k = 0;
-    for (; unroll_col_k < REDUCTION_SIZE / tileA_k * tileA_k; unroll_col_k += tileA_k) {
+    for (; unroll_col_k < K / tileA_k * tileA_k; unroll_col_k += tileA_k) {
 
       // fetch from matrix A
       cutlass::arch::global_load<FragmentA,
@@ -249,7 +261,7 @@ __device__ __forceinline__ void linear_postfix_kernel(void const *input_ptr,
 
     // calculate the rest of K elements
     // each thread fetch 1 element each time
-    for (int k = unroll_col_k + idx_col_k; k < REDUCTION_SIZE; k += kThreadsPerRow) {
+    for (int k = unroll_col_k + idx_col_k; k < K; k += kThreadsPerRow) {
       ElementB b = *(ptr_B - idx_col_k * kElementsPerAccess + k);
       ElementA a = *(ptr_A - idx_col_k * kElementsPerAccess + k);
 
