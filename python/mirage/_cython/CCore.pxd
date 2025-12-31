@@ -152,7 +152,6 @@ cdef extern from "mirage/threadblock/graph.h" namespace "mirage::threadblock":
         int get_output_stensors(CppSTensor** cinputs)
 
     cdef cppclass CppTBInputOp "mirage::threadblock::TBInputOp"(CppTBOperator):
-        int forloop_dim
         int3 input_map
         size_t get_dtensor_guid()
 
@@ -164,7 +163,6 @@ cdef extern from "mirage/threadblock/graph.h" namespace "mirage::threadblock":
 
         CppSTensor* new_input(const CppDTensor* dtensor,
                              int3 input_map,
-                             int forloop_dim,
                              SmemLayout layout,
                              bool store_in_dmem)
 

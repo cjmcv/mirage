@@ -29,7 +29,7 @@ def is_closed(A, B):
             "weight2_size": (4096, 4096),
             "grid_dim": (64, 1, 1),
             "block_dim": (128, 1, 1),
-            "forloop_range": 64,
+            "thread_num": 64,
             "reduction_dimx": 64,
             "tb_input_map1": (-1, -1, -1),
             "tb_forloop_dim1": 1,
@@ -49,7 +49,7 @@ def test_gated_mlp(test_config):
     tb_graph = mi.new_threadblock_graph(
         test_config["grid_dim"],
         test_config["block_dim"],
-        test_config["forloop_range"],
+        test_config["thread_num"],
         test_config["reduction_dimx"],
     )
     tX = tb_graph.new_input(
@@ -123,7 +123,7 @@ def test_gated_mlp(test_config):
             "value_size": (2, 4096, 64),
             "tb1_grid_dim": (2, 16, 4),
             "tb1_block_dim": (128, 1, 1),
-            "tb1_forloop_range": 4,
+            "tb1_thread_num": 4,
             "tb1_reduction_dimx": 64,
             "tb1_qinput_map": (0, -1, 1),
             "tb1_kinput_map": (0, 2, -1),
@@ -135,7 +135,7 @@ def test_gated_mlp(test_config):
             "tb1_outout_map2": (0, 2, 1),
             "tb2_grid_dim": (2, 16, 1),
             "tb2_block_dim": (128, 1, 1),
-            "tb2_forloop_range": 1,
+            "tb2_thread_num": 1,
             "tb2_reduction_dimx": 64,
             "tb2_input_map1": (0, 1, -1),
             "tb2_input_map2": (0, 1, -1),
@@ -153,7 +153,7 @@ def test_group_query_attention(test_config):
     tbgraph1 = mi.new_threadblock_graph(
         grid_dim=test_config["tb1_grid_dim"],
         block_dim=test_config["tb1_block_dim"],
-        forloop_range=test_config["tb1_forloop_range"],
+        thread_num=test_config["tb1_thread_num"],
         reduction_dimx=test_config["tb1_reduction_dimx"],
     )
 
@@ -184,7 +184,7 @@ def test_group_query_attention(test_config):
     tbgraph2 = mi.new_threadblock_graph(
         grid_dim=test_config["tb2_grid_dim"],
         block_dim=test_config["tb2_block_dim"],
-        forloop_range=test_config["tb2_forloop_range"],
+        thread_num=test_config["tb2_thread_num"],
         reduction_dimx=test_config["tb2_reduction_dimx"],
     )
     bA = tbgraph2.new_input(
@@ -266,7 +266,7 @@ def test_lora():
             "weight_size": (4096, 4096),
             "grid_dim": (64, 1, 1),
             "block_dim": (128, 1, 1),
-            "forloop_range": 64,
+            "thread_num": 64,
             "reduction_dimx": 64,
             "tb_input_map1": (-1, -1, -1),
             "tb_forloop_dim1": 1,
@@ -283,7 +283,7 @@ def test_rms_norm(test_config):
     tb_graph = mi.new_threadblock_graph(
         grid_dim=test_config["grid_dim"],
         block_dim=test_config["block_dim"],
-        forloop_range=test_config["forloop_range"],
+        thread_num=test_config["thread_num"],
         reduction_dimx=test_config["reduction_dimx"],
     )
     tX = tb_graph.new_input(

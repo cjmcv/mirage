@@ -13,7 +13,7 @@ if __name__ == "__main__":
     X = graph.new_input(dims=(256, 4096), dtype=mi.float16)
     W = graph.new_input(dims=(4096, 4096), dtype=mi.float16)
     tb_graph = mi.new_threadblock_graph(
-        grid_dim=(4, 16, 1), block_dim=(256, 1, 1), forloop_range=64, reduction_dimx=64
+        grid_dim=(4, 16, 1), block_dim=(256, 1, 1), thread_num=64, reduction_dimx=64
     )
     tX = tb_graph.new_input(dtensor=X, input_map=(0, -1, -1), forloop_dim=1)
     tW = tb_graph.new_input(dtensor=W, input_map=(-1, 1, -1), forloop_dim=0)

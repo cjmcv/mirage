@@ -1060,8 +1060,8 @@ class PersistentKernel:
         assert input.num_dims == 2 # (batch_size, 2 * intermediate_size)
         assert output.num_dims == 2 # (batch_size, intermediate_size)
         tb_graph = TBGraph(CyTBGraph(grid_dim, block_dim, 128, 64)) # CJM_TODO: thread_num应由megakernel初始化时指定，不能更改
-        tb_graph.new_input(input, (-1, -1, -1), 1, True)
-        tb_graph.new_input(output, (-1, -1, -1), 1, True)
+        tb_graph.new_input(input, (-1, -1, -1), True)
+        tb_graph.new_input(output, (-1, -1, -1), True)
         self.kn_graph.customized([input, output], tb_graph)
         self.kn_graph.register_task(tb_graph, "silu_mul" if self.target_cc == 90 else "silu_mul")
 

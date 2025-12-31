@@ -15,7 +15,7 @@ if __name__ == "__main__":
     X = graph.new_input(dims=(16, 4096), dtype=mi.float16)
     W1 = graph.new_input(dims=(4096, 4096), dtype=mi.float16)
     W2 = graph.new_input(dims=(4096, 4096), dtype=mi.float16)
-    tb_graph = mi.new_threadblock_graph(grid_dim=(64,1,1), block_dim=(128,1,1), forloop_range=32, reduction_dimx=64)
+    tb_graph = mi.new_threadblock_graph(grid_dim=(64,1,1), block_dim=(128,1,1), thread_num=32, reduction_dimx=64)
     tX = tb_graph.new_input(dtensor=X, input_map=(-1, -1, -1), forloop_dim=1)
     tW1 = tb_graph.new_input(dtensor=W1, input_map=(1, -1, -1), forloop_dim=0)
     tW2 = tb_graph.new_input(dtensor=W2, input_map=(1, -1, -1), forloop_dim=0)

@@ -88,7 +88,7 @@
                     "y": 1,
                     "z": 1
                 },
-                "forloop_range": 64,
+                "thread_num": 64,
                 "graph_level": "thread_block_graph",
                 "grid_dim": {
                     "x": 128,

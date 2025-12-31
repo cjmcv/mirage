@@ -21,7 +21,7 @@ def matmul_fp8(M, N, K):
   W = kn_graph.new_input(dims=(K, N), dtype=mi.float8_e4m3)
 
   # launch 64x1x1 blocks, each running a warp group (128 threads)
-  tb_graph = mi.new_threadblock_graph(grid_dim=(64,1,1), block_dim=(128,1,1), forloop_range=64, reduction_dimx=64)
+  tb_graph = mi.new_threadblock_graph(grid_dim=(64,1,1), block_dim=(128,1,1), thread_num=64, reduction_dimx=64)
   tX = tb_graph.new_input(dtensor=X, input_map=(-1,-1,-1), forloop_dim=1)
   tW = tb_graph.new_input(dtensor=W, input_map=( 1,-1,-1), forloop_dim=0)
   tM = tb_graph.matmul(tX, tW)

@@ -83,9 +83,9 @@ int main(int argc, char **argv) {
     }
     plan.block_dim = {128, 1, 1};
     if (batch_size == 1) {
-      plan.forloop_range = 4;
+      plan.thread_num = 4;
     } else {
-      plan.forloop_range = 8;
+      plan.thread_num = 8;
     }
     plan.reduction_dimx = 64;
     outputs = graph.customized({Q, K, V}, plan);
@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
       plan.grid_dim = {8, 64, 1};
     }
     plan.block_dim = {128, 1, 1};
-    plan.forloop_range = 1;
+    plan.thread_num = 1;
     plan.reduction_dimx = 64;
     outputs = graph.customized({outputs[0], outputs[1]}, plan);
     assert(outputs.size() == 1);

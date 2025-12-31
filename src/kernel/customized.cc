@@ -102,7 +102,6 @@ KNCustomizedOp::KNCustomizedOp(mirage::kernel::Graph *_kgraph,
         DTensor const &dtensor = _inputs[input_idx++];
         bgraph.new_input(dtensor,
                          input_op->input_map,
-                         input_op->forloop_dim,
                          input_op->output_tensors[0].layout,
                          input_op->output_tensors[0].store_in_dmem);
         break;

@@ -62,12 +62,12 @@ int main(int argc, char **argv) {
   std::vector<kernel::DTensor> outputs;
   {
     dim3 grid_dim = {2, 16, 4}, block_dim = {128, 1, 1};
-    int forloop_range = 4, reduction_dimx = 64;
+    int thread_num = 4, reduction_dimx = 64;
     if (batch_size > 1) {
       grid_dim = {16, 8, 2};
     }
     threadblock::Graph bgraph(
-        grid_dim, block_dim, forloop_range, reduction_dimx);
+        grid_dim, block_dim, thread_num, reduction_dimx);
     threadblock::STensor bQ =
         bgraph.new_input(Q, {0, -1, 1}, -1, layout::SmemRowMajor);
     threadblock::STensor bK =
@@ -92,12 +92,12 @@ int main(int argc, char **argv) {
   }
   {
     dim3 grid_dim = {2, 16, 1}, block_dim = {128, 1, 1};
-    int forloop_range = 1, reduction_dimx = 64;
+    int thread_num = 1, reduction_dimx = 64;
     if (batch_size > 1) {
       grid_dim = {16, 8, 1};
     }
     threadblock::Graph bgraph(
-        grid_dim, block_dim, forloop_range, reduction_dimx);
+        grid_dim, block_dim, thread_num, reduction_dimx);
     threadblock::STensor bA =
         bgraph.new_input(outputs[0], {0, 1, -1}, -1, layout::SmemRowMajor);
     threadblock::STensor bB =

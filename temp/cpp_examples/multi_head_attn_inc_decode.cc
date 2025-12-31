@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
       plan.grid_dim = {256, 4, 1};
     }
     plan.block_dim = {128, 1, 1};
-    plan.forloop_range = 4;
+    plan.thread_num = 4;
     plan.reduction_dimx = 64;
     outputs = graph.customized({Q, K, V}, plan);
     assert(outputs.size() == 2);
@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
       plan.grid_dim = {256, 1, 1};
     }
     plan.block_dim = {128, 1, 1};
-    plan.forloop_range = 1;
+    plan.thread_num = 1;
     plan.reduction_dimx = 64;
     outputs = graph.customized({outputs[0], outputs[1]}, plan);
     assert(outputs.size() == 1);

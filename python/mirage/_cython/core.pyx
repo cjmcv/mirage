@@ -425,13 +425,6 @@ cdef class CyTBInputOp(CyTBOperator):
                     "z": self.c_input_ptr.input_map.z
                 }
 
-    property forloop_dim:
-        def __get__(self):
-            if self.c_input_ptr == NULL:
-                return None
-            else:
-                return self.c_input_ptr.forloop_dim
-
     property dtensor_guid:
         def __get__(self):
             if self.c_input_ptr == NULL:
@@ -522,7 +515,6 @@ cdef class CyKNGraph:
         if "input" in op.op_type:
             input_op = CyTBInputOp(ctypes.cast(<unsigned long long>(op.c_ptr), ctypes.c_void_p))
             ans["input_map"] = input_op.input_map
-            ans["forloop_dim"] = input_op.forloop_dim
             ans["dtensor"] = {
                 "guid": input_op.dtensor_guid
             }
@@ -681,7 +673,7 @@ cdef class CyTBGraph:
             else:
                 assert False, "bgraph must be an integer or ctypes.c_void_p, but got " + str(type(bgraph))
     
-    def new_input(self, DTensor dtensor, tuple input_map, int forloop_dim, bool store_in_dmem = False):
+    def new_input(self, DTensor dtensor, tuple input_map, bool store_in_dmem = False):
         assert len(input_map) == 3, "input_map must be of length 3"
         cdef int3 c_input_map
         c_input_map.x = input_map[0]
@@ -690,7 +682,7 @@ cdef class CyTBGraph:
         cdef CppDTensor* dtensor_cptr = NULL
         if dtensor is not None:
             dtensor_cptr = dtensor.c_ptr
-        cdef CppSTensor* ptr = self.p_bgraph.new_input(dtensor_cptr, c_input_map, forloop_dim, SmemRowMajor, store_in_dmem)
+        cdef CppSTensor* ptr = self.p_bgraph.new_input(dtensor_cptr, c_input_map, SmemRowMajor, store_in_dmem)
         t = ctypes.cast(<unsigned long long>ptr, ctypes.c_void_p)
         return STensor(t)
 

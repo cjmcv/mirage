@@ -644,7 +644,7 @@
                         "y": 1,
                         "z": 1
                     },
-                    "forloop_range": 1,
+                    "thread_num": 1,
                     "graph_level": "thread_block_graph",
                     "grid_dim": {
                         "x": 128,
@@ -1117,7 +1117,7 @@
                         -1,
                         -1
                     ],
-                    "forloop_range": 1,
+                    "thread_num": 1,
                     "grid_dim": {
                         "x": 128,
                         "y": 1,
@@ -1294,7 +1294,7 @@
                         "y": 1,
                         "z": 1
                     },
-                    "forloop_range": 1,
+                    "thread_num": 1,
                     "graph_level": "thread_block_graph",
                     "grid_dim": {
                         "x": 128,
@@ -1767,7 +1767,7 @@
                         -1,
                         -1
                     ],
-                    "forloop_range": 1,
+                    "thread_num": 1,
                     "grid_dim": {
                         "x": 128,
                         "y": 1,

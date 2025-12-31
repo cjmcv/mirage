@@ -60,7 +60,7 @@ for output_size in output_sizes:
     tb_graph = mi.new_threadblock_graph(
         grid_dim=(1, 1, 1),
         block_dim=(128, 1, 1),
-        forloop_range=reduction_size / 64,
+        thread_num=reduction_size / 64,
         reduction_dimx=64,
     )
     tX = tb_graph.new_input(dtensor=X, input_map=(-1, -1, -1), forloop_dim=1)

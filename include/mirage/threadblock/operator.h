@@ -55,7 +55,6 @@ public:
   TBInputOp(Graph *_graph,
             mirage::kernel::DTensor const &dtensor,
             int3 input_map,
-            int forloop_dim,
             mirage::layout::SmemLayout layout,
             bool store_in_dmem);
   ~TBInputOp();
@@ -66,7 +65,6 @@ public:
 public:
   mirage::kernel::DTensor dtensor;
   int3 input_map;
-  int forloop_dim;
 };
 
 } // namespace threadblock

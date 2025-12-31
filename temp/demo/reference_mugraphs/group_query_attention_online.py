@@ -8,7 +8,7 @@ if __name__ == "__main__":
     K = graph.new_input(dims=(2, 64, 1024), dtype=mi.float16)
     V = graph.new_input(dims=(2, 1024, 64), dtype=mi.float16)
     tbgraph1 = mi.new_threadblock_graph(
-        grid_dim=(2, 1, 16), block_dim=(128, 1, 1), forloop_range=16, reduction_dimx=64
+        grid_dim=(2, 1, 16), block_dim=(128, 1, 1), thread_num=16, reduction_dimx=64
     )
     bQ = tbgraph1.new_input(dtensor=Q, input_map=(0, -1, 1), forloop_dim=-1)
     bK = tbgraph1.new_input(dtensor=K, input_map=(0, -1, -1), forloop_dim=2)
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     O = graph.customized([Q, K, V], tbgraph1)
 
     tbgraph2 = mi.new_threadblock_graph(
-        grid_dim=(2, 1, 1), block_dim=(128, 1, 1), forloop_range=1, reduction_dimx=64
+        grid_dim=(2, 1, 1), block_dim=(128, 1, 1), thread_num=1, reduction_dimx=64
     )
     bA = tbgraph2.new_input(dtensor=O[0], input_map=(0, 1, -1), forloop_dim=-1)
     bB = tbgraph2.new_input(dtensor=O[1], input_map=(0, 1, -1), forloop_dim=-1)

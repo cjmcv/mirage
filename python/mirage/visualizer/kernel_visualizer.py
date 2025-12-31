@@ -60,10 +60,7 @@ def draw_edge(G, from_node, to_node, graph_type, label=None):
 
 def get_format_str(operator_data):
     s = ""
-    if operator_data["forloop_dim"] >= 0:
-        s += str(operator_data["forloop_dim"])
-    else:
-        s += "\u2205"
+    s += "\u2205"
     return f"fmap: [i↔{s}]"
 
 
@@ -124,16 +121,15 @@ class kernel_node(node):
 
 class block_node(node):
     def __init__(
-        self, name, op_type, id, label, iomap=None, forloop_dim=None, thread_num=None
+        self, name, op_type, id, label, iomap=None, thread_num=None
     ):
         super().__init__(name, op_type, id, label, colors_map["block"]["node"])
         # Only input and output nodes have iomap
         if self.is_input_node() or self.is_output_node():
             self.iomap_str = self.get_iomap_str(iomap)
             self.original_tensor = None
-        # Only input nodes have forloop_dim and thread_num
+        # Only input nodes thread_num
         if self.is_input_node():
-            self.forloop_dim = forloop_dim
             self.thread_num = thread_num
             self.formap_str = self.get_formap_str()
 
@@ -152,10 +148,7 @@ class block_node(node):
 
     def get_formap_str(self):
         s = ""
-        if self.forloop_dim >= 0:
-            s += str(self.forloop_dim)
-        else:
-            s += phi_symbol
+        s += phi_symbol
         return f"fmap: [i{arrow_symbol}{s}]"
 
     def draw(self, G):
@@ -163,10 +156,6 @@ class block_node(node):
         if self.is_input_node():
             output_shape = self.output_tensors[0].shape
             shape_before_loop = output_shape.copy()
-            if self.forloop_dim >= 0:
-                shape_before_loop[self.forloop_dim] = (
-                    output_shape[self.forloop_dim] * self.thread_num
-                )
 
             tensor_node_name = self.original_tensor.name + "'_input"
             G.node(
@@ -473,16 +462,13 @@ class block_graph(graph):
                 io_map = node_data["input_map"]
             elif "output_map" in node_data:
                 io_map = node_data["output_map"]
-            forloop_dim = (
-                None if "forloop_dim" not in node_data else node_data["forloop_dim"]
-            )
+
             new_node = block_node(
                 node_name,
                 node_op_type,
                 node_id,
                 op_nodelabel_mapping[node_op_type],
                 io_map,
-                forloop_dim,
                 self.thread_num,
             )
             for output_tensor in node_data["output_tensors"]:
