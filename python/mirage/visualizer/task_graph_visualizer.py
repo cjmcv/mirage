@@ -47,10 +47,11 @@ def check_supported_data_types() -> None:
     for (number, (name, _)) in supported_data_types.items():
         assert f"DT_{name.upper()} = {number}," in lines_set, f"DT_{name.upper()} = {number} is not found in {filename}"
         
-# Offset is in bytes, so divide by the size of each element
-def get_offset_in_number_of_elements(tensor_json: dict) -> int:
-    assert tensor_json["data_type"] in supported_data_types
-    return tensor_json["offset"] / supported_data_types[tensor_json["data_type"]][1]
+# CJM
+# # Offset is in bytes, so divide by the size of each element
+# def get_offset_in_number_of_elements(tensor_json: dict) -> int:
+#     assert tensor_json["data_type"] in supported_data_types
+#     return tensor_json["offset"] / supported_data_types[tensor_json["data_type"]][1]
 
 
 def get_index_from_id(id: int) -> int:
@@ -77,11 +78,11 @@ def display_task_graph(task_graph_json_filename: str, use_xdot: bool) -> None:
             inputs_len = str(len(task['inputs'])) if task['inputs'] is not None else "None"
             outputs_len = str(len(task['outputs'])) if task['outputs'] is not None else "None"
             if task["inputs"] is not None:
-                input_str = "\n".join([f"in: {input['base_ptr']} + {get_offset_in_number_of_elements(input)}" for input in task["inputs"]])
+                input_str = "\n".join([f"in: {input['base_ptr']}" for input in task["inputs"]]) # + {get_offset_in_number_of_elements(input)} # CJM
             else:
                 input_str = f"in: None"
             if task["outputs"] is not None:
-                output_str = "\n".join([f"out: {output['base_ptr']} + {get_offset_in_number_of_elements(output)}" for output in task["outputs"]])
+                output_str = "\n".join([f"out: {output['base_ptr']}" for output in task["outputs"]]) # + {get_offset_in_number_of_elements(output)}
             else:
                 output_str = f"out: None"
             description = f"task_idx: {task_idx}\n{input_str}\n{output_str}\ntask_type: {task_type_color_map[task['task_type']][1]}\nvariant_id: {task['variant_id']}"

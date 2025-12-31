@@ -109,8 +109,8 @@ TBInputOp::TBInputOp(Graph *_graph,
 
   if (forloop_dim >= 0) {
     assert(tensor.dim[forloop_dim] > 0);
-    assert(tensor.dim[forloop_dim] % bgraph->forloop_range == 0);
-    tensor.dim[forloop_dim] /= bgraph->forloop_range;
+    assert(tensor.dim[forloop_dim] % bgraph->thread_num == 0);
+    tensor.dim[forloop_dim] /= bgraph->thread_num;
   }
 
   tensor.owner_op = this;

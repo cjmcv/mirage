@@ -124,17 +124,17 @@ class kernel_node(node):
 
 class block_node(node):
     def __init__(
-        self, name, op_type, id, label, iomap=None, forloop_dim=None, forloop_range=None
+        self, name, op_type, id, label, iomap=None, forloop_dim=None, thread_num=None
     ):
         super().__init__(name, op_type, id, label, colors_map["block"]["node"])
         # Only input and output nodes have iomap
         if self.is_input_node() or self.is_output_node():
             self.iomap_str = self.get_iomap_str(iomap)
             self.original_tensor = None
-        # Only input nodes have forloop_dim and forloop_range
+        # Only input nodes have forloop_dim and thread_num
         if self.is_input_node():
             self.forloop_dim = forloop_dim
-            self.forloop_range = forloop_range
+            self.thread_num = thread_num
             self.formap_str = self.get_formap_str()
 
     def get_iomap_str(self, io_map):
@@ -165,7 +165,7 @@ class block_node(node):
             shape_before_loop = output_shape.copy()
             if self.forloop_dim >= 0:
                 shape_before_loop[self.forloop_dim] = (
-                    output_shape[self.forloop_dim] * self.forloop_range
+                    output_shape[self.forloop_dim] * self.thread_num
                 )
 
             tensor_node_name = self.original_tensor.name + "'_input"
@@ -396,11 +396,11 @@ class kernel_graph(graph):
 
             if "bgraph" in node_data:
                 grid_dim = node_data["bgraph"]["grid_dim"]
-                forloop_range = node_data["bgraph"]["forloop_range"]
+                thread_num = node_data["bgraph"]["thread_num"]
                 new_block_graph = block_graph(
                     "Block graph " + str(len(block_graph_datas_to_handle) + 1),
                     grid_dim,
-                    forloop_range,
+                    thread_num,
                     self,
                 )
                 new_node.related_node = new_block_graph
@@ -444,11 +444,11 @@ class kernel_graph(graph):
 
 class block_graph(graph):
 
-    def __init__(self, label, grid_dim, forloop_range, kernel_graph):
+    def __init__(self, label, grid_dim, thread_num, kernel_graph):
         super().__init__(label, colors_map["block"]["bg"], colors_map["block"]["edge"])
         self.related_node = None
         self.grid_dim = grid_dim
-        self.forloop_range = forloop_range
+        self.thread_num = thread_num
         self.kernel_graph = kernel_graph
 
     def get_grid_size_and_forloop(self):
@@ -458,7 +458,7 @@ class block_graph(graph):
             f"grid size: [{', '.join([f'{k}={v}' for k, v in self.grid_dim.items()])}]"
         )
 
-        forloop_str = f"forloop: [i={self.forloop_range}]"
+        forloop_str = f"forloop: [i={self.thread_num}]"
 
         return "; " + grid_size_str + "; " + forloop_str
 
@@ -483,7 +483,7 @@ class block_graph(graph):
                 op_nodelabel_mapping[node_op_type],
                 io_map,
                 forloop_dim,
-                self.forloop_range,
+                self.thread_num,
             )
             for output_tensor in node_data["output_tensors"]:
                 tensor_guid = output_tensor["guid"]

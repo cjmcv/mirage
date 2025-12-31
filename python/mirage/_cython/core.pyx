@@ -533,7 +533,7 @@ cdef class CyKNGraph:
         bgraph = cop.get_bgraph()
         return {
             "grid_dim": bgraph.grid_dim,
-            "forloop_range": bgraph.forloop_range,
+            "thread_num": bgraph.thread_num,
             "operators": [self._get_tb_operator_info(i) for i in bgraph.operators]
         }
 
@@ -656,13 +656,13 @@ cdef class CyKNGraph:
 cdef class CyTBGraph:
     cdef CppTBGraph *p_bgraph #Hold a CppTBGraph instance
 
-    def __cinit__(self, tuple grid_dim = (), tuple block_dim = (), int forloop_range = -1, int dimx = -1, bgraph = None):
+    def __cinit__(self, tuple grid_dim = (), tuple block_dim = (), int thread_num = 128, int dimx = -1, bgraph = None):
         cdef unsigned long long ptr
         cdef dim3 c_grid_dim
         cdef dim3 c_block_dim
         if bgraph is None:
-            if len(grid_dim) == 0 or len(block_dim) == 0 or forloop_range == -1 or dimx == -1:
-                assert False, "grid_dim, block_dim, forloop_range, dimx must be provided"
+            if len(grid_dim) == 0 or len(block_dim) == 0 or dimx == -1:
+                assert False, "grid_dim, block_dim, thread_num, dimx must be provided"
             assert len(grid_dim) == 3, "grid_dim must include 3 dimensions"
             assert len(block_dim) == 3, "block_dim must include 3 dimensions"
             c_grid_dim.x = grid_dim[0]
@@ -671,7 +671,7 @@ cdef class CyTBGraph:
             c_block_dim.x = block_dim[0]
             c_block_dim.y = block_dim[1]
             c_block_dim.z = block_dim[2]
-            self.p_bgraph = new CppTBGraph(c_grid_dim, c_block_dim, forloop_range, dimx)
+            self.p_bgraph = new CppTBGraph(c_grid_dim, c_block_dim, thread_num, dimx)
         else:
             ptr = ctypes.cast(bgraph, ctypes.c_void_p).value
             if isinstance(bgraph, int):
@@ -702,9 +702,9 @@ cdef class CyTBGraph:
                 "z": self.p_bgraph.grid_dim.z
             }
 
-    property forloop_range:
+    property thread_num:
         def __get__(self):
-            return self.p_bgraph.forloop_range
+            return self.p_bgraph.thread_num
 
     property operators:
         def __get__(self):

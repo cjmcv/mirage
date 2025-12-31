@@ -86,24 +86,29 @@ namespace kernel {
 //   }
 // }
 
+// CJM_TODO: 线程数由主kernel launch时指定
 template <typename T,
+          int THREAD_NUM,
+          int TILE_DIM_X, 
+          int TILE_DIM_Y, 
+          int TILE_DIM_Z,
           int BATCH_SIZE,
           int OUTPUT_SIZE,
           int I_STRIDE,
           int O_STRIDE>
-__device__ __forceinline__ void silu_mul_task_impl(void const *input_ptr,
+__device__ __forceinline__ void silu_mul_task_impl(int bx, int by, int bz,
+                                                   void const *input_ptr,
                                                    void *output_ptr,
                                                    int num_active_tokens) {
   T const *__restrict__ d_input = static_cast<T const *>(input_ptr);
   T const *__restrict__ d_mul = static_cast<T const *>(input_ptr) + O_STRIDE;
   T *__restrict__ d_output = static_cast<T *>(output_ptr);
 
-  // if (threadIdx.x == 0) {
-  //   printf("[%d] silu_mul input_ptr: %lld, output_ptr: %lld: %d.\n", blockIdx.x, input_ptr, output_ptr, OUTPUT_SIZE);
-  // }
+  if (threadIdx.x == 0) {
+    printf("[%d-(%d,%d,%d)]-tile(%d,%d,%d)(%d) silu_mul input_ptr: %lld, output_ptr: %lld: %d.\n", blockIdx.x, bx, by, bz, TILE_DIM_X, TILE_DIM_Y, TILE_DIM_Z, THREAD_NUM, input_ptr, output_ptr, OUTPUT_SIZE);
+  }
 #pragma unroll
-  for (int i = threadIdx.x; i < num_active_tokens * OUTPUT_SIZE;
-       i += blockDim.x) {
+  for (int i = threadIdx.x; i < num_active_tokens * OUTPUT_SIZE; i += blockDim.x) {
     int batch_idx = i / OUTPUT_SIZE;
     int offset = i % OUTPUT_SIZE;
     float input_val = float(d_input[batch_idx * I_STRIDE + offset]);

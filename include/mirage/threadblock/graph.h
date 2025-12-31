@@ -29,7 +29,7 @@ class Graph {
 
 public:
   Graph();
-  Graph(dim3 grid_dim, dim3 block_dim, int forloop_range, int reduction_dimx);
+  Graph(dim3 grid_dim, dim3 block_dim, int thread_num, int reduction_dimx);
   ~Graph();
   Graph(Graph const &) = delete;
   Graph &operator=(Graph const &) = delete;
@@ -56,7 +56,7 @@ public:
 
 public:
   dim3 grid_dim, block_dim, cluster_dim{4, 4, 1};
-  int forloop_range;
+  int thread_num;
   int reduction_dimx;
   std::vector<mirage::threadblock::TBOperator *> operators;
   // memory allocator

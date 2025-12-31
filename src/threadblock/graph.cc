@@ -19,14 +19,14 @@ namespace mirage {
 namespace threadblock {
 
 Graph::Graph()
-    : grid_dim(1, 1, 1), block_dim(1, 1, 1), forloop_range(1),
+    : grid_dim(1, 1, 1), block_dim(1, 1, 1), thread_num(128),
       reduction_dimx(1), smem_offset(0) {}
 
 Graph::Graph(dim3 _grid_dim,
              dim3 _block_dim,
-             int _forloop_range,
+             int _thread_num,
              int _reduction_dimx)
-    : grid_dim(_grid_dim), block_dim(_block_dim), forloop_range(_forloop_range),
+    : grid_dim(_grid_dim), block_dim(_block_dim), thread_num(_thread_num),
       reduction_dimx(_reduction_dimx), smem_offset(0) {
   // A bgraph cannot have more than MAX_NUM_THREADBLOCKS_PER_KERNEL threadblocks
   // otherwise we don't have enough buffers in device memory for saving

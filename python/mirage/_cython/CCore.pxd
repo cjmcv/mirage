@@ -159,7 +159,7 @@ cdef extern from "mirage/threadblock/graph.h" namespace "mirage::threadblock":
     cdef cppclass CppTBGraph "mirage::threadblock::Graph":
         CppTBGraph(dim3 grid_dim,
                    dim3 block_dim,
-                   int forloop_range,
+                   int thread_num,
                    int reduction_dimx)
 
         CppSTensor* new_input(const CppDTensor* dtensor,
@@ -170,6 +170,6 @@ cdef extern from "mirage/threadblock/graph.h" namespace "mirage::threadblock":
 
         dim3 grid_dim
         dim3 block_dim
-        int forloop_range
+        int thread_num
         int reduction_dimx
         vector[CppTBOperator*] operators

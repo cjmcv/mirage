@@ -392,11 +392,11 @@ int TaskRegister::register_silu_mul_task(threadblock::Graph const &bgraph,
   output_stride = static_cast<int>(kn_input_op->input_strides[0]);
   mirage::transpiler::CodeKeeper code;
   code.inc_indent();
-  code.e("kernel::silu_mul_task_impl<bfloat16, $, $, $, $>(",
-         batch_size,
-         output_size,
-         input_stride,
-         output_stride);
+  code.e("kernel::silu_mul_task_impl<bfloat16, $, $, $, $, $, $, $, $>(",
+         bgraph.thread_num, bgraph.block_dim.x, bgraph.block_dim.y, bgraph.block_dim.z, 
+         batch_size, output_size,
+         input_stride, output_stride);
+  code.e("    task_desc->bx, task_desc->by, task_desc->bz,"); // CJM
   code.e("    task_desc->input_ptrs[0],");
   code.e("    task_desc->output_ptrs[0],");
   code.e("    runtime_config.batch_size);");
@@ -2436,6 +2436,7 @@ int TaskRegister::register_moe_silu_mul_task(threadblock::Graph const &bgraph,
          output_size,
          input_stride,
          output_stride);
+  code.e("    task_desc->bx, task_desc->by, task_desc->bz,");
   code.e("    task_desc->input_ptrs[0],");
   code.e("    task_desc->output_ptrs[0],");
   code.e("    $);", num_experts_per_tok * batch_size);

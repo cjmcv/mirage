@@ -76,7 +76,7 @@ KNCustomizedOp::KNCustomizedOp(mirage::kernel::Graph *_kgraph,
     : KNOperator(_kgraph, mirage::type::KN_CUSTOMIZED_OP, _inputs),
       bgraph(_graph.grid_dim,
              _graph.block_dim,
-             _graph.forloop_range,
+             _graph.thread_num,
              _graph.reduction_dimx) {
   size_t input_idx = 0;
   for (auto const &op : _graph.operators) {

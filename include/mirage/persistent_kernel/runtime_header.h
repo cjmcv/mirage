@@ -137,6 +137,9 @@ enum EventType {
 
 struct TensorDesc {
   int num_dims;
+  int bx; // CJM
+  int by;
+  int bz;
   void *base_ptr;
 #ifdef MPK_ENABLE_TMA
   void *tma_desc_ptrs[mirage::config::MAX_TMA_DESC_PER_TENSOR];
@@ -198,6 +201,9 @@ struct alignas(16) TaskDesc {
       : task_type(t.task_type), variant_id(t.variant_id),
         trigger_event(t.trigger_event), dependent_event(t.dependent_event),
         task_metadata(t.task_metadata) {
+    bx = t.inputs[0].bx; // CJM_TODO 只用到了一个, 冗余
+    by = t.inputs[0].by;
+    bz = t.inputs[0].bz;
     for (int i = 0; i < t.num_inputs; i++) {
       input_ptrs[i] = t.inputs[i].base_ptr;
     }
@@ -224,6 +230,9 @@ struct alignas(16) TaskDesc {
   unsigned variant_id;
   EventId trigger_event;
   EventId dependent_event;
+  int bx;
+  int by;
+  int bz;
   void *input_ptrs[MAX_INPUTS_PER_TASK];
   void *output_ptrs[MAX_OUTPUTS_PER_TASK];
 #ifdef MPK_ENABLE_TMA
