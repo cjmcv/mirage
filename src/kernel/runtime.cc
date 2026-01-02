@@ -95,31 +95,31 @@ void dfs_create_events_add_tasks(
     }
     event_desc.last_task_id = all_tasks.size();
     // Set producer tasks
-    if (task_type == TASK_SILU_MUL) {
-      int factor_x = producer_grid_dim.x / event_dims[1] / 2; // cjm-hard code!! only support index 1.
-      printf("factor_x: %d, (%d, %d, %d).\n", factor_x, event_dims[1], event_dims[2], event_dims[3]);
-      for (bid.y = producer_lo_bid.y; bid.y < producer_hi_bid.y; bid.y++) {
-        for (bid.z = producer_lo_bid.z; bid.z < producer_hi_bid.z; bid.z++) {    
-          for (bid.x = producer_lo_bid.x; bid.x < producer_lo_bid.x + factor_x; bid.x++) {
-            assert(pre_task_map.find(bid) != pre_task_map.end());
-            int task_id = pre_task_map.find(bid)->second;
-            // encode gpu_id
-            all_tasks[task_id].trigger_event = get_event_id(
-                my_gpu_id, all_events.size(), false /*nvshmem_event*/);
-            event_desc.num_triggers++;
-          }
-          for (bid.x = producer_hi_bid.x; bid.x < producer_hi_bid.x + factor_x; bid.x++) {
-            assert(pre_task_map.find(bid) != pre_task_map.end());
-            int task_id = pre_task_map.find(bid)->second;
-            // encode gpu_id
-            all_tasks[task_id].trigger_event = get_event_id(
-                my_gpu_id, all_events.size(), false /*nvshmem_event*/);
-            event_desc.num_triggers++;            
-          }
-        }
-      }
-    }
-    else {
+    // if (task_type == TASK_SILU_MUL) {
+    //   int factor_x = producer_grid_dim.x / event_dims[1] / 2; // cjm-hard code!! only support index 1.
+    //   printf("factor_x: %d, (%d, %d, %d).\n", factor_x, event_dims[1], event_dims[2], event_dims[3]);
+    //   for (bid.y = producer_lo_bid.y; bid.y < producer_hi_bid.y; bid.y++) {
+    //     for (bid.z = producer_lo_bid.z; bid.z < producer_hi_bid.z; bid.z++) {    
+    //       for (bid.x = producer_lo_bid.x; bid.x < producer_lo_bid.x + factor_x; bid.x++) {
+    //         assert(pre_task_map.find(bid) != pre_task_map.end());
+    //         int task_id = pre_task_map.find(bid)->second;
+    //         // encode gpu_id
+    //         all_tasks[task_id].trigger_event = get_event_id(
+    //             my_gpu_id, all_events.size(), false /*nvshmem_event*/);
+    //         event_desc.num_triggers++;
+    //       }
+    //       for (bid.x = producer_hi_bid.x; bid.x < producer_hi_bid.x + factor_x; bid.x++) {
+    //         assert(pre_task_map.find(bid) != pre_task_map.end());
+    //         int task_id = pre_task_map.find(bid)->second;
+    //         // encode gpu_id
+    //         all_tasks[task_id].trigger_event = get_event_id(
+    //             my_gpu_id, all_events.size(), false /*nvshmem_event*/);
+    //         event_desc.num_triggers++;            
+    //       }
+    //     }
+    //   }
+    // }
+    // else {
       for (bid.x = producer_lo_bid.x; bid.x < producer_hi_bid.x; bid.x++) {
         for (bid.y = producer_lo_bid.y; bid.y < producer_hi_bid.y; bid.y++) {
           for (bid.z = producer_lo_bid.z; bid.z < producer_hi_bid.z; bid.z++) {
@@ -132,7 +132,7 @@ void dfs_create_events_add_tasks(
           }
         }
       }      
-    }
+    // }
 
     event_desc.event_type =
         event_desc.last_task_id >= event_desc.first_task_id + 8
