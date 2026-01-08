@@ -36,15 +36,36 @@ public:
   DTensor new_input(std::vector<int> const &dims,
                     std::vector<size_t> const &strides,
                     mirage::type::DataType data_type,
-                    mirage::layout::DmemLayout layout);
+                    mirage::layout::DmemLayout layout) {
+    KNInputOp *op = new KNInputOp(dims, strides, data_type, layout);
+    assert(op != nullptr);
+    std::vector<DTensor>& output_tensors = op->get_output_dtensors();
+    for (int i=0; i<output_tensors.size(); i++) {
+      this->allocate(output_tensors[i]);
+    }
+    operators.push_back(op);
+    return op->output_tensors[0];
+  }
   DTensor *new_input_ptr(std::vector<int> const &dims,
                          std::vector<size_t> const &strides,
                          mirage::type::DataType data_type,
-                         mirage::layout::DmemLayout layout);
-  KNOperator *create_input_op(std::vector<int> const &dims,
-                              std::vector<size_t> const &strides,
-                              mirage::type::DataType data_type,
-                              mirage::layout::DmemLayout layout);
+                         mirage::layout::DmemLayout layout) {
+    KNInputOp *op = new KNInputOp(dims, strides, data_type, layout);
+    assert(op != nullptr);
+    std::vector<DTensor>& output_tensors = op->get_output_dtensors();
+    for (int i=0; i<output_tensors.size(); i++) {
+      this->allocate(output_tensors[i]);
+    }
+    operators.push_back(op);
+    return &op->output_tensors[0];
+  }
+  // KNOperator *create_input_op(std::vector<int> const &dims,
+  //                             std::vector<size_t> const &strides,
+  //                             mirage::type::DataType data_type,
+  //                             mirage::layout::DmemLayout layout) {
+  //   KNInputOp *op = new KNInputOp(this, dims, strides, data_type, layout);
+  //   return op;
+  // }
   // customized operator
   std::vector<DTensor> customized(std::vector<DTensor> const &inputs,
                                   mirage::threadblock::Graph const &_graph) {

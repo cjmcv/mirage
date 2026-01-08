@@ -31,7 +31,12 @@ Graph::Graph(dim3 _gpu_dim)
 
 Graph::~Graph() {
   while (!operators.empty()) {
-    delete operators.back();
+    KNOperator *op = operators.back();
+    std::vector<DTensor>& output_tensors = op->get_output_dtensors();
+    for (int i=0; i<output_tensors.size(); i++) {
+      this->free(output_tensors[i]);
+    }
+    delete op;
     operators.pop_back();
   }
 }

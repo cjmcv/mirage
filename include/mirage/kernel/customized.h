@@ -35,7 +35,7 @@ public:
   KNCustomizedOp(Graph *_kgraph,
                  std::vector<DTensor> const &_inputs,
                  mirage::threadblock::Graph const &_graph)
-                 : KNOperator(_kgraph, mirage::type::KN_CUSTOMIZED_OP, _inputs),
+                 : KNOperator(mirage::type::KN_CUSTOMIZED_OP, _inputs),
       bgraph(_graph.grid_dim,
              _graph.block_dim,
              _graph.thread_num,
