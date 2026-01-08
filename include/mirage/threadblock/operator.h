@@ -17,33 +17,26 @@
 #include "mirage/kernel/device_tensor.h"
 #include "mirage/threadblock/smem_tensor.h"
 #include "mirage/type.h"
-// #include "mirage/vector_types.h"
 #include <vector>
 
 namespace mirage {
 namespace threadblock {
 
-class Graph;
-
 class TBOperator {
 public:
-  TBOperator(Graph *graph, mirage::type::TBOperatorType type) : bgraph(graph), op_type(type) {}
-  TBOperator(Graph *graph, mirage::type::TBOperatorType type, STensor const &input1)
-    : bgraph(graph), op_type(type) {
+  TBOperator(mirage::type::TBOperatorType type) : op_type(type) {}
+  TBOperator(mirage::type::TBOperatorType type, STensor const &input1)
+    : op_type(type) {
     input_tensors.push_back(input1);
   }
 
-  TBOperator(Graph *graph,
-             mirage::type::TBOperatorType type,
+  TBOperator(mirage::type::TBOperatorType type,
              STensor const &input1,
              STensor const &input2)
-             : bgraph(graph), op_type(type) {
+             : op_type(type) {
     input_tensors.push_back(input1);
     input_tensors.push_back(input2);
   }
-  // TBOperator(Graph *graph,
-  //            mirage::type::TBOperatorType,
-  //            std::vector<STensor> const &inputs);
 
   int get_input_stensors(STensor **inputs) {
     for (size_t i = 0; i < input_tensors.size(); ++i) {
@@ -64,7 +57,6 @@ public:
   // virtual operator json() const = 0;
 
 public:
-  Graph *bgraph;
   mirage::type::TBOperatorType op_type;
   std::vector<STensor> input_tensors;
   std::vector<STensor> output_tensors;
@@ -72,15 +64,62 @@ public:
 
 class TBInputOp : public TBOperator {
 public:
-  TBInputOp(Graph *_graph,
-            mirage::kernel::DTensor const &dtensor,
-            int3 input_map,
-            mirage::layout::SmemLayout layout,
-            bool store_in_dmem);
-  ~TBInputOp();
+  TBInputOp(dim3 grid_dim, off_t smem_offset,
+            mirage::kernel::DTensor const &_dtensor,
+            int3 _input_map,
+            mirage::layout::SmemLayout _layout,
+            bool store_in_dmem)
+      : TBOperator(mirage::type::TB_INPUT_OP), dtensor(_dtensor),
+    input_map(_input_map)  {
+    STensor tensor;
+    tensor.layout = _layout;
+    tensor.num_dims = dtensor.num_dims;
+    tensor.data_type = dtensor.data_type;
+    for (int i = 0; i < tensor.num_dims; i++) {
+      tensor.dim[i] = dtensor.dim[i];
+    }
+
+    for (int d = 0; d < 3; d++) {
+      int dim_idx = -1;
+      int dim_div = 1;
+      if (d == 0 && grid_dim.x > 1) {
+        dim_idx = input_map.x;
+        dim_div = grid_dim.x;
+      }
+      if (d == 1 && grid_dim.y > 1) {
+        dim_idx = input_map.y;
+        dim_div = grid_dim.y;
+      }
+      if (d == 2 && grid_dim.z > 1) {
+        dim_idx = input_map.z;
+        dim_div = grid_dim.z;
+      }
+      if (dim_idx >= 0) {
+        assert(tensor.dim[dim_idx] > 0);
+        // assert(tensor.dim[dim_idx] % dim_div == 0);
+        if (tensor.dim[dim_idx] % dim_div != 0) {
+          fprintf(stderr, "(tensor.dim[dim_idx] %% dim_div != 0): [tensor.dim[%d]=%d, dim_div=%d]\n", dim_idx, tensor.dim[dim_idx], dim_div);
+          abort();
+        }
+        tensor.dim[dim_idx] /= dim_div;
+      }
+    }
+
+    tensor.owner_op = this;
+    tensor.owner_ts_idx = 0;
+    tensor.guid = STensor::next_guid++;
+    tensor.after_accum = false;
+    tensor.store_in_dmem = store_in_dmem;
+    tensor.smem_offset = smem_offset; // bgraph->allocate_fingerprint(tensor);
+    output_tensors.push_back(tensor);
+  }
+
+  ~TBInputOp() {}
 
   // operator json() const override;
-  size_t get_dtensor_guid();
+  size_t get_dtensor_guid() {
+    return dtensor.guid;
+  }
 
 public:
   mirage::kernel::DTensor dtensor;

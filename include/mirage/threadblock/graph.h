@@ -19,7 +19,6 @@
 #include "mirage/kernel/device_tensor.h"
 #include "mirage/threadblock/operator.h"
 #include "mirage/threadblock/smem_tensor.h"
-// #include "mirage/vector_types.h"
 #include <vector>
 
 namespace mirage {
@@ -83,7 +82,7 @@ public:
                               mirage::layout::SmemLayout layout,
                               bool store_in_dmem = false){
     TBInputOp *op = new TBInputOp(
-        this, dtensor, input_map, layout, store_in_dmem);
+      grid_dim, smem_offset, dtensor, input_map, layout, store_in_dmem);
 
     // Check shmem usage
     size_t smem_usage = calculate_shared_memory_usage(op);
@@ -153,6 +152,7 @@ public:
   using TensorType = STensor;
 };
 
+////////////////////////////////////////////////////////////////////////
 
 } // namespace threadblock
 } // namespace mirage
