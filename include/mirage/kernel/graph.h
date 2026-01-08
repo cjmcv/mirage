@@ -47,12 +47,48 @@ public:
                               mirage::layout::DmemLayout layout);
   // customized operator
   std::vector<DTensor> customized(std::vector<DTensor> const &inputs,
-                                  mirage::threadblock::Graph const &_graph);
-  int customized(std::vector<DTensor const *> inputs,
+                                  mirage::threadblock::Graph const &_graph) {
+    KNOperator *op = create_customized_op(inputs, _graph);
+    assert(op != nullptr);
+    operators.push_back(op);
+    return op->output_tensors;
+  }
+
+  int customized(std::vector<DTensor const *> _inputs,
                  DTensor **outputs,
-                 mirage::threadblock::Graph const *bgraph);
+                 mirage::threadblock::Graph const *bgraph) {
+    std::vector<DTensor> inputs;
+    for (auto const &t : _inputs) {
+      inputs.push_back(t == nullptr ? DTensor::EMPTY_TENSOR : *t);
+    }
+    KNOperator *op = create_customized_op(inputs, *bgraph);
+    assert(op != nullptr);
+    operators.push_back(op);
+    for (size_t i = 0; i < op->output_tensors.size(); i++) {
+      outputs[i] = &op->output_tensors[i];
+    }
+    return op->output_tensors.size();
+  }
   KNOperator *create_customized_op(std::vector<DTensor> const &inputs,
-                                   mirage::threadblock::Graph const &_graph);
+                                   mirage::threadblock::Graph const &_graph) {
+    // Assert that _graph's dtensor inputs align with inputs
+    {
+      int num_inputs = 0;
+      for (auto const &op : _graph.operators) {
+        if (op->op_type == mirage::type::TB_INPUT_OP) {
+          mirage::threadblock::TBInputOp const *input_op =
+              static_cast<mirage::threadblock::TBInputOp const *>(op);
+          assert(inputs[num_inputs] == input_op->dtensor);
+          num_inputs++;
+        }
+      }
+      assert(num_inputs == (int)inputs.size());
+    }
+
+
+    KNCustomizedOp *op = new KNCustomizedOp(this, inputs, _graph);
+    return op;
+  }
   // persistent kernel functions
   void attach_torch_tensor(DTensor const *input,
                            void *torch_ptr,
