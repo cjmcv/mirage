@@ -188,6 +188,8 @@ struct alignas(16) STensor {
   static std::atomic<int64_t> next_guid;
 };
 
+inline std::atomic<int64_t> STensor::next_guid = 20000000;
+
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
     STensor, data_type, layout, num_dims, dim, smem_offset, guid, after_accum);
 
