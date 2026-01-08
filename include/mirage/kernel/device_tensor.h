@@ -28,7 +28,18 @@ namespace kernel {
 class KNOperator;
 
 struct alignas(16) DTensor {
-  DTensor(void);
+  DTensor(void) {
+    data_type = mirage::type::DT_UNKNOWN;
+    layout = mirage::layout::DmemUnknownLayout;
+    num_dims = 0;
+    for (int i = 0; i < mirage::config::MAX_TENSOR_DIMS; i++) {
+      dim[i] = 0;
+      // stride[i] = 0;
+    }
+    owner_op = nullptr;
+    owner_ts_idx = -1000;
+    data_offset = -1000;
+  }
   inline bool operator==(DTensor const &b) const {
     if (data_type != b.data_type) {
       return false;
@@ -114,6 +125,9 @@ public:
 
   static std::atomic<int64_t> next_guid;
 };
+
+inline const DTensor DTensor::EMPTY_TENSOR = {/*zero-initialization*/};
+inline std::atomic<int64_t> DTensor::next_guid = 10000000;
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
     DTensor, data_type, layout, num_dims, dim, guid)

@@ -27,19 +27,39 @@ class Graph;
 
 class TBOperator {
 public:
-  TBOperator(Graph *graph, mirage::type::TBOperatorType);
-  TBOperator(Graph *graph, mirage::type::TBOperatorType, STensor const &input1);
-  TBOperator(Graph *graph,
-             mirage::type::TBOperatorType,
-             STensor const &input1,
-             STensor const &input2);
-  TBOperator(Graph *graph,
-             mirage::type::TBOperatorType,
-             std::vector<STensor> const &inputs);
-  int get_input_stensors(STensor **inputs);
-  int get_output_stensors(STensor **inputs);
+  TBOperator(Graph *graph, mirage::type::TBOperatorType type) : bgraph(graph), op_type(type) {}
+  TBOperator(Graph *graph, mirage::type::TBOperatorType type, STensor const &input1)
+    : bgraph(graph), op_type(type) {
+    input_tensors.push_back(input1);
+  }
 
-  virtual ~TBOperator();
+  TBOperator(Graph *graph,
+             mirage::type::TBOperatorType type,
+             STensor const &input1,
+             STensor const &input2)
+             : bgraph(graph), op_type(type) {
+    input_tensors.push_back(input1);
+    input_tensors.push_back(input2);
+  }
+  // TBOperator(Graph *graph,
+  //            mirage::type::TBOperatorType,
+  //            std::vector<STensor> const &inputs);
+
+  int get_input_stensors(STensor **inputs) {
+    for (size_t i = 0; i < input_tensors.size(); ++i) {
+      inputs[i] = &input_tensors[i];
+    }
+    return input_tensors.size();
+  }
+  
+  int get_output_stensors(STensor **outputs) {
+    for (size_t i = 0; i < output_tensors.size(); ++i) {
+      outputs[i] = &output_tensors[i];
+    }
+    return output_tensors.size();
+  };
+
+  virtual ~TBOperator() {}
 
   // virtual operator json() const = 0;
 
