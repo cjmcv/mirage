@@ -79,7 +79,6 @@ def config_cython():
                         cuda_include_dir,
                     ],
                     libraries=[
-                        "mirage_runtime",
                         "cudadevrt",
                         "cudart_static",
                         "cudart",

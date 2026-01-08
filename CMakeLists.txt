@@ -79,21 +79,21 @@ list(APPEND MIRAGE_LINK_LIBS nlohmann_json::nlohmann_json)
 
 link_directories(${CMAKE_SOURCE_DIR}/build/release)
 
-add_library(mirage_runtime ${MIRAGE_SRCS})
+# add_library(mirage_runtime ${MIRAGE_SRCS})
 
-list(APPEND MIRAGE_LINK_LIBS "-lstdc++fs")
+# list(APPEND MIRAGE_LINK_LIBS "-lstdc++fs")
 
-set_target_properties(mirage_runtime PROPERTIES CUDA_ARCHITECTURES "75;80;86;89;90")
+# set_target_properties(mirage_runtime PROPERTIES CUDA_ARCHITECTURES "75;80;86;89;90")
 
-target_compile_features(mirage_runtime PUBLIC cxx_std_17)
+# target_compile_features(mirage_runtime PUBLIC cxx_std_17)
 
-target_compile_definitions(mirage_runtime PUBLIC MIRAGE_BACKEND_USE_CUDA)
+# target_compile_definitions(mirage_runtime PUBLIC MIRAGE_BACKEND_USE_CUDA)
 
-target_link_libraries(mirage_runtime ${MIRAGE_LINK_LIBS})
+# target_link_libraries(mirage_runtime ${MIRAGE_LINK_LIBS})
 
-target_include_directories(mirage_runtime PUBLIC ${PROJECT_SOURCE_DIR}/include)
+# target_include_directories(mirage_runtime PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
-install(TARGETS mirage_runtime LIBRARY DESTINATION lib)
+# install(TARGETS mirage_runtime LIBRARY DESTINATION lib)
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/include
     DESTINATION .)

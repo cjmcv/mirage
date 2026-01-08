@@ -43,12 +43,13 @@ def config_cython():
                               path.join(mirage_path, "deps", "json", "include"),
                               path.join(mirage_path, "deps", "cutlass", "include"),
                               "/usr/local/cuda/include"],
-                libraries=["mirage_runtime", "cudadevrt", "cudart_static", "cudart", "cuda", "gomp", "rt"], # "z3", 
+                libraries=["cudadevrt", "cudart_static", "cudart", "cuda", "gomp", "rt"], # "z3", 
                 library_dirs=[path.join(mirage_path, "build"),
                               path.join(mirage_path, "deps", "build"), # , "z3"
                               "/usr/local/cuda/lib",
                               "/usr/local/cuda/lib64",
                               "/usr/local/cuda/lib64/stubs"],
+                define_macros=[("MIRAGE_BACKEND_USE_CUDA", None)],
                 extra_compile_args=["-std=c++17", "-fopenmp"],
                 extra_link_args=["-fPIC", "-fopenmp"],
                 language="c++"))
@@ -71,3 +72,6 @@ setup(name='mirage',
       ext_modules=config_cython(),
       #**setup_args,
       )
+
+# python cython_setup.py build_ext --inplace
+# python -c "import mirage"
